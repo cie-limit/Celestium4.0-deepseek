@@ -291,21 +291,15 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <input type="date" id="in-date">
   </div>
   <div class="field">
-    <label data-i18n="dt">Integration Step Δt (s)</label>
-    <select id="in-dt">
-      <option value="1">1 s (high accuracy)</option>
-      <option value="10" selected>10 s (recommended)</option>
-      <option value="60">60 s</option>
-      <option value="300">300 s (fast)</option>
-    </select>
-  </div>
-  <div class="field">
-    <label data-i18n="integrator">Integrator</label>
-    <select id="in-integrator">
-      <option value="rk4" selected>RK4</option>
-      <option value="euler">Euler-Cromer</option>
-    </select>
-  </div>
+  <label data-i18n="dt">Integration Step Δt (s)</label>
+  <select id="in-dt">
+    <option value="1">1 s (high accuracy)</option>
+    <option value="5" selected>5 s (recommended)</option>
+    <option value="10">10 s</option>
+    <option value="60">60 s</option>
+    <option value="300">300 s (fast)</option>
+  </select>
+</div>
 
   <div class="sc-header" data-i18n="trail">TRAJECTORY TRAIL</div>
   <div class="row">
@@ -494,7 +488,7 @@ const S = {
     throttle: 0, burnDir: 'prograde', landed: false, crashed: false,
     dvUsed: 0, refFrame: 'earth',
   },
-  sim: { t0: Date.UTC(2026,5,5)/1000, t: 0, warp: 1, paused: true, dt: 10, method: 'rk4' },
+  sim: { t0: Date.UTC(2026,5,5)/1000, t: 0, warp: 1, paused: true, dt: 5, method: 'rk4' },
   vis: { scale: 'exag', scaleK: 30, trail: true },
   camMode: 'free', camTarget: 'earth',
   csvLog: [],
@@ -847,7 +841,47 @@ function checkCollision(){
     setStatus('CRASHED @ SUN', 'err');
   }
 }
+/* --- 최근접 천체 정보 --- */
+function nearestBodyInfo(pos){
+  let minD = Infinity, nearest = null, nearestName = null;
+  for (const n in S.bodies){
+    if (n === 'sun') continue;
+    const b = S.bodies[n];
+    const d = pos.distanceTo(b.pos);
+    if (d < minD){ minD = d; nearest = b; nearestName = n; }
+  }
+  return { body: nearest, name: nearestName, dist: minD };
+}
 
+/* --- 적응형 dt: 가까운 천체일수록 스텝 축소 --- */
+function pickAdaptiveDt(maxDt){
+  const info = nearestBodyInfo(S.ship.pos);
+  if (!info.body) return maxDt;
+  const vRel = S.ship.vel.clone().sub(info.body.vel).length();
+  const vSafe = Math.max(0.001, vRel);
+  // dt <= (r / v) / 50 — 원궤도 주기의 1/50 이하
+  const dtOrbit = (info.dist / vSafe) / 50;
+  return Math.max(0.05, Math.min(maxDt, dtOrbit));
+}
+
+/* --- 초기 상태 진단 로그 --- */
+function debugInitialState(){
+  const e = S.bodies.earth;
+  if (!e){ console.warn('No Earth in S.bodies'); return; }
+  const r = S.ship.pos.clone().sub(e.pos);
+  const v = S.ship.vel.clone().sub(e.vel);
+  const rMag = r.length();
+  const vMag = v.length();
+  const vCirc = Math.sqrt(e.mu / rMag);
+  const energy = 0.5*vMag*vMag - e.mu/rMag;
+  console.log('=== Celestium debug ===');
+  console.log('  Earth |pos|=', e.pos.length().toExponential(3), 'km, |vel|=', e.vel.length().toFixed(3), 'km/s');
+  console.log('  Ship rel Earth: |r|=', rMag.toFixed(1), 'km  (surface alt =', (rMag - e.R).toFixed(1), 'km)');
+  console.log('  Ship rel Earth: |v|=', vMag.toFixed(3), 'km/s');
+  console.log('  v_circ expected:', vCirc.toFixed(3), 'km/s  →', (vMag/vCirc*100).toFixed(1), '%');
+  console.log('  r·v (should be ~0):', r.dot(v).toFixed(2));
+  console.log('  specific energy:', energy.toFixed(3), 'km²/s²', '(negative = bound)');
+}
 /* =====[ PART 6 ] ==== 텔레메트리 UI 갱신 ===================== */
 function updateTelemetry(){
   setText('simTime', fmt(S.sim.t/DAY, 3) + ' d');
@@ -940,7 +974,10 @@ function updateCamera(){
 function resetShipToParkingOrbit(){
   computeBodies(0);
   const e = S.bodies.earth;
-  const alt = parseFloat(($('parkAlt')?.value) || 200);
+
+  let alt = parseFloat(($('parkAlt')?.value) || 200);
+  if (!isFinite(alt) || alt < 100) alt = 200;   // ★ 안전장치
+  if (alt > 40000) alt = 40000;
   const r = e.R + alt;
 
   const rHat = new THREE.Vector3(1,0,0);
@@ -958,9 +995,16 @@ function resetShipToParkingOrbit(){
   S.ship.refFrame = 'earth';
   S.trailPos.length = 0;
   lastTrailPos.copy(S.ship.pos);
-  setStatus(`Parking orbit set: ${alt} km, v_circ=${vCirc.toFixed(3)} km/s (Earth v=${e.vel.length().toFixed(3)} km/s)`, 'sys');
-}
 
+  const dAfter = S.ship.pos.distanceTo(e.pos);
+  if (dAfter <= e.R){
+    console.error('INIT FAIL: ship inside Earth. d=', dAfter, 'R=', e.R);
+    setStatus(`INIT ERROR: ship inside Earth (d=${dAfter.toFixed(0)} km)`, 'err');
+  } else {
+    setStatus(`Parking orbit: alt=${alt} km, r=${r.toFixed(0)} km, v_circ=${vCirc.toFixed(3)} km/s`, 'sys');
+  }
+  debugInitialState();
+}
 function applyPreset(){
   const p = ($('mPreset')?.value) || 'leo';
   resetShipToParkingOrbit();
@@ -1448,6 +1492,10 @@ function bindUI(){
 let lastFrame = performance.now();
 let lastLogTime = 0;
 
+/* =====[ PART 15 ] ==== 메인 루프 (적응형 dt) ===================== */
+let lastFrame = performance.now();
+let lastLogTime = 0;
+
 function animate(){
   requestAnimationFrame(animate);
   const now = performance.now();
@@ -1455,18 +1503,18 @@ function animate(){
   lastFrame = now;
 
   if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
-    const simDt = realDt * S.sim.warp;
-    const dtPhys = S.sim.dt;
-    const nSub = Math.max(1, Math.min(2000, Math.ceil(simDt/dtPhys)));
-    const dtUse = simDt / nSub;
+    let remaining = realDt * S.sim.warp;
+    let safety = 200000;
 
-    for (let i=0;i<nSub;i++){
+    while (remaining > 0 && safety-- > 0){
+      const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
       computeBodies(S.sim.t);
       applyAutoLandControl();
-      if (S.sim.method === 'euler') stepEuler(dtUse);
-      else                          stepRK4(dtUse);
+      if (S.sim.method === 'euler') stepEuler(dtNow);
+      else                          stepRK4(dtNow);
       checkCollision();
-      S.sim.t += dtUse;
+      S.sim.t += dtNow;
+      remaining -= dtNow;
       if (S.ship.landed || S.ship.crashed) break;
     }
 
@@ -1477,6 +1525,13 @@ function animate(){
   } else {
     computeBodies(S.sim.t);
   }
+
+  syncMeshes();
+  updateCamera();
+  updateTelemetry();
+
+  if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
+}
 
   syncMeshes();
   updateCamera();
@@ -1506,6 +1561,7 @@ function boot(){
   logMsg('sys', 'Pick a MISSION PRESET, hit APPLY PRESET, then PLAY');
   logMsg('sys', 'WARP=86,400× → 1 second real = 1 day sim');
 
+  setTimeout(() => debugInitialState(), 100);   // ★ 이 한 줄만 추가
   animate();
 }
 
