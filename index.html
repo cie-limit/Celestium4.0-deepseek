@@ -933,7 +933,7 @@ function debugInitialState(){
   console.log('  r.v:', r.dot(v).toFixed(2), '  energy:', energy.toFixed(3), 'km^2/s^2');
 }
 
-/* =====[ PART 6 ] ==== 텔레메트리 UI 갱신 ===================== */
+/* =====[ PART 6 ] ==== 텔레메트리 + 궤도 요소 UI 갱신 ===================== */
 function updateTelemetry(){
   setText('simTime', fmt(S.sim.t/DAY, 3) + ' d');
   const date = new Date((S.sim.t0 + S.sim.t)*1000);
@@ -948,6 +948,117 @@ function updateTelemetry(){
   if (mo) setText('altMoon',  fmt(S.ship.pos.distanceTo(mo.pos) - mo.R, 0) + ' km');
   if (ma) setText('distMars', fmt(S.ship.pos.distanceTo(ma.pos), 0) + ' km');
   setText('dvUsed', fmt(S.ship.dvUsed, 0) + ' m/s');
+
+  updateOrbitalElements();
+}
+
+/* --- 가장 가까운 천체를 기준 프레임으로 자동 선택 --- */
+function pickReferenceBody(){
+  let ref = S.bodies.earth, name = 'earth', minD = Infinity;
+  for (const n in S.bodies){
+    if (n === 'sun') continue;
+    const b = S.bodies[n];
+    const d = S.ship.pos.distanceTo(b.pos);
+    // 무차원 거리: 현재 거리 / 천체 반지름
+    const norm = d / b.R;
+    if (norm < minD){ minD = norm; ref = b; name = n; }
+  }
+  return { body: ref, name };
+}
+
+/* --- 상태벡터 → 궤도 6요소 + 보존량 --- */
+function computeOrbitalElements(){
+  const pick = pickReferenceBody();
+  const ref = pick.body;
+  const refName = pick.name.charAt(0).toUpperCase() + pick.name.slice(1);
+
+  const r = S.ship.pos.clone().sub(ref.pos);
+  const v = S.ship.vel.clone().sub(ref.vel);
+  const mu = ref.mu;
+
+  const rMag = r.length();
+  const vMag = v.length();
+  if (rMag < 1e-6 || mu <= 0) return { refName, valid: false };
+
+  // 비에너지 ε = v²/2 − μ/r
+  const energy = 0.5*vMag*vMag - mu/rMag;
+
+  // 비각운동량 h⃗ = r⃗ × v⃗
+  const h = r.clone().cross(v);
+  const hMag = h.length();
+
+  // 이심률 벡터 e⃗ = (v⃗ × h⃗)/μ − r̂
+  const eVec = v.clone().cross(h).divideScalar(mu).sub(r.clone().divideScalar(rMag));
+  const ecc = eVec.length();
+
+  // 장반경 a = −μ/(2ε)  (타원/쌍곡선 모두)
+  const a = (Math.abs(energy) > 1e-12) ? -mu/(2*energy) : Infinity;
+
+  // 경사각 i = acos(h_z / |h|)
+  const inc = (hMag > 1e-12)
+    ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI
+    : 0;
+
+  let rp_alt = null, ra_alt = null, period = null;
+  if (ecc < 1 && isFinite(a) && a > 0){
+    const rp = a * (1 - ecc);
+    const ra = a * (1 + ecc);
+    rp_alt = rp - ref.R;
+    ra_alt = ra - ref.R;
+    period = 2*Math.PI * Math.sqrt(a*a*a/mu);
+  }
+
+  return {
+    refName, ref,
+    a, ecc, inc, period,
+    rp_alt, ra_alt,
+    energy, hMag,
+    valid: true,
+  };
+}
+
+function updateOrbitalElements(){
+  const oe = computeOrbitalElements();
+  if (!oe.valid){
+    setText('oeRef', oe.refName);
+    return;
+  }
+
+  setText('oeRef', oe.refName);
+
+  if (isFinite(oe.a) && oe.a > 0){
+    setText('oeA', fmt(oe.a, 1) + ' km');
+  } else if (oe.a < 0){
+    setText('oeA', 'hyperbolic (a<0)');
+  } else {
+    setText('oeA', 'parabolic');
+  }
+
+  setText('oeEcc', oe.ecc.toFixed(5));
+  setText('oeInc', oe.inc.toFixed(3) + ' °');
+
+  if (oe.period !== null){
+    if (oe.period < 3600)        setText('oeT', (oe.period/60).toFixed(2) + ' min');
+    else if (oe.period < 86400)  setText('oeT', (oe.period/3600).toFixed(3) + ' h');
+    else                         setText('oeT', (oe.period/86400).toFixed(3) + ' d');
+  } else {
+    setText('oeT', '--');
+  }
+
+  if (oe.rp_alt !== null){
+    setText('oeRp', fmt(oe.rp_alt, 1) + ' km');
+  } else {
+    setText('oeRp', '--');
+  }
+
+  if (oe.ra_alt !== null){
+    setText('oeRa', fmt(oe.ra_alt, 1) + ' km');
+  } else {
+    setText('oeRa', '--');
+  }
+
+  setText('oeEner', oe.energy.toFixed(5) + ' km²/s²');
+  setText('oeAng', oe.hMag.toExponential(4) + ' km²/s');
 }
 
 /* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 ===================== */
@@ -1001,25 +1112,60 @@ function syncMeshes(){
   }
 }
 
-/* =====[ PART 8 ] ==== 카메라 모드 ===================== */
+/* =====[ PART 8 ] ==== 카메라 모드 (자동 줌 포함) ===================== */
 function updateCamera(){
-  if (S.camMode === 'free'){ S.ctrl.update(); return; }
+  if (S.camMode === 'free'){
+    S._lastCamMode = 'free';
+    S.ctrl.update();
+    return;
+  }
 
-  let tgt = null;
-  if      (S.camMode === 'ship')  tgt = S.ship.pos;
-  else if (S.camMode === 'earth' && S.bodies.earth) tgt = S.bodies.earth.pos;
-  else if (S.camMode === 'moon'  && S.bodies.moon)  tgt = S.bodies.moon.pos;
-  else if (S.camMode === 'sun')   tgt = S.bodies.sun.pos;
+  let tgt = null, viewDist = 50000;
+  if (S.camMode === 'ship'){
+    tgt = S.ship.pos;
+    // 우주선: 가장 가까운 천체 반지름의 3배 또는 2000 km 중 큰 값
+    const pick = pickReferenceBody();
+    viewDist = Math.max(pick.body.R * 3, 2000);
+  }
+  else if (S.camMode === 'earth' && S.bodies.earth){
+    tgt = S.bodies.earth.pos;
+    viewDist = S.bodies.earth.R * 4;    // 지구 반지름의 4배
+  }
+  else if (S.camMode === 'moon' && S.bodies.moon){
+    tgt = S.bodies.moon.pos;
+    viewDist = S.bodies.moon.R * 4;     // 달 반지름의 4배
+  }
+  else if (S.camMode === 'sun'){
+    tgt = S.bodies.sun.pos;
+    viewDist = S.bodies.sun.R * 4;      // 태양 반지름의 4배
+  }
 
   if (!tgt){ S.ctrl.update(); return; }
 
+  // 모드 전환 감지: 처음 이 모드로 들어왔을 때만 스냅
+  if (S._lastCamMode !== S.camMode){
+    S._lastCamMode = S.camMode;
+
+    // 현재 카메라-타깃 방향은 유지, 거리만 조정
+    let dir = S.cam.position.clone().sub(S.ctrl.target);
+    if (dir.lengthSq() < 1e-9) dir.set(1, 0.5, 1);
+    dir.normalize();
+
+    S.ctrl.target.copy(tgt);
+    S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
+    S.ctrl.minDistance = Math.max(viewDist * 0.1, 50);
+    S.ctrl.maxDistance = viewDist * 100;
+    S.ctrl.update();
+    return;
+  }
+
+  // 이후에는 부드럽게 따라가기
   const prev = S.ctrl.target.clone();
   S.ctrl.target.lerp(tgt, 0.20);
   const delta = S.ctrl.target.clone().sub(prev);
   S.cam.position.add(delta);
   S.ctrl.update();
 }
-
 /* =====[ PART 9 ] ==== 미션 프리셋 + 초기 궤도 배치 ===================== */
 function resetShipToParkingOrbit(){
   computeBodies(0);
@@ -1398,6 +1544,21 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <div class="row"><label data-i18n="dv_used">ΔV USED</label><span class="val" id="tm-dv">-- m/s</span></div>
   </div>
 
+    <div class="sc-header">ORBITAL ELEMENTS</div>
+  <div class="row" style="font-size:10px;color:#88ccff;margin-bottom:4px;">
+    <span>Reference</span><span class="val" id="oe-ref">Earth</span>
+  </div>
+  <div class="metric-box">
+    <div class="row"><label>Semi-major a</label><span class="val" id="oe-a">-- km</span></div>
+    <div class="row"><label>Eccentricity e</label><span class="val" id="oe-ecc">--</span></div>
+    <div class="row"><label>Inclination i</label><span class="val" id="oe-inc">-- °</span></div>
+    <div class="row"><label>Period T</label><span class="val" id="oe-T">--</span></div>
+    <div class="row"><label>Periapsis alt</label><span class="val" id="oe-rp">-- km</span></div>
+    <div class="row"><label>Apoapsis alt</label><span class="val" id="oe-ra">-- km</span></div>
+    <div class="row"><label>Spec. energy</label><span class="val" id="oe-ener">-- km²/s²</span></div>
+    <div class="row"><label>Spec. ang. mom.</label><span class="val" id="oe-ang">-- km²/s</span></div>
+  </div>
+  
   <div class="sc-header" data-i18n="mission">MISSION PRESET</div>
   <div class="field">
     <select id="mission-preset">
@@ -1611,7 +1772,10 @@ const UI = {
   slDry:'sl-dry', slFuel:'sl-fuel', slIsp:'sl-isp', slThrust:'sl-thrust',
   labDry:'lab-dry', labFuel:'lab-fuel', labIsp:'lab-isp', labThrust:'lab-thrust',
   syncHorizons:'btn-sync-horizons',
-  helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
+    helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
+
+  oeRef:'oe-ref', oeA:'oe-a', oeEcc:'oe-ecc', oeInc:'oe-inc',
+  oeT:'oe-T', oeRp:'oe-rp', oeRa:'oe-ra', oeEner:'oe-ener', oeAng:'oe-ang',
 };
 
 const $ = (k) => document.getElementById(UI[k] || k);
@@ -1713,7 +1877,7 @@ const S = {
   },
   sim: { t0: Date.UTC(2026,5,5)/1000, t: 0, warp: 1, paused: true, dt: 5, method: 'rk4' },
   vis: { scale: 'exag', scaleK: 30, trail: true },
-  camMode: 'free', camTarget: 'earth',
+  camMode: 'free', _lastCamMode: 'free', camTarget: 'earth',
   csvLog: [],
   ga: null, gaActive: false, autoLandActive: false, autoLandBody: null,
   lang: 'en',
