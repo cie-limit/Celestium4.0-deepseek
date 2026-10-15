@@ -1280,7 +1280,7 @@ function bindUI(){
   applyLanguage();
 }
 
-/* =====[ PART 15 ] ==== Hohmann 전이 (자동 일시정지 + 정확한 위상) ===================== */
+/* =====[ PART 15 ] ==== Hohmann 전이 (반복 보정 + 그림자 시뮬) ===================== */
 function getBodyStateAt(name, simT){
   if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
   const b = BODY[name];
@@ -1300,7 +1300,7 @@ function pickCentralBody(targetName){
   return 'sun';
 }
 
-/* 전이 각도 θ 계산: TOF 동안 우주선이 근지점에서 진행하는 각도 */
+/* 전이 각도 θ: TOF 동안 근지점에서 진행하는 각도 */
 function computeThetaArrival(a, e, mu, tofSec){
   const n = Math.sqrt(mu / (a*a*a));
   const M_target = n * tofSec;
@@ -1314,84 +1314,195 @@ function computeThetaArrival(a, e, mu, tofSec){
   return Math.acos(Math.max(-1, Math.min(1, cosTheta)));
 }
 
-/* ★ 핵심: 자동 일시정지 → 정렬 → 값 계산. 이후 sim이 멈춰있으므로 burn 지점이 어긋나지 않음 */
+/* ★ 그림자 시뮬: S.bodies, S.ship 을 건드리지 않고 순수 계산만 */
+function computeBodiesAt(simSec){
+  const epochMs = S.sim.t0*1000 + simSec*1000;
+  const days = (epochMs - J2000_MS)/(1000*DAY);
+  const out = { sun: { pos: new THREE.Vector3(), vel: new THREE.Vector3(), mu: BODY.sun.mu, R: BODY.sun.R } };
+  for (const name in BODY){
+    if (name === 'sun') continue;
+    const b = BODY[name];
+    const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
+    const st = keplerStateVectors(b.el, muParent, days);
+    const parent = out[b.parent];
+    if (parent){ st.pos.add(parent.pos); st.vel.add(parent.vel); }
+    out[name] = { pos: st.pos, vel: st.vel, mu: b.mu, R: b.R };
+  }
+  return out;
+}
+function gravityWithBodies(pos, bodies){
+  const a = new THREE.Vector3();
+  for (const n in bodies){
+    const b = bodies[n];
+    const r = b.pos.clone().sub(pos);
+    const d2 = r.lengthSq();
+    const d = Math.sqrt(d2);
+    if (d < 1e-6) continue;
+    if (d < b.R) a.addScaledVector(r.normalize(), b.mu * d / (b.R*b.R*b.R));
+    else a.addScaledVector(r.normalize(), b.mu / d2);
+  }
+  return a;
+}
+function rk4StepShadow(pos, vel, bodies, dt){
+  const v0 = vel.clone();
+  const a0 = gravityWithBodies(pos, bodies);
+  const p2 = pos.clone().addScaledVector(v0, dt/2);
+  const v2 = vel.clone().addScaledVector(a0, dt/2);
+  const a1 = gravityWithBodies(p2, bodies);
+  const p3 = pos.clone().addScaledVector(v2, dt/2);
+  const v3 = vel.clone().addScaledVector(a1, dt/2);
+  const a2 = gravityWithBodies(p3, bodies);
+  const p4 = pos.clone().addScaledVector(v3, dt);
+  const v4 = vel.clone().addScaledVector(a2, dt);
+  const a3 = gravityWithBodies(p4, bodies);
+  const newPos = pos.clone()
+    .addScaledVector(v0, dt/6).addScaledVector(v2, dt/3)
+    .addScaledVector(v3, dt/3).addScaledVector(v4, dt/6);
+  const newVel = vel.clone()
+    .addScaledVector(a0, dt/6).addScaledVector(a1, dt/3)
+    .addScaledVector(a2, dt/3).addScaledVector(a3, dt/6);
+  return { pos: newPos, vel: newVel };
+}
+function shadowPropagate(startPos, startVel, tStart, tofSec, dtStep){
+  let pos = startPos.clone();
+  let vel = startVel.clone();
+  let t = 0;
+  let bodies = computeBodiesAt(tStart);
+  let counter = 0;
+  while (t < tofSec - 1e-6){
+    if (counter++ % 20 === 0) bodies = computeBodiesAt(tStart + t);
+    const dt = Math.min(dtStep, tofSec - t);
+    const r = rk4StepShadow(pos, vel, bodies, dt);
+    pos = r.pos; vel = r.vel;
+    t += dt;
+  }
+  return { pos, vel };
+}
+
+/* ★ 반복 보정: 조준각을 조정해서 실제 최종 위치가 목표에 수렴하도록 */
+function refineAim(targetName, centralName, currentR, tStart, tofSec){
+  const centralNow = getBodyStateAt(centralName, tStart);
+  const centralFuture = getBodyStateAt(centralName, tStart + tofSec);
+  const targetFuture = getBodyStateAt(targetName, tStart + tofSec);
+  if (!centralNow || !centralFuture || !targetFuture) return null;
+
+  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
+  const r2_mag = r2_vec.length();
+  const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
+  const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
+
+  const a_transfer = (currentR + r2_mag) / 2;
+  const e_transfer = Math.abs(r2_mag - currentR) / (r2_mag + currentR);
+  const theta_arrival = computeThetaArrival(a_transfer, e_transfer, mu, tofSec);
+
+  let shipAngle = r2_angle - theta_arrival;   /* 초기 추정 */
+  const v_circ = Math.sqrt(mu / currentR);
+  const v_peri = Math.sqrt(mu * (2/currentR - 1/a_transfer));
+
+  const shadowDt = 60;   /* 그림자 시뮬 스텝 (성능 vs 정확도) */
+  let bestErr = Infinity;
+  let bestShipAngle = shipAngle;
+
+  for (let iter = 0; iter < 8; iter++){
+    const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
+    const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
+    const initPos = centralNow.pos.clone().addScaledVector(r1_dir, currentR);
+    const initVel = centralNow.vel.clone().addScaledVector(vHat, v_peri);
+
+    const shadow = shadowPropagate(initPos, initVel, tStart, tofSec, shadowDt);
+
+    /* 그림자 최종 위치의 중심천체 기준 각도 */
+    const shadowRel = shadow.pos.clone().sub(centralFuture.pos);
+    const shadowAngle = Math.atan2(shadowRel.y, shadowRel.x);
+    const shadowR = shadowRel.length();
+
+    /* 오차 */
+    const errAng = r2_angle - shadowAngle;
+    /* 각도는 [-π, π] 정규화 */
+    const errAngN = Math.atan2(Math.sin(errAng), Math.cos(errAng));
+    const errR = r2_mag - shadowR;
+    const errPos = targetFuture.pos.distanceTo(shadow.pos);
+
+    console.log(`[refine ${iter}] aim=${(shipAngle*180/Math.PI).toFixed(2)}° → shadow r=${shadowR.toFixed(0)} km, angle=${(shadowAngle*180/Math.PI).toFixed(2)}°  err=${errPos.toFixed(0)} km`);
+
+    if (errPos < bestErr){
+      bestErr = errPos;
+      bestShipAngle = shipAngle;
+    }
+    if (errPos < 3000) break;
+
+    /* 조준각 보정 (감쇠) */
+    shipAngle += errAngN * 0.85;
+  }
+
+  /* 최종 결과 계산 */
+  const r1_dir = new THREE.Vector3(Math.cos(bestShipAngle), Math.sin(bestShipAngle), 0);
+  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
+  const initPos = centralNow.pos.clone().addScaledVector(r1_dir, currentR);
+  const initVel = centralNow.vel.clone().addScaledVector(vHat, v_circ);
+  const burnVel = centralNow.vel.clone().addScaledVector(vHat, v_peri);
+  const dvVec = burnVel.clone().sub(initVel);
+  const dvMag = dvVec.length() * 1000;
+
+  return {
+    initPos, initVel, burnVel, dvVec, dvMag,
+    finalErr: bestErr,
+    shipAngle: bestShipAngle,
+    r2_angle, theta_arrival,
+  };
+}
+
+/* ★ PLAN: 시뮬 자동 일시정지 → 반복 보정 → 결과 저장 */
 function computeHohmannPlan(targetName, tofDays, applyBurn){
-  /* 1) 자동 일시정지 */
   S.sim.paused = true;
   const playBtn = $('play');
   if (playBtn) playBtn.textContent = 'PLAY';
 
   const centralName = pickCentralBody(targetName);
-  const centralNow = getBodyStateAt(centralName, S.sim.t);
-  const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
-  const targetFuture = getBodyStateAt(targetName, S.sim.t + tofDays*DAY);
-  if (!centralNow || !centralFuture || !targetFuture){
-    setStatus('Cannot compute future states', 'err');
-    return null;
-  }
+  const tStart = S.sim.t;
+  const tofSec = tofDays * DAY;
 
-  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
-  const r2_mag = r2_vec.length();
-  const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
-
+  /* 현재 우주선의 지구중심 반지름 (before reset) */
+  const centralNow = getBodyStateAt(centralName, tStart);
   const currentR = S.ship.pos.distanceTo(centralNow.pos);
-  const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
 
-  /* 2) 전이 타원 */
-  const a_transfer = (currentR + r2_mag) / 2;
-  const e_transfer = Math.abs(r2_mag - currentR) / (r2_mag + currentR);
+  setStatus(`Refining aim (iterative, ${tofDays} d)...`, 'sys');
+  const refined = refineAim(targetName, centralName, currentR, tStart, tofSec);
+  if (!refined){ setStatus('Refine failed', 'err'); return null; }
 
-  /* 3) TOF 동안 진행하는 각도 (Kepler 방정식) */
-  const theta_arrival = computeThetaArrival(a_transfer, e_transfer, mu, tofDays*DAY);
-
-  /* 4) 우주선을 (도착 각도 − θ)에 배치 = 호만 발사 위상 */
-  const shipAngle = r2_angle - theta_arrival;
-  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
-  S.ship.pos.copy(centralNow.pos).addScaledVector(r1_dir, currentR);
-
-  const v_circ = Math.sqrt(mu / currentR);
-  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-  S.ship.vel.copy(centralNow.vel).addScaledVector(vHat, v_circ);
-
-  /* 5) 궤적 리셋 */
+  /* 우주선 위치/속도 재설정 */
+  S.ship.pos.copy(refined.initPos);
+  S.ship.vel.copy(refined.initVel);
   S.trailPos.length = 0;
   lastTrailPos.copy(S.ship.pos);
 
-  /* 6) burn 벡터 */
-  const v_peri = Math.sqrt(mu * (2/currentR - 1/a_transfer));
-  const dvKm = v_peri - v_circ;
-  const dvVec = vHat.clone().multiplyScalar(dvKm);
-  const dvMag = Math.abs(dvKm) * 1000;
-
-  console.log('[Hohmann] central=' + centralName + ' target=' + targetName +
-              ' tof=' + tofDays + 'd');
-  console.log('  r1=' + currentR.toFixed(1) + ' km  r2=' + r2_mag.toFixed(1) + ' km');
-  console.log('  a=' + a_transfer.toFixed(1) + ' km  e=' + e_transfer.toFixed(4) +
-              '  theta_arrival=' + (theta_arrival*180/Math.PI).toFixed(2) + '°');
-  console.log('  r2_angle=' + (r2_angle*180/Math.PI).toFixed(1) + '°  shipAngle=' +
-              (shipAngle*180/Math.PI).toFixed(1) + '°');
-  console.log('  v_circ=' + v_circ.toFixed(3) + ' km/s  v_peri=' + v_peri.toFixed(3) +
-              ' km/s  dV=' + dvMag.toFixed(0) + ' m/s');
+  console.log(`[Hohmann refined] dV=${refined.dvMag.toFixed(0)} m/s, err=${refined.finalErr.toFixed(0)} km, shipAngle=${(refined.shipAngle*180/Math.PI).toFixed(2)}°, targetAngle=${(refined.r2_angle*180/Math.PI).toFixed(2)}°`);
 
   if (applyBurn){
     const m0 = S.ship.dry + S.ship.fuel;
     const ve = S.ship.isp * G0;
-    const fuelNeed = m0 * (1 - Math.exp(-dvMag/ve));
+    const fuelNeed = m0 * (1 - Math.exp(-refined.dvMag/ve));
     if (fuelNeed > S.ship.fuel){
       setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'err');
       return null;
     }
-    S.ship.vel.add(dvVec);
+    /* Burn: 초기 원궤도 속도 → 전이 속도 */
+    S.ship.vel.copy(refined.burnVel);
     S.ship.fuel -= fuelNeed;
-    S.ship.dvUsed += dvMag;
-    setStatus(`TRANSFER BURN: dV=${dvMag.toFixed(0)} m/s prograde (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
-    setStatus(`Aim: ${targetName} in ${tofDays} d (sim paused — press PLAY)`, 'phys');
+    S.ship.dvUsed += refined.dvMag;
+    setStatus(`TRANSFER BURN: dV=${refined.dvMag.toFixed(0)} m/s, aim err=${refined.finalErr.toFixed(0)} km (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
+    setStatus(`Aim: ${targetName} in ${tofDays} d — press PLAY`, 'phys');
     S.transferPlan = null;
   } else {
-    S.transferPlan = { dvVec, dvMag, targetName, tofDays, shipAngle, r2_angle, theta_arrival };
+    S.transferPlan = {
+      dvVec: refined.dvVec, dvMag: refined.dvMag,
+      targetName, tofDays,
+      shipAngle: refined.shipAngle, r2_angle: refined.r2_angle,
+      finalErr: refined.finalErr,
+    };
   }
 
-  return { dvVec, dvMag, a_transfer, e_transfer, theta_arrival, shipAngle, r2_angle };
+  return refined;
 }
 
 function handlePlanTransfer(){
@@ -1401,13 +1512,12 @@ function handlePlanTransfer(){
   const r = computeHohmannPlan(target, tof, false);
   if (!r){ setStatus('Transfer plan failed', 'err'); return; }
   updateTransferPlanUI();
-  setStatus(`Plan ready: dV=${r.dvMag.toFixed(0)} m/s, angle=${(r.theta_arrival*180/Math.PI).toFixed(1)}°. Sim paused.`, 'ok');
+  setStatus(`Plan ready: dV=${r.dvMag.toFixed(0)} m/s, aim err=${r.finalErr.toFixed(0)} km. Sim paused.`, 'ok');
 }
 
 function executeTransferBurn(){
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
-  /* 재계산 + burn 동시에 (혹시 ship이 움직였으면 재정렬됨) */
   const r = computeHohmannPlan(target, tof, true);
   if (!r){ setStatus('Transfer burn failed', 'err'); return; }
   updateTransferPlanUI();
@@ -1423,7 +1533,7 @@ function updateTransferPlanUI(){
   if ($('tpResult')) $('tpResult').style.display = 'block';
   if ($('tpExecute')) $('tpExecute').style.display = 'block';
   setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
-  setText('tpDir', '0.0° (pure prograde)');
+  setText('tpDir', 'prograde, aim err ' + plan.finalErr.toFixed(0) + ' km');
   const arrivalDate = new Date((S.sim.t0 + S.sim.t + plan.tofDays*DAY)*1000);
   setText('tpArr', arrivalDate.toISOString().slice(0,10) + ' (' + plan.tofDays + ' d)');
 }
