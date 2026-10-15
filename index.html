@@ -6,106 +6,59 @@
 <title>CELESTIUM 4.0</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
-
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
 body { background: #000; color: #aaddff; overflow: hidden; height: 100vh; width: 100vw; }
-
 #canvas-container { position: fixed; inset: 0; }
 #canvas-container canvas { display: block; }
-
 .panel {
-  position: fixed;
-  background: rgba(5,10,20,0.92);
-  border: 1px solid #004488;
-  padding: 10px 12px;
+  position: fixed; background: rgba(5,10,20,0.92);
+  border: 1px solid #004488; padding: 10px 12px;
   box-shadow: 0 0 15px rgba(0,100,255,0.2);
-  border-radius: 6px;
-  z-index: 10;
-  font-size: 11px;
+  border-radius: 6px; z-index: 10; font-size: 11px;
   backdrop-filter: blur(2px);
 }
-
 #panel-top { top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; max-width: 95vw; justify-content: center; }
 #panel-left { top: 90px; left: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; }
 #panel-right { top: 90px; right: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; }
-
 .sc-header { color: #00ffff; font-size: 12px; border-bottom: 1px solid #004488; margin-bottom: 8px; padding-bottom: 5px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
 .sc-header:first-child { margin-top: 0; }
 .version-tag { color: #ffcc00; font-size: 9px; margin-left: 4px; }
-
 button {
   border: 1px solid #00ffff; color: #00ffff;
-  background: rgba(0,50,100,0.5);
-  padding: 5px 10px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 10px; cursor: pointer;
-  letter-spacing: 1px; border-radius: 3px;
-  transition: all 0.15s;
+  background: rgba(0,50,100,0.5); padding: 5px 10px;
+  font-family: 'Orbitron', sans-serif; font-size: 10px; cursor: pointer;
+  letter-spacing: 1px; border-radius: 3px; transition: all 0.15s;
 }
 button:hover { background: #00ffff; color: #000; }
 button.active { background: #00ffff; color: #000; font-weight: 700; }
 button.danger { border-color: #ff5555; color: #ff5555; }
 button.danger:hover { background: #ff5555; color: #000; }
-
 input[type="range"] { width: 100%; accent-color: #00ffff; }
 input[type="number"], input[type="text"], select, input[type="date"] {
-  background: rgba(0,20,40,0.8);
-  border: 1px solid #003366;
-  color: #aaddff;
-  padding: 3px 6px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 11px;
-  width: 100%;
-  border-radius: 3px;
+  background: rgba(0,20,40,0.8); border: 1px solid #003366; color: #aaddff;
+  padding: 3px 6px; font-family: 'Orbitron', sans-serif; font-size: 11px;
+  width: 100%; border-radius: 3px;
 }
 input[type="checkbox"] { accent-color: #00ffff; }
-
 .row { display: flex; justify-content: space-between; margin: 3px 0; align-items: center; gap: 6px; }
 .row label { color: #88ccff; font-size: 10px; }
 .row .val { color: #ffcc00; font-size: 11px; font-weight: 700; }
-
 .field { margin: 6px 0; }
 .field > label { display: block; color: #88ccff; font-size: 10px; margin-bottom: 3px; }
-
 .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
 .tabs button { flex: 1; padding: 4px; font-size: 9px; }
 .lang-toggle { display: flex; gap: 2px; }
 .lang-toggle button { padding: 3px 8px; font-size: 10px; }
-
 .metric-box { background: rgba(0,50,100,0.25); border: 1px solid #003366; padding: 6px 8px; border-radius: 3px; margin: 4px 0; }
-
 h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
-
 #chat-log {
-  position: fixed;
-  bottom: 10px; right: 10px;
-  width: 340px;
-  max-height: 280px;
-  background: rgba(5,10,20,0.92);
-  border: 1px solid #004488;
-  border-radius: 6px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  backdrop-filter: blur(2px);
-  box-shadow: 0 0 15px rgba(0,100,255,0.2);
+  position: fixed; bottom: 10px; right: 10px; width: 340px; max-height: 280px;
+  background: rgba(5,10,20,0.92); border: 1px solid #004488;
+  border-radius: 6px; z-index: 10; display: flex; flex-direction: column;
+  backdrop-filter: blur(2px); box-shadow: 0 0 15px rgba(0,100,255,0.2);
 }
-#chat-log .log-header {
-  padding: 6px 10px;
-  color: #00ffff;
-  font-size: 11px;
-  letter-spacing: 2px;
-  border-bottom: 1px solid #004488;
-  text-transform: uppercase;
-}
-#log-body {
-  padding: 6px 10px;
-  overflow-y: auto;
-  flex: 1;
-  font-size: 10px;
-  line-height: 1.55;
-  min-height: 120px;
-}
+#chat-log .log-header { padding: 6px 10px; color: #00ffff; font-size: 11px; letter-spacing: 2px; border-bottom: 1px solid #004488; text-transform: uppercase; }
+#log-body { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 10px; line-height: 1.55; min-height: 120px; }
 .log-line { margin: 2px 0; word-wrap: break-word; }
 .log-time { color: #445566; font-size: 9px; }
 .log-tag { font-weight: 700; font-size: 9px; margin-right: 3px; }
@@ -116,61 +69,29 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
 .log-err .log-tag { color: #ff5555; }
 .log-ok .log-tag { color: #33ff33; }
 .log-ok { color: #aaffaa; }
-
-#help-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
-  display: none;
-  z-index: 100;
-  align-items: center;
-  justify-content: center;
-}
+#help-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; z-index: 100; align-items: center; justify-content: center; }
 #help-overlay.show { display: flex; }
-#help-content {
-  max-width: 700px;
-  max-height: 80vh;
-  overflow-y: auto;
-  background: rgba(5,10,20,0.98);
-  border: 1px solid #00ffff;
-  padding: 20px;
-  border-radius: 6px;
-}
+#help-content { max-width: 700px; max-height: 80vh; overflow-y: auto; background: rgba(5,10,20,0.98); border: 1px solid #00ffff; padding: 20px; border-radius: 6px; }
 #help-content h2 { color: #00ffff; margin-bottom: 12px; letter-spacing: 2px; }
 #help-content h3 { color: #ffcc00; margin: 12px 0 6px; font-size: 13px; }
 #help-content p, #help-content li { font-size: 12px; line-height: 1.5; color: #aaddff; margin-bottom: 4px; }
 #help-content ul { margin-left: 16px; }
 #help-content code { background: rgba(0,50,100,0.5); padding: 1px 5px; border-radius: 2px; color: #ffcc00; }
-
 #mobile-console {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 28vh;
-  background: rgba(0,0,0,0.94);
-  color: #00ff88;
-  font-family: monospace;
-  font-size: 11px;
-  padding: 6px 10px;
-  overflow-y: auto;
-  z-index: 9999;
+  position: fixed; top: 0; left: 0; right: 0; height: 28vh;
+  background: rgba(0,0,0,0.94); color: #00ff88;
+  font-family: monospace; font-size: 11px;
+  padding: 6px 10px; overflow-y: auto; z-index: 9999;
   border-bottom: 2px solid #00ffff;
-  white-space: pre-wrap;
-  word-break: break-all;
-  display: none;
+  white-space: pre-wrap; word-break: break-all; display: none;
 }
 #mobile-console.show { display: block; }
 #mobile-console-toggle {
-  position: fixed;
-  top: 6px; right: 6px;
-  z-index: 10000;
-  background: rgba(0,255,255,0.85);
-  color: #000;
-  border: 0;
-  padding: 4px 8px;
-  border-radius: 3px;
-  font-size: 10px;
+  position: fixed; top: 6px; right: 6px; z-index: 10000;
+  background: rgba(0,255,255,0.85); color: #000; border: 0;
+  padding: 4px 8px; border-radius: 3px; font-size: 10px;
   font-family: 'Orbitron', sans-serif;
 }
-
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(0,20,40,0.5); }
 ::-webkit-scrollbar-thumb { background: #004488; border-radius: 3px; }
@@ -180,11 +101,9 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
 <body>
 
 <div id="canvas-container"></div>
-
 <div id="mobile-console"></div>
 <button id="mobile-console-toggle" onclick="toggleMobileConsole()">DBG</button>
 
-<!-- TOP PANEL -->
 <div id="panel-top" class="panel">
   <h1 class="title">CELESTIUM 4.0 <span class="version-tag">v4.0</span></h1>
   <div class="lang-toggle">
@@ -206,13 +125,6 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     </select>
   </div>
   <div style="display:flex; gap:6px; align-items:center;">
-    <label style="font-size:10px;color:#88ccff;" data-i18n="visual">VISUAL</label>
-    <select id="scale-mode" style="width:130px;">
-      <option value="exag" selected data-i18n="scale_exag">Exaggerated</option>
-      <option value="real" data-i18n="scale_real">Realistic 1:1</option>
-    </select>
-  </div>
-  <div style="display:flex; gap:6px; align-items:center;">
     <label style="font-size:10px;color:#88ccff;" data-i18n="camera">CAMERA</label>
     <select id="camera-mode" style="width:130px;">
       <option value="free" selected data-i18n="cam_free">Free Orbit</option>
@@ -224,7 +136,6 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   </div>
 </div>
 
-<!-- LEFT PANEL -->
 <div id="panel-left" class="panel">
   <div class="sc-header" data-i18n="telemetry">TELEMETRY</div>
   <div class="metric-box">
@@ -280,27 +191,27 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <input type="number" id="burn-dv" value="100" min="1" max="10000">
   </div>
   <button id="btn-burn" style="width:100%;" data-i18n="execute">EXECUTE BURN</button>
-  
+
   <div class="sc-header">TRANSFER PLANNER</div>
-<div class="field">
-  <label>Target Body</label>
-  <select id="tp-target">
-    <option value="moon" selected>Moon</option>
-    <option value="mars">Mars</option>
-    <option value="venus">Venus</option>
-  </select>
-</div>
-<div class="field">
-  <label>Time of Flight (days)</label>
-  <input type="number" id="tp-tof" value="5" min="0.1" max="500" step="0.1">
-</div>
-<button id="btn-tp-plan" style="width:100%;">PLAN TRANSFER</button>
-<div class="metric-box" id="tp-result" style="margin-top:6px; display:none;">
-  <div class="row"><label>ΔV needed</label><span class="val" id="tp-dv">-- m/s</span></div>
-  <div class="row"><label>Direction</label><span class="val" id="tp-dir">--</span></div>
-  <div class="row"><label>Est. arrival</label><span class="val" id="tp-arr">--</span></div>
-</div>
-<button id="btn-tp-execute" class="danger" style="width:100%; margin-top:4px; display:none;">EXECUTE TRANSFER BURN</button>
+  <div class="field">
+    <label>Target Body</label>
+    <select id="tp-target">
+      <option value="moon" selected>Moon</option>
+      <option value="mars">Mars</option>
+      <option value="venus">Venus</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Time of Flight (days)</label>
+    <input type="number" id="tp-tof" value="5" min="0.1" max="500" step="0.1">
+  </div>
+  <button id="btn-tp-plan" style="width:100%;">PLAN TRANSFER</button>
+  <div class="metric-box" id="tp-result" style="margin-top:6px; display:none;">
+    <div class="row"><label>ΔV needed</label><span class="val" id="tp-dv">-- m/s</span></div>
+    <div class="row"><label>Direction</label><span class="val" id="tp-dir">--</span></div>
+    <div class="row"><label>Est. arrival</label><span class="val" id="tp-arr">--</span></div>
+  </div>
+  <button id="btn-tp-execute" class="danger" style="width:100%; margin-top:4px; display:none;">EXECUTE TRANSFER BURN</button>
 
   <div class="sc-header" data-i18n="landing">LANDING</div>
   <div class="field">
@@ -319,7 +230,6 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   <button id="btn-ga-stop" class="danger" style="width:100%; margin-top:4px;" data-i18n="stop">STOP GA</button>
 </div>
 
-<!-- RIGHT PANEL -->
 <div id="panel-right" class="panel">
   <div class="sc-header" data-i18n="vehicle">VEHICLE PARAMETERS</div>
   <div class="field">
@@ -411,7 +321,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
         <li>Pick a <code>MISSION PRESET</code>, hit <code>APPLY PRESET</code>, then <code>PLAY</code>.</li>
         <li>Use <code>WARP</code> to fast-forward time. 86,400× = 1 day per second.</li>
         <li><code>CAMERA</code> follows ship, Earth, Moon, or Sun.</li>
-        <li><code>MANEUVER</code> executes prograde/retrograde/normal/radial burns.</li>
+        <li>Use <code>TRANSFER PLANNER</code> to compute a Lambert transfer.</li>
         <li><code>ENABLE AUTO-LAND</code> trains a GA-based neural network to land.</li>
       </ul>
       <h3>Physics</h3>
@@ -435,7 +345,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
         <li>좌측 <code>MISSION PRESET</code>에서 시나리오 선택 → <code>APPLY PRESET</code> → <code>PLAY</code></li>
         <li><code>WARP</code>으로 시간 가속. 86,400× = 1초에 1일</li>
         <li><code>CAMERA</code>로 우주선·지구·달·태양 추적</li>
-        <li><code>MANEUVER</code>에서 진행/역행/법선/지름 방향 분사</li>
+        <li><code>TRANSFER PLANNER</code>로 람베르트 전이 계산</li>
         <li><code>ENABLE AUTO-LAND</code>은 GA 기반 신경망으로 자동 착륙</li>
       </ul>
       <h3>물리 엔진</h3>
@@ -463,7 +373,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
 <script>
 'use strict';
 
-/* =====[ PART 0 ] === UI ID 매핑 + 헬퍼 + 로그 + 모바일 콘솔 ===================== */
+/* =====[ PART 0 ] === UI 매핑 + 헬퍼 + 로그 + 모바일 콘솔 ===================== */
 const UI = {
   canvas:'canvas-container',
   simTime:'tm-time', date:'tm-date', shipMass:'tm-mass', fuel:'tm-fuel',
@@ -477,7 +387,7 @@ const UI = {
   gaGenMax:'ga-gen-max', gaStop:'btn-ga-stop',
   showTrail:'cb-trail', maxPoints:'trail-max', clearTrail:'btn-clear-trail',
   play:'btn-play', reset:'btn-reset', warp:'time-warp',
-  visual:'scale-mode', camera:'camera-mode',
+  camera:'camera-mode',
   langEn:'lang-en', langKo:'lang-ko',
   exportCsv:'export-csv',
   parkAlt:'parking-alt', launchDate:'in-date',
@@ -493,10 +403,6 @@ const UI = {
   tpResult:'tp-result', tpDv:'tp-dv', tpDir:'tp-dir', tpArr:'tp-arr',
   tpExecute:'btn-tp-execute',
 };
-
-
-
-  
 const $ = (k) => document.getElementById(UI[k] || k);
 const setText = (k, t) => { const el = $(k); if (el) el.textContent = t; };
 
@@ -504,10 +410,9 @@ function toggleMobileConsole(){
   const el = document.getElementById('mobile-console');
   if (el) el.classList.toggle('show');
 }
-
 (function setupMobileConsole(){
-  const origLog   = console.log.bind(console);
-  const origWarn  = console.warn.bind(console);
+  const origLog = console.log.bind(console);
+  const origWarn = console.warn.bind(console);
   const origError = console.error.bind(console);
   function append(tag, args){
     const el = document.getElementById('mobile-console');
@@ -515,14 +420,14 @@ function toggleMobileConsole(){
     const text = Array.from(args).map(a => {
       if (a === null) return 'null';
       if (a === undefined) return 'undefined';
-      if (typeof a === 'object') { try { return JSON.stringify(a); } catch(e){ return String(a); } }
+      if (typeof a === 'object'){ try { return JSON.stringify(a); } catch(e){ return String(a); } }
       return String(a);
     }).join(' ');
     el.textContent += `[${tag}] ${text}\n`;
     el.scrollTop = el.scrollHeight;
   }
-  console.log   = (...a) => { origLog(...a);  append('LOG', a); };
-  console.warn  = (...a) => { origWarn(...a); append('WRN', a); };
+  console.log = (...a) => { origLog(...a); append('LOG', a); };
+  console.warn = (...a) => { origWarn(...a); append('WRN', a); };
   console.error = (...a) => { origError(...a); append('ERR', a); };
   window.addEventListener('error', e => append('ERR', [e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')]));
 })();
@@ -553,39 +458,29 @@ const DEG = Math.PI/180;
 
 const BODY = {
   sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
-  mercury: {
-    mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun',
-    el: { a: 0.387098*AU, e: 0.205630, i: 7.005, om: 48.331, w: 29.124, L0: 252.250 }
-  },
-  venus: {
-    mu: 324858.592, R: 6051.8, col: 0xddbb66, parent: 'sun',
-    el: { a: 0.723332*AU, e: 0.006772, i: 3.3946, om: 76.680, w: 54.884, L0: 181.979 }
-  },
-  earth: {
-    mu: 398600.4418, R: 6371.0, col: 0x2a66cc, parent: 'sun',
-    el: { a: 1.000000*AU, e: 0.016709, i: 0.0000, om: 0.0, w: 114.20783, L0: 100.46435 }
-  },
-  moon: {
-    mu: 4902.800, R: 1737.4, col: 0xcccccc, parent: 'earth',
-    el: { a: 384400.0, e: 0.0549, i: 5.145, om: 125.08, w: 318.15, L0: 115.3654, mu_p: 398600.4418 }
-  },
-  mars: {
-    mu: 42828.375, R: 3389.5, col: 0xcc4422, parent: 'sun',
-    el: { a: 1.52366231*AU, e: 0.093412, i: 1.85061, om: 49.57854, w: 336.04084, L0: 355.45332 }
-  },
+  mercury: { mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun',
+    el: { a: 0.387098*AU, e: 0.205630, i: 7.005, om: 48.331, w: 29.124, L0: 252.250 } },
+  venus: { mu: 324858.592, R: 6051.8, col: 0xddbb66, parent: 'sun',
+    el: { a: 0.723332*AU, e: 0.006772, i: 3.3946, om: 76.680, w: 54.884, L0: 181.979 } },
+  earth: { mu: 398600.4418, R: 6371.0, col: 0x2a66cc, parent: 'sun',
+    el: { a: 1.000000*AU, e: 0.016709, i: 0.0000, om: 0.0, w: 114.20783, L0: 100.46435 } },
+  moon: { mu: 4902.800, R: 1737.4, col: 0xcccccc, parent: 'earth',
+    el: { a: 384400.0, e: 0.0549, i: 5.145, om: 125.08, w: 318.15, L0: 115.3654, mu_p: 398600.4418 } },
+  mars: { mu: 42828.375, R: 3389.5, col: 0xcc4422, parent: 'sun',
+    el: { a: 1.52366231*AU, e: 0.093412, i: 1.85061, om: 49.57854, w: 336.04084, L0: 355.45332 } },
 };
 
 const VEHICLES = {
-  'apollo':    { dry: 13500,  fuel: 110000,  isp: 421, thrust: 1000 },
-  'starship':  { dry: 120000, fuel: 1200000, isp: 380, thrust: 16000 },
-  'sls':       { dry: 12000,  fuel: 130000,  isp: 462, thrust: 440 },
-  'custom':    { dry: 50000,  fuel: 200000,  isp: 350, thrust: 5000 },
+  'apollo':   { dry: 13500,  fuel: 110000,  isp: 421, thrust: 1000 },
+  'starship': { dry: 120000, fuel: 1200000, isp: 380, thrust: 16000 },
+  'sls':      { dry: 12000,  fuel: 130000,  isp: 462, thrust: 440 },
+  'custom':   { dry: 50000,  fuel: 200000,  isp: 350, thrust: 5000 },
 };
 
 /* =====[ PART 2 ] === 전역 상태 S ===================== */
 const S = {
   scene: null, cam: null, rdr: null, ctrl: null,
-  meshes: {}, trail: null, trailPos: [], trailMax: 5000, trailMinKm: 10,
+  meshes: {}, markers: {}, trail: null, trailPos: [], trailMax: 5000, trailMinKm: 10,
   bodies: {},
   ship: {
     pos: new THREE.Vector3(), vel: new THREE.Vector3(),
@@ -594,26 +489,25 @@ const S = {
     dvUsed: 0, refFrame: 'earth',
   },
   sim: { t0: Date.UTC(2026,5,5)/1000, t: 0, warp: 1, paused: true, dt: 5, method: 'rk4' },
-  vis: { scale: 'exag', scaleK: 30, trail: true },
-  camMode: 'free', _lastCamMode: 'free', camTarget: 'earth',
+  vis: { trail: true },
+  camMode: 'free', _lastCamMode: 'free',
   csvLog: [],
   ga: null, gaActive: false, autoLandActive: false, autoLandBody: null,
+  transferPlan: null,
   lang: 'en',
   langs: {
     en: {
-      warp:'WARP', visual:'VISUAL', scale_exag:'Exaggerated', scale_real:'Realistic 1:1',
-      camera:'CAMERA', cam_free:'Free Orbit', cam_ship:'Ship Follow',
+      warp:'WARP', camera:'CAMERA', cam_free:'Free Orbit', cam_ship:'Ship Follow',
       cam_earth:'Earth Centered', cam_moon:'Moon Centered', cam_sun:'Sun Centered',
       telemetry:'TELEMETRY', sim_time:'SIM TIME', sim_date:'DATE',
       ship_mass:'SHIP MASS', fuel:'FUEL', speed:'SPEED',
-      alt_earth:'ALT (Earth)', alt_moon:'ALT (Moon)', alt_mars:'DIST (Mars)',
-      dv_used:'dV USED',
+      alt_earth:'ALT (Earth)', alt_moon:'ALT (Moon)', alt_mars:'DIST (Mars)', dv_used:'ΔV USED',
       mission:'MISSION PRESET', apply:'APPLY PRESET',
-      m_leo:'LEO Parking Orbit (200 km)', m_hm:'Hohmann Transfer -> Moon',
-      m_fm:'Fast Transfer -> Moon (3 days)', m_fr:'Free Return Trajectory',
-      m_hmars:'Hohmann Transfer -> Mars', m_vs:'Venus Swingby -> Mars', m_custom:'Custom',
+      m_leo:'LEO Parking Orbit (200 km)', m_hm:'Hohmann Transfer → Moon',
+      m_fm:'Fast Transfer → Moon (3 days)', m_fr:'Free Return Trajectory',
+      m_hmars:'Hohmann Transfer → Mars', m_vs:'Venus Swingby → Mars', m_custom:'Custom',
       modes:'MANEUVER', prograde:'Prograde', retrograde:'Retro', normal:'Normal', radial:'Radial',
-      burn_dv:'dV (m/s)', execute:'EXECUTE BURN',
+      burn_dv:'ΔV (m/s)', execute:'EXECUTE BURN',
       landing:'LANDING', target:'Target', ga_max_gen:'GA Max Gen',
       enable_landing:'ENABLE AUTO-LAND', stop:'STOP GA',
       vehicle:'VEHICLE PARAMETERS', vehicle_preset:'Preset',
@@ -627,19 +521,17 @@ const S = {
       help_title:'CELESTIUM 4.0 - QUICK GUIDE',
     },
     ko: {
-      warp:'시간 가속', visual:'화면 비율', scale_exag:'과장된 크기', scale_real:'실제 비율 (1:1)',
-      camera:'카메라', cam_free:'자유 시점', cam_ship:'우주선 추적',
+      warp:'시간 가속', camera:'카메라', cam_free:'자유 시점', cam_ship:'우주선 추적',
       cam_earth:'지구 중심', cam_moon:'달 중심', cam_sun:'태양 중심',
       telemetry:'원격 측정', sim_time:'시뮬레이션 시간', sim_date:'날짜',
       ship_mass:'선체 질량', fuel:'남은 연료', speed:'속도',
-      alt_earth:'고도 (지구)', alt_moon:'고도 (달)', alt_mars:'거리 (화성)',
-      dv_used:'사용된 dV',
+      alt_earth:'고도 (지구)', alt_moon:'고도 (달)', alt_mars:'거리 (화성)', dv_used:'사용된 ΔV',
       mission:'미션 프리셋', apply:'프리셋 적용',
-      m_leo:'지구 저궤도 주차 (200 km)', m_hm:'호만 전이 -> 달',
-      m_fm:'빠른 전이 -> 달 (3일)', m_fr:'자유 귀환 궤도',
-      m_hmars:'호만 전이 -> 화성', m_vs:'금성 스윙바이 -> 화성', m_custom:'사용자 지정',
+      m_leo:'지구 저궤도 주차 (200 km)', m_hm:'호만 전이 → 달',
+      m_fm:'빠른 전이 → 달 (3일)', m_fr:'자유 귀환 궤도',
+      m_hmars:'호만 전이 → 화성', m_vs:'금성 스윙바이 → 화성', m_custom:'사용자 지정',
       modes:'기동', prograde:'진행 방향', retrograde:'역행 방향', normal:'법선 방향', radial:'지름 방향',
-      burn_dv:'dV (m/s)', execute:'분사 실행',
+      burn_dv:'ΔV (m/s)', execute:'분사 실행',
       landing:'착륙', target:'목표', ga_max_gen:'GA 최대 세대',
       enable_landing:'자동 착륙 활성화', stop:'GA 중단',
       vehicle:'우주선 파라미터', vehicle_preset:'프리셋',
@@ -662,7 +554,36 @@ function fmt(n, digits=2){
   return n.toFixed(digits);
 }
 
-/* =====[ PART 4 ] === Three.js 초기화 ===================== */
+/* =====[ PART 4 ] === Three.js 초기화 (1:1 스케일 + 발광 마커) ===================== */
+
+/* 발광 스프라이트 텍스처 생성 */
+function createGlowTexture(hexColor){
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = size/2, cy = size/2;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size/2);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.15, hexColor);
+  grad.addColorStop(0.5, hexColor.replace(')', ', 0.3)').replace('rgb', 'rgba'));
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+}
+
+function createMarker(hexColor){
+  const tex = createGlowTexture(hexColor);
+  const mat = new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const sprite = new THREE.Sprite(mat);
+  return sprite;
+}
+
 function initScene(){
   const host = document.getElementById(UI.canvas);
   if (!host){ console.error('canvas host missing'); return; }
@@ -670,7 +591,7 @@ function initScene(){
   S.scene = new THREE.Scene();
   S.scene.background = new THREE.Color(0x000005);
 
-  S.cam = new THREE.PerspectiveCamera(50, host.clientWidth/host.clientHeight, 10, 1e10);
+  S.cam = new THREE.PerspectiveCamera(50, host.clientWidth/host.clientHeight, 10, 1e12);
   S.cam.position.set(2*AU, 0.6*AU, 2*AU);
 
   S.rdr = new THREE.WebGLRenderer({ antialias: true });
@@ -682,16 +603,17 @@ function initScene(){
   S.ctrl.enableDamping = true;
   S.ctrl.dampingFactor = 0.08;
   S.ctrl.minDistance = 100;
-  S.ctrl.maxDistance = 1e10;
+  S.ctrl.maxDistance = 1e12;
 
   S.scene.add(new THREE.AmbientLight(0x666688, 0.6));
   const sunLight = new THREE.PointLight(0xffffff, 2, 0, 0);
   S.scene.add(sunLight);
 
+  /* 별 배경 */
   const sg = new THREE.BufferGeometry();
   const pts = [];
   for (let i=0;i<4000;i++){
-    const r = 8e9;
+    const r = 1e10;
     const th = Math.acos(2*Math.random()-1);
     const ph = 2*Math.PI*Math.random();
     pts.push(r*Math.sin(th)*Math.cos(ph), r*Math.cos(th), r*Math.sin(th)*Math.sin(ph));
@@ -699,34 +621,44 @@ function initScene(){
   sg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
   S.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 4e7 })));
 
-  /* 천체: 단위 구 + scale로 크기 조정 (동적 스케일 대응) */
+  /* 천체: 실제 크기 + 와이어프레임(테두리만) */
   for (const name in BODY){
     const b = BODY[name];
-    const mat = (name === 'sun')
-      ? new THREE.MeshBasicMaterial({ color: b.col })
-      : new THREE.MeshStandardMaterial({ color: b.col, roughness: 0.85, emissive: b.col, emissiveIntensity: 0.05 });
-    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 24), mat);
+    const mat = new THREE.MeshBasicMaterial({
+      color: b.col,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35,
+    });
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), mat);
+    m.scale.setScalar(b.R);   /* 1:1 스케일 고정 */
     m.userData.baseR = b.R;
-    m.scale.setScalar(b.R * S.vis.scaleK);
     S.scene.add(m);
     S.meshes[name] = m;
+
+    /* 발광 마커 (고정 화면 크기 스프라이트) */
+    const hexStr = '#' + b.col.toString(16).padStart(6, '0');
+    const marker = createMarker(hexStr);
+    S.scene.add(marker);
+    S.markers[name] = marker;
   }
 
+  /* 우주선 (작은 실루엣) */
   const ship = new THREE.Group();
   ship.name = 'ship';
   const bodyMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.5, 2.5, 16),
-    new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.5, roughness: 0.4 })
+    new THREE.CylinderGeometry(0.5, 0.5, 2.5, 12),
+    new THREE.MeshBasicMaterial({ color: 0xdddddd })
   );
   ship.add(bodyMesh);
   const nose = new THREE.Mesh(
-    new THREE.ConeGeometry(0.5, 1.0, 16),
-    new THREE.MeshStandardMaterial({ color: 0xbbbbbb })
+    new THREE.ConeGeometry(0.5, 1.0, 12),
+    new THREE.MeshBasicMaterial({ color: 0xbbbbbb })
   );
   nose.position.y = 1.7;
   ship.add(nose);
   const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.4, 1.5, 12),
+    new THREE.ConeGeometry(0.4, 1.5, 10),
     new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 })
   );
   flame.position.y = -2.0;
@@ -734,10 +666,16 @@ function initScene(){
   flame.visible = false;
   flame.name = 'flame';
   ship.add(flame);
-  ship.scale.setScalar(3e3);
+  ship.scale.setScalar(500);   /* 실제 500 km 남짓 크기 — 근접시 보임 */
   S.scene.add(ship);
   S.meshes.ship = ship;
 
+  /* 우주선 마커 (밝은 흰색) */
+  const shipMarker = createMarker('#ffffff');
+  S.scene.add(shipMarker);
+  S.markers.ship = shipMarker;
+
+  /* 궤적선 */
   const tg = new THREE.BufferGeometry();
   tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
   tg.setDrawRange(0, 0);
@@ -758,7 +696,6 @@ function initScene(){
 }
 
 /* =====[ PART 5 ] ==== 물리 엔진 (RK4 + 가변질량) ===================== */
-
 function solveKepler(M, e){
   M = ((M % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
   let E = M + e*Math.sin(M);
@@ -802,24 +739,14 @@ function keplerStateVectors(el, mu_parent, days){
 function computeBodies(simSec){
   const epochMs = S.sim.t0*1000 + simSec*1000;
   const days = (epochMs - J2000_MS)/(1000*DAY);
-
-  S.bodies.sun = {
-    pos: new THREE.Vector3(0,0,0),
-    vel: new THREE.Vector3(0,0,0),
-    mu: BODY.sun.mu,
-    R:  BODY.sun.R,
-  };
-
+  S.bodies.sun = { pos: new THREE.Vector3(0,0,0), vel: new THREE.Vector3(0,0,0), mu: BODY.sun.mu, R: BODY.sun.R };
   for (const name in BODY){
     if (name === 'sun') continue;
     const b = BODY[name];
     const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
     const st = keplerStateVectors(b.el, muParent, days);
     const parent = S.bodies[b.parent];
-    if (parent){
-      st.pos.add(parent.pos);
-      st.vel.add(parent.vel);
-    }
+    if (parent){ st.pos.add(parent.pos); st.vel.add(parent.vel); }
     S.bodies[name] = { pos: st.pos, vel: st.vel, mu: b.mu, R: b.R };
   }
 }
@@ -844,16 +771,13 @@ function gravityAt(pos){
 function thrustAccel(pos, vel){
   const out = new THREE.Vector3();
   if (S.ship.throttle <= 0 || S.ship.fuel <= 0 || S.ship.landed || S.ship.crashed) return out;
-
   const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-  const mass    = S.ship.dry + S.ship.fuel;
+  const mass = S.ship.dry + S.ship.fuel;
   if (mass <= 0) return out;
   const a_km_s2 = (thrustN / mass) * 1e-3;
-
   const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
   const rRel = pos.clone().sub(ref.pos);
   const vRel = vel.clone().sub(ref.vel);
-
   let dir;
   switch (S.ship.burnDir){
     case 'prograde':   dir = vRel.clone().normalize(); break;
@@ -875,14 +799,10 @@ function stepRK4(dt){
   const k2 = deriv(p0.clone().addScaledVector(k1.dp, dt/2), v0.clone().addScaledVector(k1.dv, dt/2));
   const k3 = deriv(p0.clone().addScaledVector(k2.dp, dt/2), v0.clone().addScaledVector(k2.dv, dt/2));
   const k4 = deriv(p0.clone().addScaledVector(k3.dp, dt),   v0.clone().addScaledVector(k3.dv, dt));
-
-  S.ship.pos.copy(p0)
-    .addScaledVector(k1.dp, dt/6).addScaledVector(k2.dp, dt/3)
+  S.ship.pos.copy(p0).addScaledVector(k1.dp, dt/6).addScaledVector(k2.dp, dt/3)
     .addScaledVector(k3.dp, dt/3).addScaledVector(k4.dp, dt/6);
-  S.ship.vel.copy(v0)
-    .addScaledVector(k1.dv, dt/6).addScaledVector(k2.dv, dt/3)
+  S.ship.vel.copy(v0).addScaledVector(k1.dv, dt/6).addScaledVector(k2.dv, dt/3)
     .addScaledVector(k3.dv, dt/3).addScaledVector(k4.dv, dt/6);
-
   if (S.ship.throttle > 0 && S.ship.fuel > 0){
     const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
     const ve = S.ship.isp * G0;
@@ -964,7 +884,6 @@ function debugInitialState(){
   const vMag = v.length();
   const vCirc = Math.sqrt(e.mu / rMag);
   const energy = 0.5*vMag*vMag - e.mu/rMag;
-
   console.log('=== Celestium debug ===');
   console.log('  Earth |pos|=', e.pos.length().toExponential(3), 'km, |vel|=', e.vel.length().toFixed(3), 'km/s');
   console.log('  Ship |r|=', rMag.toFixed(1), 'km  alt=', (rMag - e.R).toFixed(1), 'km');
@@ -982,13 +901,11 @@ function updateTelemetry(){
   setText('shipMass', fmt(m, 0) + ' kg');
   setText('fuel', fmt(S.ship.fuel, 0) + ' kg');
   setText('speed', fmt(S.ship.vel.length(), 3) + ' km/s');
-
   const e = S.bodies.earth, mo = S.bodies.moon, ma = S.bodies.mars;
   if (e)  setText('altEarth', fmt(S.ship.pos.distanceTo(e.pos) - e.R, 0) + ' km');
   if (mo) setText('altMoon',  fmt(S.ship.pos.distanceTo(mo.pos) - mo.R, 0) + ' km');
   if (ma) setText('distMars', fmt(S.ship.pos.distanceTo(ma.pos), 0) + ' km');
   setText('dvUsed', fmt(S.ship.dvUsed, 0) + ' m/s');
-
   updateOrbitalElements();
 }
 
@@ -1008,25 +925,19 @@ function computeOrbitalElements(){
   const pick = pickReferenceBody();
   const ref = pick.body;
   const refName = pick.name.charAt(0).toUpperCase() + pick.name.slice(1);
-
   const r = S.ship.pos.clone().sub(ref.pos);
   const v = S.ship.vel.clone().sub(ref.vel);
   const mu = ref.mu;
-
   const rMag = r.length();
   const vMag = v.length();
   if (rMag < 1e-6 || mu <= 0) return { refName, valid: false };
-
   const energy = 0.5*vMag*vMag - mu/rMag;
   const h = r.clone().cross(v);
   const hMag = h.length();
   const eVec = v.clone().cross(h).divideScalar(mu).sub(r.clone().divideScalar(rMag));
   const ecc = eVec.length();
   const a = (Math.abs(energy) > 1e-12) ? -mu/(2*energy) : Infinity;
-  const inc = (hMag > 1e-12)
-    ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI
-    : 0;
-
+  const inc = (hMag > 1e-12) ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI : 0;
   let rp_alt = null, ra_alt = null, period = null;
   if (ecc < 1 && isFinite(a) && a > 0){
     const rp = a * (1 - ecc);
@@ -1035,77 +946,52 @@ function computeOrbitalElements(){
     ra_alt = ra - ref.R;
     period = 2*Math.PI * Math.sqrt(a*a*a/mu);
   }
-
-  return {
-    refName, ref,
-    a, ecc, inc, period,
-    rp_alt, ra_alt,
-    energy, hMag,
-    valid: true,
-  };
+  return { refName, ref, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
 }
 
 function updateOrbitalElements(){
   const oe = computeOrbitalElements();
-  if (!oe.valid){
-    setText('oeRef', oe.refName);
-    return;
-  }
-
+  if (!oe.valid){ setText('oeRef', oe.refName); return; }
   setText('oeRef', oe.refName);
-
-  if (isFinite(oe.a) && oe.a > 0){
-    setText('oeA', fmt(oe.a, 1) + ' km');
-  } else if (oe.a < 0){
-    setText('oeA', 'hyperbolic (a<0)');
-  } else {
-    setText('oeA', 'parabolic');
-  }
-
+  if (isFinite(oe.a) && oe.a > 0) setText('oeA', fmt(oe.a, 1) + ' km');
+  else if (oe.a < 0) setText('oeA', 'hyperbolic (a<0)');
+  else setText('oeA', 'parabolic');
   setText('oeEcc', oe.ecc.toFixed(5));
   setText('oeInc', oe.inc.toFixed(3) + ' °');
-
   if (oe.period !== null){
-    if (oe.period < 3600)        setText('oeT', (oe.period/60).toFixed(2) + ' min');
-    else if (oe.period < 86400)  setText('oeT', (oe.period/3600).toFixed(3) + ' h');
-    else                         setText('oeT', (oe.period/86400).toFixed(3) + ' d');
-  } else {
-    setText('oeT', '--');
-  }
-
-  if (oe.rp_alt !== null) setText('oeRp', fmt(oe.rp_alt, 1) + ' km');
-  else                    setText('oeRp', '--');
-
-  if (oe.ra_alt !== null) setText('oeRa', fmt(oe.ra_alt, 1) + ' km');
-  else                    setText('oeRa', '--');
-
+    if (oe.period < 3600) setText('oeT', (oe.period/60).toFixed(2) + ' min');
+    else if (oe.period < 86400) setText('oeT', (oe.period/3600).toFixed(3) + ' h');
+    else setText('oeT', (oe.period/86400).toFixed(3) + ' d');
+  } else setText('oeT', '--');
+  setText('oeRp', oe.rp_alt !== null ? fmt(oe.rp_alt, 1) + ' km' : '--');
+  setText('oeRa', oe.ra_alt !== null ? fmt(oe.ra_alt, 1) + ' km' : '--');
   setText('oeEner', oe.energy.toFixed(5) + ' km²/s²');
   setText('oeAng', oe.hMag.toExponential(4) + ' km²/s');
 }
 
-/* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 (동적 스케일) ===================== */
+/* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 ===================== */
 let lastTrailPos = new THREE.Vector3();
-
-function computeEffK(bodyPos, bodyR){
-  if (S.vis.scale === 'real') return 1;
-  const camDist = S.cam.position.distanceTo(bodyPos);
-  const nearDist = bodyR * 6;
-  const farDist  = bodyR * 30;
-  if (camDist <= nearDist) return 1;
-  if (camDist >= farDist)  return S.vis.scaleK;
-  const t = (camDist - nearDist) / (farDist - nearDist);
-  return 1 + (S.vis.scaleK - 1) * t;
-}
+const MARKER_SCREEN_FRACTION = 0.025;   /* 화면 높이의 2.5% */
 
 function syncMeshes(){
+  /* 천체 위치 */
   for (const n in S.bodies){
+    const b = S.bodies[n];
     const mesh = S.meshes[n];
-    if (!mesh) continue;
-    mesh.position.copy(S.bodies[n].pos);
-    const effK = computeEffK(S.bodies[n].pos, S.bodies[n].R);
-    mesh.scale.setScalar(S.bodies[n].R * effK);
+    if (mesh){
+      mesh.position.copy(b.pos);
+      mesh.scale.setScalar(b.R);        /* 1:1 고정 */
+    }
+    /* 마커: 항상 고정 화면 크기로 */
+    const marker = S.markers[n];
+    if (marker){
+      marker.position.copy(b.pos);
+      const camDist = S.cam.position.distanceTo(b.pos);
+      marker.scale.setScalar(camDist * MARKER_SCREEN_FRACTION);
+    }
   }
 
+  /* 우주선 */
   if (S.meshes.ship){
     S.meshes.ship.position.copy(S.ship.pos);
     if (S.ship.vel.lengthSq() > 1e-12){
@@ -1119,14 +1005,19 @@ function syncMeshes(){
       if (flame.visible) flame.scale.y = 0.5 + S.ship.throttle/100;
     }
   }
+  if (S.markers.ship){
+    S.markers.ship.position.copy(S.ship.pos);
+    const camDist = S.cam.position.distanceTo(S.ship.pos);
+    S.markers.ship.scale.setScalar(camDist * MARKER_SCREEN_FRACTION);
+  }
 
+  /* 궤적선 */
   if (S.vis.trail){
     const minD = Math.max(S.trailMinKm, S.ship.pos.length() * 1e-5);
     if (S.trailPos.length === 0 || S.ship.pos.distanceTo(lastTrailPos) > minD){
       S.trailPos.push(S.ship.pos.clone());
       if (S.trailPos.length > S.trailMax) S.trailPos.shift();
       lastTrailPos.copy(S.ship.pos);
-
       const arr = S.trail.geometry.attributes.position.array;
       for (let i=0;i<S.trailPos.length;i++){
         arr[i*3]   = S.trailPos[i].x;
@@ -1155,19 +1046,19 @@ function updateCamera(){
 
   if (S.camMode === 'ship'){
     tgt = S.ship.pos;
-    viewDist = 30000;
+    viewDist = 5000;
   }
   else if (S.camMode === 'earth' && S.bodies.earth){
     tgt = S.bodies.earth.pos;
-    viewDist = S.bodies.earth.R * 3;
+    viewDist = S.bodies.earth.R * 4;
   }
   else if (S.camMode === 'moon' && S.bodies.moon){
     tgt = S.bodies.moon.pos;
-    viewDist = S.bodies.moon.R * 3;
+    viewDist = S.bodies.moon.R * 4;
   }
   else if (S.camMode === 'sun'){
     tgt = S.bodies.sun.pos;
-    viewDist = S.bodies.sun.R * 3;
+    viewDist = S.bodies.sun.R * 4;
   }
 
   if (!tgt){ S.ctrl.update(); return; }
@@ -1181,14 +1072,16 @@ function updateCamera(){
 
     S.ctrl.target.copy(tgt);
     S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
-    S.ctrl.minDistance = Math.max(viewDist * 0.1, 100);
-    S.ctrl.maxDistance = viewDist * 30;
+    S.ctrl.minDistance = Math.max(viewDist * 0.05, 100);
+    S.ctrl.maxDistance = viewDist * 100;
     S.ctrl.update();
     return;
   }
 
+  /* 부드럽게 따라가기 (고배속에서는 1.0으로 스냅) */
+  const lerpFactor = (S.sim.warp > 100000) ? 1.0 : 0.20;
   const prev = S.ctrl.target.clone();
-  S.ctrl.target.lerp(tgt, 0.20);
+  S.ctrl.target.lerp(tgt, lerpFactor);
   const delta = S.ctrl.target.clone().sub(prev);
   S.cam.position.add(delta);
   S.ctrl.update();
@@ -1198,19 +1091,15 @@ function updateCamera(){
 function resetShipToParkingOrbit(){
   computeBodies(0);
   const e = S.bodies.earth;
-
   let alt = parseFloat(($('parkAlt')?.value) || 200);
   if (!isFinite(alt) || alt < 100) alt = 200;
   if (alt > 40000) alt = 40000;
   const r = e.R + alt;
-
   const rHat = new THREE.Vector3(1,0,0);
-  const vHat = new THREE.Vector3(0,1,0);
+  const vHat = new THREE.Vector3(0,1,0);   /* XY 평면 궤도 */
   const vCirc = Math.sqrt(e.mu / r);
-
   S.ship.pos.copy(e.pos).addScaledVector(rHat, r);
   S.ship.vel.copy(e.vel).addScaledVector(vHat, vCirc);
-
   S.ship.fuel = S.ship.fuel0;
   S.ship.dvUsed = 0;
   S.ship.landed = false;
@@ -1219,7 +1108,6 @@ function resetShipToParkingOrbit(){
   S.ship.refFrame = 'earth';
   S.trailPos.length = 0;
   lastTrailPos.copy(S.ship.pos);
-
   const dAfter = S.ship.pos.distanceTo(e.pos);
   if (dAfter <= e.R){
     console.error('INIT FAIL: ship inside Earth. d=', dAfter, 'R=', e.R);
@@ -1233,14 +1121,12 @@ function resetShipToParkingOrbit(){
 function applyPreset(){
   const p = ($('mPreset')?.value) || 'leo';
   resetShipToParkingOrbit();
-
   const e = S.bodies.earth;
   const r1 = e.R + 200;
   const vC = Math.sqrt(e.mu / r1);
   const vHat = S.ship.vel.clone().sub(e.vel).normalize();
 
   if (p === 'leo'){ /* nothing */ }
-
   else if (p === 'hohmann_moon' || p === 'hohmann_mars'){
     const targetName = (p === 'hohmann_moon') ? 'moon' : 'mars';
     const tgt = S.bodies[targetName];
@@ -1278,7 +1164,6 @@ function applyPreset(){
     S.ship.dvUsed += Math.abs(dv)*1000;
     setStatus(`Venus swingby transfer: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
   }
-
   setStatus(`Preset applied: ${p}`, 'ok');
 }
 
@@ -1294,11 +1179,9 @@ function executeBurn(){
     setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'warn');
     return;
   }
-
   const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
   const rRel = S.ship.pos.clone().sub(ref.pos);
   const vRel = S.ship.vel.clone().sub(ref.vel);
-
   let dir;
   switch (S.ship.burnDir){
     case 'prograde':   dir = vRel.clone().normalize(); break;
@@ -1307,18 +1190,15 @@ function executeBurn(){
     case 'radial':     dir = rRel.clone().normalize(); break;
     default:           dir = vRel.clone().normalize();
   }
-
   S.ship.vel.addScaledVector(dir, dv);
   S.ship.fuel -= fuelNeed;
   S.ship.dvUsed += dvMs;
-
   setStatus(`BURN OK: ${S.ship.burnDir} dV=${dvMs.toFixed(0)} m/s (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
 }
 
-/* =====[ PART 11 ] ==== GA 기반 자동 착륙 ===================== */
+/* =====[ PART 11 ] ==== GA 자동 착륙 ===================== */
 const NN_IN = 8, NN_H = 6, NN_OUT = 4;
 const DNA_LEN = NN_IN*NN_H + NN_H*NN_OUT;
-
 function nnForward(dna, x){
   const h = new Array(NN_H);
   let k = 0;
@@ -1335,16 +1215,8 @@ function nnForward(dna, x){
   }
   return o;
 }
-function makeDNA(){
-  const d = new Float32Array(DNA_LEN);
-  for (let i=0;i<DNA_LEN;i++) d[i] = Math.random()*2 - 1;
-  return d;
-}
-function dnaHash(d){
-  let h = 0;
-  for (let i=0;i<DNA_LEN;i++) h = (h*31 + Math.round(d[i]*1e3))|0;
-  return h;
-}
+function makeDNA(){ const d = new Float32Array(DNA_LEN); for (let i=0;i<DNA_LEN;i++) d[i] = Math.random()*2 - 1; return d; }
+function dnaHash(d){ let h = 0; for (let i=0;i<DNA_LEN;i++) h = (h*31 + Math.round(d[i]*1e3))|0; return h; }
 function crossover(a, b){
   const c = new Float32Array(DNA_LEN);
   const cuts = [Math.random()*DNA_LEN|0, Math.random()*DNA_LEN|0].sort((x,y)=>x-y);
@@ -1358,42 +1230,28 @@ function crossover(a, b){
 function mutate(d, rate, sigma){
   for (let i=0;i<DNA_LEN;i++){
     if (Math.random() < rate) d[i] += (Math.random()*2-1)*sigma;
-    if (d[i] >  1) d[i] =  1;
+    if (d[i] > 1) d[i] = 1;
     if (d[i] < -1) d[i] = -1;
   }
 }
-
 function evalDNA(dna, body){
-  const dt = 0.5;
-  const tMax = 600;
-  let alt = 5000;
-  let vDown = -2;
-  let vSide = 0.5;
-  let fuel = S.ship.fuel;
-  let mass = S.ship.dry + fuel;
+  const dt = 0.5, tMax = 600;
+  let alt = 5000, vDown = -2, vSide = 0.5;
+  let fuel = S.ship.fuel, mass = S.ship.dry + fuel;
   const gSurf = (body.mu * 1e9) / Math.pow(body.R*1000, 2);
-
   let t = 0;
   while (t < tMax && alt > 0 && fuel > 0){
-    const x = [
-      alt/5000, vDown/50, vSide/50,
-      mass/(S.ship.dry + S.ship.fuel0),
-      fuel/S.ship.fuel0,
-      gSurf/10, t/tMax,
-      (Math.abs(vDown)+Math.abs(vSide))/50,
-    ];
+    const x = [alt/5000, vDown/50, vSide/50, mass/(S.ship.dry + S.ship.fuel0), fuel/S.ship.fuel0, gSurf/10, t/tMax, (Math.abs(vDown)+Math.abs(vSide))/50];
     const o = nnForward(dna, x);
     const thr = o[0];
     const aThr = thr * (S.ship.thrustKN*1000) / mass;
     vDown += (-gSurf + aThr) * dt;
     vSide += -(o[1]-0.5) * aThr * 0.3 * dt;
-    alt   += vDown * dt;
-
+    alt += vDown * dt;
     const dm = thr * (S.ship.thrustKN*1000) / (S.ship.isp*G0) * dt;
     fuel = Math.max(0, fuel - dm);
     mass = S.ship.dry + fuel;
     t += dt;
-
     if (alt < 0){
       const vTouch = Math.sqrt(vDown*vDown + vSide*vSide);
       return (vTouch < 5) ? 100 - vTouch*10 : -vTouch*10;
@@ -1401,29 +1259,20 @@ function evalDNA(dna, body){
   }
   return -50 - alt/1000;
 }
-
 class GA {
   constructor(body){
-    this.body = body;
-    this.size = 128;
-    this.pop  = [];
-    this.gen  = 0;
-    this.best = null;
-    this.bestScore = -Infinity;
+    this.body = body; this.size = 128; this.pop = []; this.gen = 0;
+    this.best = null; this.bestScore = -Infinity;
     for (let i=0;i<this.size;i++) this.pop.push(makeDNA());
   }
   step(){
     const scores = this.pop.map(d => evalDNA(d, this.body));
     let bi = 0;
     for (let i=1;i<scores.length;i++) if (scores[i] > scores[bi]) bi = i;
-    if (scores[bi] > this.bestScore){
-      this.bestScore = scores[bi];
-      this.best = this.pop[bi].slice();
-    }
+    if (scores[bi] > this.bestScore){ this.bestScore = scores[bi]; this.best = this.pop[bi].slice(); }
     const next = [this.best.slice()];
     while (next.length < this.size){
-      const a = this._tournament(scores);
-      const b = this._tournament(scores);
+      const a = this._tournament(scores), b = this._tournament(scores);
       const c = crossover(this.pop[a], this.pop[b]);
       const sigma = Math.max(0.05, 0.3*Math.exp(-this.gen/30));
       mutate(c, 0.15, sigma);
@@ -1435,8 +1284,7 @@ class GA {
       if (seen.has(h)) mutate(d, 0.4, 0.5);
       seen.add(h);
     }
-    this.pop = next;
-    this.gen++;
+    this.pop = next; this.gen++;
   }
   _tournament(scores){
     let bi = (Math.random()*this.size)|0, bs = scores[bi];
@@ -1447,9 +1295,7 @@ class GA {
     return bi;
   }
 }
-
 let gaIntervalHandle = null;
-
 function startAutoLand(){
   const target = ($('landTarget')?.value) || 'moon';
   const body = S.bodies[target] || S.bodies.moon;
@@ -1457,10 +1303,8 @@ function startAutoLand(){
   S.gaActive = true;
   S.autoLandActive = false;
   S.autoLandBody = body;
-
   const maxGen = parseInt($('gaGenMax')?.value || 60, 10);
   setStatus(`GA training start (max ${maxGen} gen, pop 128)`, 'ga');
-
   if (gaIntervalHandle) clearInterval(gaIntervalHandle);
   gaIntervalHandle = setInterval(()=>{
     if (!S.gaActive){ clearInterval(gaIntervalHandle); gaIntervalHandle = null; return; }
@@ -1474,57 +1318,41 @@ function startAutoLand(){
     }
   }, 30);
 }
-
 function stopGA(){
   if (gaIntervalHandle){ clearInterval(gaIntervalHandle); gaIntervalHandle = null; }
   S.gaActive = false;
   S.autoLandActive = false;
   setStatus('GA stopped by user', 'warn');
 }
-
 function applyAutoLandControl(){
   if (!S.autoLandActive || !S.ga?.best) return;
   const body = S.autoLandBody;
   const r = S.ship.pos.clone().sub(body.pos);
   const alt = r.length() - body.R;
   if (alt < 0 || alt > body.R*20){ S.autoLandActive = false; return; }
-
   const rHat = r.clone().normalize();
   const vRel = S.ship.vel.clone().sub(body.vel);
   const vRad = vRel.dot(rHat);
   const vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
-
   const gSurf = (body.mu * 1e9) / Math.pow(body.R*1000, 2);
-  const x = [
-    alt/5000, vRad/50, vTan/50,
-    (S.ship.dry+S.ship.fuel)/(S.ship.dry+S.ship.fuel0),
-    S.ship.fuel/S.ship.fuel0,
-    gSurf/10, 0, (Math.abs(vRad)+Math.abs(vTan))/50,
-  ];
+  const x = [alt/5000, vRad/50, vTan/50, (S.ship.dry+S.ship.fuel)/(S.ship.dry+S.ship.fuel0), S.ship.fuel/S.ship.fuel0, gSurf/10, 0, (Math.abs(vRad)+Math.abs(vTan))/50];
   const o = nnForward(S.ga.best, x);
   S.ship.throttle = o[0]*100;
-  S.ship.burnDir  = 'retrograde';
+  S.ship.burnDir = 'retrograde';
 }
 
-/* =====[ PART 12 ] ==== CSV 로깅 + 내보내기 ===================== */
+/* =====[ PART 12 ] ==== CSV ===================== */
 function logRow(){
   S.csvLog.push({
-    t: S.sim.t,
-    date: new Date((S.sim.t0 + S.sim.t)*1000).toISOString(),
+    t: S.sim.t, date: new Date((S.sim.t0 + S.sim.t)*1000).toISOString(),
     x: S.ship.pos.x, y: S.ship.pos.y, z: S.ship.pos.z,
     vx: S.ship.vel.x, vy: S.ship.vel.y, vz: S.ship.vel.z,
-    mass: S.ship.dry + S.ship.fuel,
-    fuel: S.ship.fuel,
-    dv: S.ship.dvUsed,
+    mass: S.ship.dry + S.ship.fuel, fuel: S.ship.fuel, dv: S.ship.dvUsed,
   });
   if (S.csvLog.length > 100000) S.csvLog.shift();
 }
-
 function exportCSV(){
-  if (S.csvLog.length === 0){
-    setStatus('No CSV data yet. Run the simulation first.', 'warn');
-    return;
-  }
+  if (S.csvLog.length === 0){ setStatus('No CSV data yet.', 'warn'); return; }
   const header = 'sim_t,date,x_km,y_km,z_km,vx_km_s,vy_km_s,vz_km_s,mass_kg,fuel_kg,dv_m_s\n';
   const body = S.csvLog.map(r =>
     `${r.t.toFixed(2)},${r.date},${r.x.toFixed(2)},${r.y.toFixed(2)},${r.z.toFixed(2)},${r.vx.toFixed(5)},${r.vy.toFixed(5)},${r.vz.toFixed(5)},${r.mass.toFixed(0)},${r.fuel.toFixed(0)},${r.dv.toFixed(1)}`
@@ -1537,31 +1365,27 @@ function exportCSV(){
   setStatus(`CSV exported: ${S.csvLog.length} rows`, 'ok');
 }
 
-/* =====[ PART 13 ] ==== 언어 (i18n) ===================== */
+/* =====[ PART 13 ] ==== i18n ===================== */
 function applyLanguage(){
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (S.langs[S.lang][key]) el.textContent = S.langs[S.lang][key];
   });
-  const btnEn = $('langEn');
-  const btnKo = $('langKo');
+  const btnEn = $('langEn'), btnKo = $('langKo');
   if (btnEn) btnEn.className = (S.lang === 'en') ? 'active' : '';
   if (btnKo) btnKo.className = (S.lang === 'ko') ? 'active' : '';
-
   const helpEn = document.getElementById('help-body-en');
   const helpKo = document.getElementById('help-body-ko');
   if (helpEn) helpEn.style.display = (S.lang === 'en') ? 'block' : 'none';
   if (helpKo) helpKo.style.display = (S.lang === 'ko') ? 'block' : 'none';
-
   const playBtn = $('play');
   if (playBtn) playBtn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
 }
 
-/* =====[ PART 14 ] ==== UI 이벤트 바인딩 ===================== */
+/* =====[ PART 14 ] ==== UI 이벤트 ===================== */
 function bindUI(){
   $('langEn')?.addEventListener('click', () => { S.lang = 'en'; applyLanguage(); });
   $('langKo')?.addEventListener('click', () => { S.lang = 'ko'; applyLanguage(); });
-
   $('play')?.addEventListener('click', () => {
     S.sim.paused = !S.sim.paused;
     const btn = $('play');
@@ -1569,14 +1393,10 @@ function bindUI(){
     setStatus(S.sim.paused ? 'PAUSED' : 'PLAYING', 'sys');
   });
   $('reset')?.addEventListener('click', () => {
-    S.sim.t = 0;
-    S.sim.paused = true;
-    S.csvLog.length = 0;
-    resetShipToParkingOrbit();
-    updateTelemetry();
+    S.sim.t = 0; S.sim.paused = true; S.csvLog.length = 0;
+    resetShipToParkingOrbit(); updateTelemetry();
     setStatus('Reset', 'sys');
   });
-
   $('applyPreset')?.addEventListener('click', applyPreset);
   $('burnExec')?.addEventListener('click', executeBurn);
 
@@ -1590,13 +1410,11 @@ function bindUI(){
     });
   }
 
-
-
-  
-  $('tpPlan')?.addEventListener('click', handlePlanTransfer);
-  $('tpExecute')?.addEventListener('click', executeTransferBurn);
   $('autoLand')?.addEventListener('click', startAutoLand);
   $('gaStop')?.addEventListener('click', stopGA);
+
+  $('tpPlan')?.addEventListener('click', handlePlanTransfer);
+  $('tpExecute')?.addEventListener('click', executeTransferBurn);
 
   $('vehiclePreset')?.addEventListener('change', e => {
     const v = VEHICLES[e.target.value];
@@ -1613,12 +1431,11 @@ function bindUI(){
     setText('labThrust', v.thrust + ' kN');
     setStatus(`Vehicle: ${e.target.value}`, 'sys');
   });
-
   const sliderMap = {
-    slDry:    { key:'dry',      label:'labDry',    suffix:' kg', min:1000 },
-    slFuel:   { key:'fuel0',    label:'labFuel',   suffix:' kg', min:1000 },
-    slIsp:    { key:'isp',      label:'labIsp',    suffix:' s',  min:200 },
-    slThrust: { key:'thrustKN', label:'labThrust', suffix:' kN', min:50 },
+    slDry: { key:'dry', label:'labDry', suffix:' kg' },
+    slFuel: { key:'fuel0', label:'labFuel', suffix:' kg' },
+    slIsp: { key:'isp', label:'labIsp', suffix:' s' },
+    slThrust: { key:'thrustKN', label:'labThrust', suffix:' kN' },
   };
   for (const id in sliderMap){
     const el = $(id);
@@ -1635,18 +1452,15 @@ function bindUI(){
       setText(info.label, v + info.suffix);
     });
   }
-
   $('warp')?.addEventListener('change', e => { S.sim.warp = parseFloat(e.target.value) || 1; });
-  $('visual')?.addEventListener('change', e => { S.vis.scale = e.target.value; });
   $('camera')?.addEventListener('change', e => {
     const v = e.target.value.toLowerCase();
-    if (v.includes('ship'))       S.camMode = 'ship';
+    if (v.includes('ship')) S.camMode = 'ship';
     else if (v.includes('earth')) S.camMode = 'earth';
-    else if (v.includes('moon'))  S.camMode = 'moon';
-    else if (v.includes('sun'))   S.camMode = 'sun';
-    else                          S.camMode = 'free';
+    else if (v.includes('moon')) S.camMode = 'moon';
+    else if (v.includes('sun')) S.camMode = 'sun';
+    else S.camMode = 'free';
   });
-
   $('showTrail')?.addEventListener('change', e => { S.vis.trail = e.target.checked; });
   $('maxPoints')?.addEventListener('change', e => {
     S.trailMax = parseInt(e.target.value, 10) || 5000;
@@ -1662,302 +1476,185 @@ function bindUI(){
     S.trail.geometry.setDrawRange(0, 0);
     setStatus('Trail cleared', 'sys');
   });
-
   $('dt')?.addEventListener('change', e => { S.sim.dt = parseFloat(e.target.value) || 5; });
   $('integrator')?.addEventListener('change', e => { S.sim.method = e.target.value; });
   $('launchDate')?.addEventListener('change', e => {
     const d = new Date(e.target.value + 'T12:00:00Z');
-    if (!isNaN(d)) {
-      S.sim.t0 = d.getTime()/1000;
-      S.sim.t = 0;
-      computeBodies(0);
-      setStatus(`Launch date set: ${e.target.value}`, 'sys');
-    }
+    if (!isNaN(d)){ S.sim.t0 = d.getTime()/1000; S.sim.t = 0; computeBodies(0); setStatus(`Launch date: ${e.target.value}`, 'sys'); }
   });
-
   $('exportCsv')?.addEventListener('click', exportCSV);
+  $('syncHorizons')?.addEventListener('click', () => setStatus('Horizons sync not implemented (local Kepler)', 'warn'));
 
-  $('syncHorizons')?.addEventListener('click', () => {
-    setStatus('Horizons sync not implemented in this build (using local Kepler)', 'warn');
-  });
-
-  const helpBtn = $('helpBtn');
-  const helpClose = $('helpClose');
-  const overlay = $('helpOverlay');
+  const helpBtn = $('helpBtn'), helpClose = $('helpClose'), overlay = $('helpOverlay');
   helpBtn?.addEventListener('click', () => overlay?.classList.add('show'));
   helpClose?.addEventListener('click', () => overlay?.classList.remove('show'));
   overlay?.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
 
   addEventListener('keydown', e => {
-    if (e.code === 'Space' && e.target === document.body){
-      e.preventDefault();
-      $('play')?.click();
-    }
-    if (e.key === 'r' || e.key === 'R'){
-      if (e.target === document.body) $('reset')?.click();
-    }
+    if (e.code === 'Space' && e.target === document.body){ e.preventDefault(); $('play')?.click(); }
+    if (e.key === 'r' || e.key === 'R'){ if (e.target === document.body) $('reset')?.click(); }
   });
 
   applyLanguage();
 }
 
-/* =====[ PART 15 ] ==== 메인 루프 (적응형 dt) ===================== */
-let lastFrame = performance.now();
-let lastLogTime = 0;
-
-function animate(){
-  requestAnimationFrame(animate);
-  const now = performance.now();
-  const realDt = Math.min(0.1, (now - lastFrame)/1000);
-  lastFrame = now;
-
-  if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
-    let remaining = realDt * S.sim.warp;
-    let safety = 200000;
-
-    while (remaining > 0 && safety-- > 0){
-      const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
-      computeBodies(S.sim.t);
-      applyAutoLandControl();
-      if (S.sim.method === 'euler') stepEuler(dtNow);
-      else                          stepRK4(dtNow);
-      checkCollision();
-      S.sim.t += dtNow;
-      remaining -= dtNow;
-      if (S.ship.landed || S.ship.crashed) break;
-    }
-
-    if (now - lastLogTime > 1000){
-      lastLogTime = now;
-      logRow();
-    }
-  } else {
-    computeBodies(S.sim.t);
-  }
-
-  syncMeshes();
-  updateCamera();
-  updateTelemetry();
-
-  if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
-}
-
-/* =====[ PART 16 ] ==== Boot ===================== */
-function boot(){
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth()+1).padStart(2,'0');
-  const dd = String(today.getDate()).padStart(2,'0');
-  const dateInput = $('launchDate');
-  if (dateInput){
-    dateInput.value = `${yyyy}-${mm}-${dd}`;
-    const d = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
-    if (!isNaN(d)) S.sim.t0 = d.getTime()/1000;
-  }
-
-  initScene();
-  bindUI();
-
-  logMsg('sys', 'CELESTIUM 4.0 booted');
-  logMsg('sys', 'Pick a MISSION PRESET, hit APPLY PRESET, then PLAY');
-  logMsg('sys', 'WARP=86,400x -> 1 second real = 1 day sim');
-
-  setTimeout(() => debugInitialState(), 100);
-  animate();
-}
-
-/* =====[ PART 17 ] ==== 람베르트 솔버 (Stumpff + 뉴턴 반복) ===================== */
-
-/* Stumpff 함수 C(z) */
+/* =====[ PART 15 ] ==== 람베르트 솔버 (Bisection, robust) ===================== */
 function stumpffC(z){
-  if (z > 1e-8){
-    const sz = Math.sqrt(z);
-    return (1 - Math.cos(sz)) / z;
-  } else if (z < -1e-8){
-    const sz = Math.sqrt(-z);
-    return (Math.cosh(sz) - 1) / (-z);
-  }
+  if (z > 1e-8){ const sz = Math.sqrt(z); return (1 - Math.cos(sz)) / z; }
+  else if (z < -1e-8){ const sz = Math.sqrt(-z); return (Math.cosh(sz) - 1) / (-z); }
   return 0.5;
 }
-
-/* Stumpff 함수 S(z) */
 function stumpffS(z){
-  if (z > 1e-8){
-    const sz = Math.sqrt(z);
-    return (sz - Math.sin(sz)) / Math.pow(z, 1.5);
-  } else if (z < -1e-8){
-    const sz = Math.sqrt(-z);
-    return (Math.sinh(sz) - sz) / Math.pow(-z, 1.5);
-  }
+  if (z > 1e-8){ const sz = Math.sqrt(z); return (sz - Math.sin(sz)) / Math.pow(z, 1.5); }
+  else if (z < -1e-8){ const sz = Math.sqrt(-z); return (Math.sinh(sz) - sz) / Math.pow(-z, 1.5); }
   return 1/6;
 }
 
-/* 람베르트 문제: r1 -> r2, 시간 dt, 중심 mu.
-   반환: { v1, v2, z, converged }  (v1은 r1에서의 속도, v2는 r2에서) */
-function lambertSolver(r1, r2, dt, mu, prograde=true){
+function lambertSolver(r1, r2, dt, mu, prograde){
+  if (prograde === undefined) prograde = true;
   const r1m = r1.length();
   const r2m = r2.length();
-  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0) return null;
-
-  // 전이각 계산
+  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0){
+    console.warn('[Lambert] invalid inputs');
+    return null;
+  }
   let cosDth = r1.dot(r2) / (r1m * r2m);
   cosDth = Math.max(-1, Math.min(1, cosDth));
   const crossZ = r1.x*r2.y - r1.y*r2.x;
   let dth = Math.acos(cosDth);
-  if (prograde){
-    if (crossZ < 0) dth = 2*Math.PI - dth;
-  } else {
-    if (crossZ >= 0) dth = 2*Math.PI - dth;
-  }
+  if (prograde){ if (crossZ < 0) dth = 2*Math.PI - dth; }
+  else { if (crossZ >= 0) dth = 2*Math.PI - dth; }
 
   const A = Math.sin(dth) * Math.sqrt(r1m*r2m / (1 - cosDth));
-  if (Math.abs(A) < 1e-9) return null;   // 0 또는 180도 전이 (일반적으론 없음)
+  if (Math.abs(A) < 1e-9){
+    console.warn('[Lambert] A near zero (dth ~ 0 or 180 deg)');
+    return null;
+  }
 
-  // z에 대한 F(z)와 y(z)
+  console.log('[Lambert] r1=' + r1m.toFixed(1) + ' r2=' + r2m.toFixed(1) +
+              ' dth=' + (dth*180/Math.PI).toFixed(1) + 'deg A=' + A.toFixed(1) +
+              ' dt=' + (dt/86400).toFixed(3) + 'd');
+
   function yOfZ(z){
     const C = stumpffC(z);
+    if (Math.abs(C) < 1e-12) return -1;
     return r1m + r2m + A*(z*stumpffS(z) - 1)/Math.sqrt(C);
   }
   function FofZ(z){
     const C = stumpffC(z);
-    const S = stumpffS(z);
+    if (C < 1e-12) return NaN;
+    const S_ = stumpffS(z);
     const y = yOfZ(z);
     if (y < 0) return NaN;
-    return Math.pow(y/C, 1.5) * S + A*Math.sqrt(y) - Math.sqrt(mu)*dt;
+    return Math.pow(y/C, 1.5) * S_ + A*Math.sqrt(y) - Math.sqrt(mu)*dt;
   }
 
-  // 1차: z=0 주변에서 시작
+  /* bracket search */
+  let zLo = -50, zHi = 50;
+  let F_lo = FofZ(zLo), F_hi = FofZ(zHi);
+  let t = 0;
+  while ((!isFinite(F_lo)) && t < 100){ zLo += 5; F_lo = FofZ(zLo); t++; }
+  t = 0;
+  while ((!isFinite(F_hi)) && t < 100){ zHi -= 5; F_hi = FofZ(zHi); t++; }
+
+  if (!isFinite(F_lo) || !isFinite(F_hi)){
+    console.warn('[Lambert] no finite F endpoints');
+    return null;
+  }
+
+  t = 0;
+  while (F_lo * F_hi > 0 && t < 30){
+    if (Math.abs(F_lo) < Math.abs(F_hi)){ zLo -= 50; F_lo = FofZ(zLo); }
+    else { zHi += 50; F_hi = FofZ(zHi); }
+    t++;
+  }
+  if (F_lo * F_hi > 0){
+    console.warn('[Lambert] cannot bracket root. F_lo=' + F_lo + ' F_hi=' + F_hi);
+    return null;
+  }
+
+  console.log('[Lambert] bracket z in [' + zLo.toFixed(2) + ', ' + zHi.toFixed(2) +
+              ']  F_lo=' + F_lo.toExponential(2) + ' F_hi=' + F_hi.toExponential(2));
+
+  /* bisection */
   let z = 0;
-  let converged = false;
-
-  for (let iter = 0; iter < 80; iter++){
+  for (let iter = 0; iter < 200; iter++){
+    z = (zLo + zHi) / 2;
     const F = FofZ(z);
-    if (!isFinite(F)) { z += 0.5; continue; }
-
-    // 수치 미분
-    const dz = 1e-5 * Math.max(1, Math.abs(z));
-    const Fp = FofZ(z + dz);
-    let dFdz;
-    if (isFinite(Fp)){
-      dFdz = (Fp - F) / dz;
-    } else {
-      dFdz = 1; // fallback
-    }
-    if (Math.abs(dFdz) < 1e-12) dFdz = 1e-12;
-
-    let zNew = z - F/dFdz;
-
-    // z가 너무 크게 튀면 클램프
-    if (zNew > 100) zNew = 50;
-    if (zNew < -100) zNew = -50;
-
-    if (Math.abs(zNew - z) < 1e-9){
-      z = zNew;
-      converged = true;
-      break;
-    }
-    z = zNew;
-  }
-
-  if (!converged){
-    console.warn('Lambert did not converge, z=', z);
+    if (!isFinite(F)){ zLo = z; continue; }
+    if (Math.abs(F) < 1e-4) break;
+    if ((F > 0) === (F_lo > 0)){ zLo = z; F_lo = F; }
+    else { zHi = z; F_hi = F; }
+    if (Math.abs(zHi - zLo) < 1e-11) break;
   }
 
   const y = yOfZ(z);
-  if (y < 0) return null;
-
+  if (y < 0){
+    console.warn('[Lambert] y<0 at z=' + z);
+    return null;
+  }
   const f = 1 - y/r1m;
   const g = A * Math.sqrt(y/mu);
   const gdot = 1 - y/r2m;
-
-  if (Math.abs(g) < 1e-9) return null;
-
+  if (Math.abs(g) < 1e-9){
+    console.warn('[Lambert] g near zero');
+    return null;
+  }
   const v1 = r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g);
   const v2 = r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g);
-
-  return { v1, v2, z, converged, dth };
+  console.log('[Lambert] converged z=' + z.toFixed(4) + ' |v1|=' + v1.length().toFixed(3) + ' km/s');
+  return { v1, v2, z, converged: true, dth };
 }
 
-/* 임의 시각의 천체 상태 (부모 체인 재귀) */
 function getBodyStateAt(name, simT){
-  if (name === 'sun'){
-    return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
-  }
+  if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
   const b = BODY[name];
   if (!b) return null;
-
   const epochMs = S.sim.t0*1000 + simT*1000;
   const days = (epochMs - J2000_MS)/(1000*DAY);
   const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
   const st = keplerStateVectors(b.el, muParent, days);
-
   if (b.parent !== 'sun'){
     const parentSt = getBodyStateAt(b.parent, simT);
-    if (parentSt){
-      st.pos.add(parentSt.pos);
-      st.vel.add(parentSt.vel);
-    }
+    if (parentSt){ st.pos.add(parentSt.pos); st.vel.add(parentSt.vel); }
   }
   return st;
 }
 
-/* 중심 천체 선택 */
 function pickCentralBody(targetName){
   if (targetName === 'moon') return 'earth';
   return 'sun';
 }
 
-/* =====[ PART 18 ] ==== 자동 전이 계획 + 실행 ===================== */
-
-/* 현재 저장된 계획 (UI에 표시하고 실행에 사용) */
-S.transferPlan = null;
-
+/* =====[ PART 16 ] ==== 전이 계획 + 실행 ===================== */
 function planTransferTo(targetName, tofDays){
-  if (!isFinite(tofDays) || tofDays <= 0){
-    setStatus('Invalid time of flight', 'warn');
-    return null;
-  }
-
+  if (!isFinite(tofDays) || tofDays <= 0){ setStatus('Invalid time of flight', 'warn'); return null; }
   const centralName = pickCentralBody(targetName);
   const centralNow = getBodyStateAt(centralName, S.sim.t);
   const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
   const targetFuture = getBodyStateAt(targetName, S.sim.t + tofDays*DAY);
-
   if (!centralNow || !centralFuture || !targetFuture){
     setStatus('Cannot compute future states', 'err');
     return null;
   }
-
-  // 중심 천체 기준 상대 벡터
   const r1 = S.ship.pos.clone().sub(centralNow.pos);
   const r2 = targetFuture.pos.clone().sub(centralFuture.pos);
-
   const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
-
   const sol = lambertSolver(r1, r2, tofDays*DAY, mu, true);
-  if (!sol){
-    setStatus('Lambert solver failed', 'err');
-    return null;
-  }
+  if (!sol){ setStatus('Lambert solver failed', 'err'); return null; }
 
-  // 관성계로 변환: v1에 중심 천체의 현재 속도 더하기
   const shipV_new = sol.v1.clone().add(centralNow.vel);
   const dvVec = shipV_new.clone().sub(S.ship.vel);
-  const dvMag = dvVec.length() * 1000;   // m/s
-  const dvKm = dvVec.length();           // km/s
-
-  // 현재 진행 방향과의 각도 (정보 표시용)
+  const dvMag = dvVec.length() * 1000;
+  const dvKm = dvVec.length();
   const vNow = S.ship.vel.clone().normalize();
   const dvDir = dvVec.clone().normalize();
   const cosAngle = vNow.dot(dvDir);
   const angleDeg = Math.acos(Math.max(-1, Math.min(1, cosAngle))) * 180/Math.PI;
 
   const plan = {
-    targetName,
-    centralName,
-    tofDays,
-    dvVec, dvMag, dvKm,
-    angleDeg,
+    targetName, centralName, tofDays,
+    dvVec, dvMag, dvKm, angleDeg,
     arrivalPos: targetFuture.pos.clone(),
     arrivalTime: S.sim.t + tofDays*DAY,
     converged: sol.converged,
@@ -1968,32 +1665,22 @@ function planTransferTo(targetName, tofDays){
 
 function executeTransferBurn(){
   const plan = S.transferPlan;
-  if (!plan){
-    setStatus('No transfer plan. Click PLAN TRANSFER first.', 'warn');
-    return;
-  }
-
+  if (!plan){ setStatus('No transfer plan. Click PLAN TRANSFER first.', 'warn'); return; }
   const m0 = S.ship.dry + S.ship.fuel;
   const ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag/ve));
-
   if (fuelNeed > S.ship.fuel){
     setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'err');
     return;
   }
-
-  // burn 벡터를 관성계 속도에 직접 더함
   S.ship.vel.add(plan.dvVec);
   S.ship.fuel -= fuelNeed;
   S.ship.dvUsed += plan.dvMag;
-
   const dirLabel = (plan.angleDeg < 20) ? 'prograde-ish'
-                : (plan.angleDeg > 160) ? 'retrograde-ish'
-                : `off-axis ${plan.angleDeg.toFixed(0)}°`;
-
+                 : (plan.angleDeg > 160) ? 'retrograde-ish'
+                 : `off-axis ${plan.angleDeg.toFixed(0)}°`;
   setStatus(`TRANSFER BURN: dV=${plan.dvMag.toFixed(0)} m/s (${dirLabel}, fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
   setStatus(`Aim: ${plan.targetName} in ${plan.tofDays} d`, 'phys');
-
   S.transferPlan = null;
   if ($('tpResult')) $('tpResult').style.display = 'none';
   if ($('tpExecute')) $('tpExecute').style.display = 'none';
@@ -2006,10 +1693,8 @@ function updateTransferPlanUI(){
     if ($('tpExecute')) $('tpExecute').style.display = 'none';
     return;
   }
-
   if ($('tpResult')) $('tpResult').style.display = 'block';
   if ($('tpExecute')) $('tpExecute').style.display = 'block';
-
   setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
   setText('tpDir', plan.angleDeg.toFixed(1) + '° from velocity');
   const arrivalDate = new Date((S.sim.t0 + plan.arrivalTime)*1000);
@@ -2019,22 +1704,71 @@ function updateTransferPlanUI(){
 function handlePlanTransfer(){
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
-
   setStatus(`Planning transfer to ${target} (tof=${tof} d)...`, 'sys');
-
   const plan = planTransferTo(target, tof);
-  if (!plan){
-    setStatus('Transfer plan failed', 'err');
-    return;
-  }
-
+  if (!plan){ setStatus('Transfer plan failed', 'err'); return; }
   updateTransferPlanUI();
   setStatus(`Plan ready: dV=${plan.dvMag.toFixed(0)} m/s, arrival ${plan.tofDays} d`, 'ok');
 }
 
+/* =====[ PART 17 ] ==== 메인 루프 ===================== */
+let lastFrame = performance.now();
+let lastLogTime = 0;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  const realDt = Math.min(0.1, (now - lastFrame)/1000);
+  lastFrame = now;
+
+  if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
+    let remaining = realDt * S.sim.warp;
+    let safety = 200000;
+    while (remaining > 0 && safety-- > 0){
+      const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
+      computeBodies(S.sim.t);
+      applyAutoLandControl();
+      if (S.sim.method === 'euler') stepEuler(dtNow);
+      else stepRK4(dtNow);
+      checkCollision();
+      S.sim.t += dtNow;
+      remaining -= dtNow;
+      if (S.ship.landed || S.ship.crashed) break;
+    }
+    if (now - lastLogTime > 1000){ lastLogTime = now; logRow(); }
+  } else {
+    computeBodies(S.sim.t);
+  }
+
+  syncMeshes();
+  updateCamera();
+  updateTelemetry();
+
+  if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
+}
+
+/* =====[ PART 18 ] ==== Boot ===================== */
+function boot(){
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  const dateInput = $('launchDate');
+  if (dateInput){
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    const d = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
+    if (!isNaN(d)) S.sim.t0 = d.getTime()/1000;
+  }
+  initScene();
+  bindUI();
+  logMsg('sys', 'CELESTIUM 4.0 booted');
+  logMsg('sys', 'Pick a MISSION PRESET, hit APPLY PRESET, then PLAY');
+  logMsg('sys', 'Use TRANSFER PLANNER for Lambert transfer calculation');
+  setTimeout(() => debugInitialState(), 100);
+  animate();
+}
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
-
 </script>
 </body>
 </html>
