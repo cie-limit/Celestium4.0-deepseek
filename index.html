@@ -115,13 +115,14 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   <button id="btn-help">?</button>
   <div style="display:flex; gap:6px; align-items:center;">
     <label style="font-size:10px;color:#88ccff;" data-i18n="warp">WARP</label>
-    <select id="time-warp" style="width:130px;">
+    <select id="time-warp" style="width:150px;">
       <option value="1">1× (real-time)</option>
       <option value="60">60× (1 min/s)</option>
       <option value="3600">3,600× (1 h/s)</option>
       <option value="86400" selected>86,400× (1 day/s)</option>
       <option value="864000">864,000× (10 d/s)</option>
       <option value="2592000">2,592,000× (30 d/s)</option>
+      <option value="5184000">5,184,000× (60 d/s)</option>
     </select>
   </div>
   <div style="display:flex; gap:6px; align-items:center;">
@@ -204,6 +205,10 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   <div class="field">
     <label>Time of Flight (days)</label>
     <input type="number" id="tp-tof" value="5" min="0.1" max="500" step="0.1">
+  </div>
+  <div class="row" style="font-size:10px;color:#88ccff;">
+    <label style="color:#88ccff;font-size:10px;">Auto-align parking orbit</label>
+    <input type="checkbox" id="tp-align" checked>
   </div>
   <button id="btn-tp-plan" style="width:100%;">PLAN TRANSFER</button>
   <div class="metric-box" id="tp-result" style="margin-top:6px; display:none;">
@@ -315,51 +320,21 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   <div id="help-content">
     <h2 data-i18n="help_title">CELESTIUM 4.0 - QUICK GUIDE</h2>
     <div id="help-body-en">
-      <p>Celestium 4.0 is a browser-native solar-system simulator. All physics is computed locally using Newtonian N-body integration.</p>
+      <p>Browser-native solar-system simulator with N-body Newtonian physics.</p>
       <h3>Quick start</h3>
       <ul>
-        <li>Pick a <code>MISSION PRESET</code>, hit <code>APPLY PRESET</code>, then <code>PLAY</code>.</li>
-        <li>Use <code>WARP</code> to fast-forward time. 86,400× = 1 day per second.</li>
-        <li><code>CAMERA</code> follows ship, Earth, Moon, or Sun.</li>
-        <li>Use <code>TRANSFER PLANNER</code> to compute a Lambert transfer.</li>
-        <li><code>ENABLE AUTO-LAND</code> trains a GA-based neural network to land.</li>
-      </ul>
-      <h3>Physics</h3>
-      <ul>
-        <li>Sun + Mercury + Venus + Earth + Moon + Mars N-body Newtonian gravity.</li>
-        <li>RK4 or Euler-Cromer (dt configurable).</li>
-        <li>Tsiolkovsky mass depletion: m-dot = T/(Isp*g0).</li>
-        <li>Spacecraft is a test mass (restricted N-body).</li>
-      </ul>
-      <h3>Keys</h3>
-      <ul>
-        <li>Mouse drag / wheel: orbit &amp; zoom camera</li>
-        <li>Space: play/pause</li>
-        <li>R: reset</li>
+        <li>Pick a <code>MISSION PRESET</code> → <code>APPLY PRESET</code> → <code>PLAY</code>.</li>
+        <li>Use <code>TRANSFER PLANNER</code> for Lambert transfer to Moon/Mars/Venus.</li>
+        <li>Auto-align places your parking orbit at the Hohmann launch phase.</li>
       </ul>
     </div>
     <div id="help-body-ko" style="display:none;">
-      <p>Celestium 4.0은 브라우저 기반 태양계 시뮬레이터입니다. 모든 물리는 로컬에서 뉴턴 N체 적분으로 계산됩니다.</p>
+      <p>브라우저 기반 태양계 시뮬레이터. N체 뉴턴 물리.</p>
       <h3>빠른 시작</h3>
       <ul>
-        <li>좌측 <code>MISSION PRESET</code>에서 시나리오 선택 → <code>APPLY PRESET</code> → <code>PLAY</code></li>
-        <li><code>WARP</code>으로 시간 가속. 86,400× = 1초에 1일</li>
-        <li><code>CAMERA</code>로 우주선·지구·달·태양 추적</li>
-        <li><code>TRANSFER PLANNER</code>로 람베르트 전이 계산</li>
-        <li><code>ENABLE AUTO-LAND</code>은 GA 기반 신경망으로 자동 착륙</li>
-      </ul>
-      <h3>물리 엔진</h3>
-      <ul>
-        <li>태양 + 수성 + 금성 + 지구 + 달 + 화성 N체 뉴턴 중력</li>
-        <li>RK4 또는 Euler-Cromer 적분 (dt 선택 가능)</li>
-        <li>치올콥스키 질량 변화: m-dot = T/(Isp*g0)</li>
-        <li>우주선은 시험질량 (제한 N체)</li>
-      </ul>
-      <h3>단축키</h3>
-      <ul>
-        <li>마우스 드래그/휠: 카메라 회전·줌</li>
-        <li>Space: 재생/일시정지</li>
-        <li>R: 리셋</li>
+        <li><code>MISSION PRESET</code> 선택 → <code>APPLY PRESET</code> → <code>PLAY</code></li>
+        <li><code>TRANSFER PLANNER</code>로 달/화성/금성 람베르트 전이 계산</li>
+        <li>Auto-align은 주차 궤도를 호만 발사 위상에 자동 배치</li>
       </ul>
     </div>
     <div style="text-align:right; margin-top:14px;">
@@ -373,7 +348,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
 <script>
 'use strict';
 
-/* =====[ PART 0 ] === UI 매핑 + 헬퍼 + 로그 + 모바일 콘솔 ===================== */
+/* =====[ PART 0 ] === UI + 헬퍼 + 로그 + 모바일 콘솔 ===================== */
 const UI = {
   canvas:'canvas-container',
   simTime:'tm-time', date:'tm-date', shipMass:'tm-mass', fuel:'tm-fuel',
@@ -399,7 +374,7 @@ const UI = {
   helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
   oeRef:'oe-ref', oeA:'oe-a', oeEcc:'oe-ecc', oeInc:'oe-inc',
   oeT:'oe-T', oeRp:'oe-rp', oeRa:'oe-ra', oeEner:'oe-ener', oeAng:'oe-ang',
-  tpTarget:'tp-target', tpTof:'tp-tof', tpPlan:'btn-tp-plan',
+  tpTarget:'tp-target', tpTof:'tp-tof', tpAlign:'tp-align', tpPlan:'btn-tp-plan',
   tpResult:'tp-result', tpDv:'tp-dv', tpDir:'tp-dir', tpArr:'tp-arr',
   tpExecute:'btn-tp-execute',
 };
@@ -456,6 +431,8 @@ const AU = 149597870.7;
 const DAY = 86400;
 const DEG = Math.PI/180;
 
+/* L0 = mean longitude at J2000; om = longitude of ascending node;
+   w = argument of periapsis.  Mean anomaly M = L0 - om - w. */
 const BODY = {
   sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
   mercury: { mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun',
@@ -477,7 +454,7 @@ const VEHICLES = {
   'custom':   { dry: 50000,  fuel: 200000,  isp: 350, thrust: 5000 },
 };
 
-/* =====[ PART 2 ] === 전역 상태 S ===================== */
+/* =====[ PART 2 ] === 전역 상태 ===================== */
 const S = {
   scene: null, cam: null, rdr: null, ctrl: null,
   meshes: {}, markers: {}, trail: null, trailPos: [], trailMax: 5000, trailMinKm: 10,
@@ -555,8 +532,6 @@ function fmt(n, digits=2){
 }
 
 /* =====[ PART 4 ] === Three.js 초기화 (1:1 스케일 + 발광 마커) ===================== */
-
-/* 발광 스프라이트 텍스처 생성 */
 function createGlowTexture(hexColor){
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -566,50 +541,37 @@ function createGlowTexture(hexColor){
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size/2);
   grad.addColorStop(0, 'rgba(255,255,255,1)');
   grad.addColorStop(0.15, hexColor);
-  grad.addColorStop(0.5, hexColor.replace(')', ', 0.3)').replace('rgb', 'rgba'));
+  grad.addColorStop(0.5, hexColor + '55');
   grad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  const tex = new THREE.CanvasTexture(canvas);
-  return tex;
+  return new THREE.CanvasTexture(canvas);
 }
-
 function createMarker(hexColor){
   const tex = createGlowTexture(hexColor);
-  const mat = new THREE.SpriteMaterial({
-    map: tex, transparent: true, depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  const sprite = new THREE.Sprite(mat);
-  return sprite;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  return new THREE.Sprite(mat);
 }
 
 function initScene(){
   const host = document.getElementById(UI.canvas);
   if (!host){ console.error('canvas host missing'); return; }
-
   S.scene = new THREE.Scene();
   S.scene.background = new THREE.Color(0x000005);
-
   S.cam = new THREE.PerspectiveCamera(50, host.clientWidth/host.clientHeight, 10, 1e12);
   S.cam.position.set(2*AU, 0.6*AU, 2*AU);
-
   S.rdr = new THREE.WebGLRenderer({ antialias: true });
   S.rdr.setSize(host.clientWidth, host.clientHeight);
   S.rdr.setPixelRatio(Math.min(2, devicePixelRatio));
   host.appendChild(S.rdr.domElement);
-
   S.ctrl = new THREE.OrbitControls(S.cam, S.rdr.domElement);
   S.ctrl.enableDamping = true;
   S.ctrl.dampingFactor = 0.08;
   S.ctrl.minDistance = 100;
   S.ctrl.maxDistance = 1e12;
-
   S.scene.add(new THREE.AmbientLight(0x666688, 0.6));
-  const sunLight = new THREE.PointLight(0xffffff, 2, 0, 0);
-  S.scene.add(sunLight);
+  S.scene.add(new THREE.PointLight(0xffffff, 2, 0, 0));
 
-  /* 별 배경 */
   const sg = new THREE.BufferGeometry();
   const pts = [];
   for (let i=0;i<4000;i++){
@@ -621,61 +583,37 @@ function initScene(){
   sg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
   S.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 4e7 })));
 
-  /* 천체: 실제 크기 + 와이어프레임(테두리만) */
   for (const name in BODY){
     const b = BODY[name];
-    const mat = new THREE.MeshBasicMaterial({
-      color: b.col,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.35,
-    });
+    const mat = new THREE.MeshBasicMaterial({ color: b.col, wireframe: true, transparent: true, opacity: 0.35 });
     const m = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), mat);
-    m.scale.setScalar(b.R);   /* 1:1 스케일 고정 */
+    m.scale.setScalar(b.R);
     m.userData.baseR = b.R;
     S.scene.add(m);
     S.meshes[name] = m;
-
-    /* 발광 마커 (고정 화면 크기 스프라이트) */
     const hexStr = '#' + b.col.toString(16).padStart(6, '0');
     const marker = createMarker(hexStr);
     S.scene.add(marker);
     S.markers[name] = marker;
   }
 
-  /* 우주선 (작은 실루엣) */
   const ship = new THREE.Group();
   ship.name = 'ship';
-  const bodyMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.5, 2.5, 12),
-    new THREE.MeshBasicMaterial({ color: 0xdddddd })
-  );
+  const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.5, 12), new THREE.MeshBasicMaterial({ color: 0xdddddd }));
   ship.add(bodyMesh);
-  const nose = new THREE.Mesh(
-    new THREE.ConeGeometry(0.5, 1.0, 12),
-    new THREE.MeshBasicMaterial({ color: 0xbbbbbb })
-  );
-  nose.position.y = 1.7;
-  ship.add(nose);
-  const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.4, 1.5, 10),
-    new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 })
-  );
-  flame.position.y = -2.0;
-  flame.rotation.x = Math.PI;
-  flame.visible = false;
-  flame.name = 'flame';
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.0, 12), new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
+  nose.position.y = 1.7; ship.add(nose);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.5, 10), new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 }));
+  flame.position.y = -2.0; flame.rotation.x = Math.PI; flame.visible = false; flame.name = 'flame';
   ship.add(flame);
-  ship.scale.setScalar(500);   /* 실제 500 km 남짓 크기 — 근접시 보임 */
+  ship.scale.setScalar(500);
   S.scene.add(ship);
   S.meshes.ship = ship;
 
-  /* 우주선 마커 (밝은 흰색) */
   const shipMarker = createMarker('#ffffff');
   S.scene.add(shipMarker);
   S.markers.ship = shipMarker;
 
-  /* 궤적선 */
   const tg = new THREE.BufferGeometry();
   tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
   tg.setDrawRange(0, 0);
@@ -696,6 +634,8 @@ function initScene(){
 }
 
 /* =====[ PART 5 ] ==== 물리 엔진 (RK4 + 가변질량) ===================== */
+
+/* ★ 여기가 근본 버그 수정: M = L0 - om - w (om을 빼는 것을 잊었었음) */
 function solveKepler(M, e){
   M = ((M % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
   let E = M + e*Math.sin(M);
@@ -712,7 +652,7 @@ function solveKepler(M, e){
 function keplerStateVectors(el, mu_parent, days){
   const a = el.a, e = el.e;
   const n = Math.sqrt(mu_parent/(a*a*a));
-  const M = (el.L0 - el.w)*DEG + n*days*DAY;
+  const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;   /* ★ FIXED */
   const E = solveKepler(M, e);
   const cE = Math.cos(E), sE = Math.sin(E);
   const b  = a*Math.sqrt(1-e*e);
@@ -835,15 +775,13 @@ function checkCollision(){
       const relV = S.ship.vel.clone().sub(b.vel);
       const speed = relV.length() * 1000;
       if (speed < 50){
-        S.ship.landed = true;
-        S.ship.throttle = 0;
+        S.ship.landed = true; S.ship.throttle = 0;
         const rHat = S.ship.pos.clone().sub(b.pos).normalize();
         S.ship.pos.copy(b.pos).addScaledVector(rHat, b.R);
         S.ship.vel.copy(b.vel);
         setStatus(`LANDED @ ${n.toUpperCase()}  v_rel=${speed.toFixed(1)} m/s`, 'ok');
       } else {
-        S.ship.crashed = true;
-        S.ship.throttle = 0;
+        S.ship.crashed = true; S.ship.throttle = 0;
         setStatus(`CRASHED @ ${n.toUpperCase()}  v_rel=${speed.toFixed(0)} m/s`, 'err');
       }
       return;
@@ -877,28 +815,25 @@ function pickAdaptiveDt(maxDt){
 
 function debugInitialState(){
   const e = S.bodies.earth;
-  if (!e){ console.warn('No Earth in S.bodies'); return; }
+  if (!e) return;
   const r = S.ship.pos.clone().sub(e.pos);
   const v = S.ship.vel.clone().sub(e.vel);
   const rMag = r.length();
   const vMag = v.length();
   const vCirc = Math.sqrt(e.mu / rMag);
-  const energy = 0.5*vMag*vMag - e.mu/rMag;
   console.log('=== Celestium debug ===');
   console.log('  Earth |pos|=', e.pos.length().toExponential(3), 'km, |vel|=', e.vel.length().toFixed(3), 'km/s');
-  console.log('  Ship |r|=', rMag.toFixed(1), 'km  alt=', (rMag - e.R).toFixed(1), 'km');
-  console.log('  Ship |v|=', vMag.toFixed(3), 'km/s');
-  console.log('  v_circ:', vCirc.toFixed(3), 'km/s  ratio=', (vMag/vCirc*100).toFixed(1), '%');
-  console.log('  r.v:', r.dot(v).toFixed(2), '  energy:', energy.toFixed(3), 'km^2/s^2');
+  console.log('  Ship alt=', (rMag - e.R).toFixed(1), 'km, |v|=', vMag.toFixed(3), 'km/s, v_circ=', vCirc.toFixed(3));
+  const moon = S.bodies.moon;
+  if (moon) console.log('  Moon dist from Earth=', moon.pos.distanceTo(e.pos).toFixed(0), 'km');
 }
 
-/* =====[ PART 6 ] ==== 텔레메트리 + 궤도 요소 UI 갱신 ===================== */
+/* =====[ PART 6 ] ==== 텔레메트리 + 궤도 요소 ===================== */
 function updateTelemetry(){
   setText('simTime', fmt(S.sim.t/DAY, 3) + ' d');
   const date = new Date((S.sim.t0 + S.sim.t)*1000);
   setText('date', date.toISOString().slice(0,10));
-  const m = S.ship.dry + S.ship.fuel;
-  setText('shipMass', fmt(m, 0) + ' kg');
+  setText('shipMass', fmt(S.ship.dry + S.ship.fuel, 0) + ' kg');
   setText('fuel', fmt(S.ship.fuel, 0) + ' kg');
   setText('speed', fmt(S.ship.vel.length(), 3) + ' km/s');
   const e = S.bodies.earth, mo = S.bodies.moon, ma = S.bodies.mars;
@@ -940,13 +875,11 @@ function computeOrbitalElements(){
   const inc = (hMag > 1e-12) ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI : 0;
   let rp_alt = null, ra_alt = null, period = null;
   if (ecc < 1 && isFinite(a) && a > 0){
-    const rp = a * (1 - ecc);
-    const ra = a * (1 + ecc);
-    rp_alt = rp - ref.R;
-    ra_alt = ra - ref.R;
+    rp_alt = a*(1-ecc) - ref.R;
+    ra_alt = a*(1+ecc) - ref.R;
     period = 2*Math.PI * Math.sqrt(a*a*a/mu);
   }
-  return { refName, ref, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
+  return { refName, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
 }
 
 function updateOrbitalElements(){
@@ -954,7 +887,7 @@ function updateOrbitalElements(){
   if (!oe.valid){ setText('oeRef', oe.refName); return; }
   setText('oeRef', oe.refName);
   if (isFinite(oe.a) && oe.a > 0) setText('oeA', fmt(oe.a, 1) + ' km');
-  else if (oe.a < 0) setText('oeA', 'hyperbolic (a<0)');
+  else if (oe.a < 0) setText('oeA', 'hyperbolic');
   else setText('oeA', 'parabolic');
   setText('oeEcc', oe.ecc.toFixed(5));
   setText('oeInc', oe.inc.toFixed(3) + ' °');
@@ -971,18 +904,13 @@ function updateOrbitalElements(){
 
 /* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 ===================== */
 let lastTrailPos = new THREE.Vector3();
-const MARKER_SCREEN_FRACTION = 0.025;   /* 화면 높이의 2.5% */
+const MARKER_SCREEN_FRACTION = 0.025;
 
 function syncMeshes(){
-  /* 천체 위치 */
   for (const n in S.bodies){
     const b = S.bodies[n];
     const mesh = S.meshes[n];
-    if (mesh){
-      mesh.position.copy(b.pos);
-      mesh.scale.setScalar(b.R);        /* 1:1 고정 */
-    }
-    /* 마커: 항상 고정 화면 크기로 */
+    if (mesh){ mesh.position.copy(b.pos); mesh.scale.setScalar(b.R); }
     const marker = S.markers[n];
     if (marker){
       marker.position.copy(b.pos);
@@ -990,8 +918,6 @@ function syncMeshes(){
       marker.scale.setScalar(camDist * MARKER_SCREEN_FRACTION);
     }
   }
-
-  /* 우주선 */
   if (S.meshes.ship){
     S.meshes.ship.position.copy(S.ship.pos);
     if (S.ship.vel.lengthSq() > 1e-12){
@@ -1010,8 +936,6 @@ function syncMeshes(){
     const camDist = S.cam.position.distanceTo(S.ship.pos);
     S.markers.ship.scale.setScalar(camDist * MARKER_SCREEN_FRACTION);
   }
-
-  /* 궤적선 */
   if (S.vis.trail){
     const minD = Math.max(S.trailMinKm, S.ship.pos.length() * 1e-5);
     if (S.trailPos.length === 0 || S.ship.pos.distanceTo(lastTrailPos) > minD){
@@ -1033,43 +957,20 @@ function syncMeshes(){
   }
 }
 
-/* =====[ PART 8 ] ==== 카메라 모드 (자동 줌) ===================== */
+/* =====[ PART 8 ] ==== 카메라 모드 ===================== */
 function updateCamera(){
-  if (S.camMode === 'free'){
-    S._lastCamMode = 'free';
-    S.ctrl.update();
-    return;
-  }
-
-  let tgt = null;
-  let viewDist = 50000;
-
-  if (S.camMode === 'ship'){
-    tgt = S.ship.pos;
-    viewDist = 5000;
-  }
-  else if (S.camMode === 'earth' && S.bodies.earth){
-    tgt = S.bodies.earth.pos;
-    viewDist = S.bodies.earth.R * 4;
-  }
-  else if (S.camMode === 'moon' && S.bodies.moon){
-    tgt = S.bodies.moon.pos;
-    viewDist = S.bodies.moon.R * 4;
-  }
-  else if (S.camMode === 'sun'){
-    tgt = S.bodies.sun.pos;
-    viewDist = S.bodies.sun.R * 4;
-  }
-
+  if (S.camMode === 'free'){ S._lastCamMode = 'free'; S.ctrl.update(); return; }
+  let tgt = null, viewDist = 50000;
+  if (S.camMode === 'ship'){ tgt = S.ship.pos; viewDist = 5000; }
+  else if (S.camMode === 'earth' && S.bodies.earth){ tgt = S.bodies.earth.pos; viewDist = S.bodies.earth.R * 4; }
+  else if (S.camMode === 'moon' && S.bodies.moon){ tgt = S.bodies.moon.pos; viewDist = S.bodies.moon.R * 4; }
+  else if (S.camMode === 'sun'){ tgt = S.bodies.sun.pos; viewDist = S.bodies.sun.R * 4; }
   if (!tgt){ S.ctrl.update(); return; }
-
   if (S._lastCamMode !== S.camMode){
     S._lastCamMode = S.camMode;
-
     let dir = S.cam.position.clone().sub(S.ctrl.target);
     if (dir.lengthSq() < 1e-9) dir.set(1, 0.5, 1);
     dir.normalize();
-
     S.ctrl.target.copy(tgt);
     S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
     S.ctrl.minDistance = Math.max(viewDist * 0.05, 100);
@@ -1077,8 +978,6 @@ function updateCamera(){
     S.ctrl.update();
     return;
   }
-
-  /* 부드럽게 따라가기 (고배속에서는 1.0으로 스냅) */
   const lerpFactor = (S.sim.warp > 100000) ? 1.0 : 0.20;
   const prev = S.ctrl.target.clone();
   S.ctrl.target.lerp(tgt, lerpFactor);
@@ -1108,61 +1007,77 @@ function resetShipToParkingOrbit(){
   S.ship.refFrame = 'earth';
   S.trailPos.length = 0;
   lastTrailPos.copy(S.ship.pos);
-  const dAfter = S.ship.pos.distanceTo(e.pos);
-  if (dAfter <= e.R){
-    console.error('INIT FAIL: ship inside Earth. d=', dAfter, 'R=', e.R);
-    setStatus(`INIT ERROR: ship inside Earth (d=${dAfter.toFixed(0)} km)`, 'err');
-  } else {
-    setStatus(`Parking orbit: alt=${alt} km, r=${r.toFixed(0)} km, v_circ=${vCirc.toFixed(3)} km/s`, 'sys');
-  }
+  setStatus(`Parking orbit: alt=${alt} km, v_circ=${vCirc.toFixed(3)} km/s`, 'sys');
   debugInitialState();
+}
+
+/* ★ 주차 궤도를 목표 도착 위상에 자동 정렬 (dth≈175° 호만 기하) */
+function autoAlignForTransfer(targetName, tofDays){
+  const centralName = pickCentralBody(targetName);
+  const centralNow = getBodyStateAt(centralName, S.sim.t);
+  const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
+  const targetFuture = getBodyStateAt(targetName, S.sim.t + tofDays*DAY);
+  if (!centralNow || !centralFuture || !targetFuture) return false;
+
+  /* 도착 시점의 목표를 중심 기준 상대 위치로 */
+  const r2 = targetFuture.pos.clone().sub(centralFuture.pos);
+  const r2_xy = new THREE.Vector3(r2.x, r2.y, 0);
+  if (r2_xy.lengthSq() < 1) return false;
+  const r2_angle = Math.atan2(r2_xy.y, r2_xy.x);
+
+  /* 호만 기하: 우주선이 (도착 각도 - 175°)에 있으면 dth ≈ 175° */
+  const shipAngle = r2_angle - (175 * Math.PI/180);
+  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
+
+  /* 현재 LEO 반지름 유지 */
+  const currentR = S.ship.pos.distanceTo(centralNow.pos);
+
+  /* 새 위치 */
+  S.ship.pos.copy(centralNow.pos).addScaledVector(r1_dir, currentR);
+
+  /* 새 속도: XY 평면 접선 방향, 반시계 */
+  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
+  const muC = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
+  const v_circ = Math.sqrt(muC / currentR);
+  S.ship.vel.copy(centralNow.vel).addScaledVector(vHat, v_circ);
+
+  S.trailPos.length = 0;
+  lastTrailPos.copy(S.ship.pos);
+  return true;
 }
 
 function applyPreset(){
   const p = ($('mPreset')?.value) || 'leo';
   resetShipToParkingOrbit();
+  if (p === 'leo'){ setStatus(`Preset applied: leo`, 'ok'); return; }
+
   const e = S.bodies.earth;
   const r1 = e.R + 200;
   const vC = Math.sqrt(e.mu / r1);
   const vHat = S.ship.vel.clone().sub(e.vel).normalize();
 
-  if (p === 'leo'){ /* nothing */ }
-  else if (p === 'hohmann_moon' || p === 'hohmann_mars'){
-    const targetName = (p === 'hohmann_moon') ? 'moon' : 'mars';
+  let dv = 0, targetName = '';
+  if (p === 'hohmann_moon' || p === 'fast_moon' || p === 'free_return' || p === 'hohmann_mars'){
+    targetName = (p === 'hohmann_mars') ? 'mars' : 'moon';
     const tgt = S.bodies[targetName];
     const r2 = tgt.pos.distanceTo(e.pos);
     const aT = (r1 + r2) / 2;
     const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = vPeri - vC;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Hohmann -> ${targetName}: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-  else if (p === 'fast_moon'){
-    const aT = (r1 + 384400) / 2;
-    const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = (vPeri - vC) * 1.35;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Fast transfer -> Moon: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-  else if (p === 'free_return'){
-    const aT = (r1 + 384400) / 2;
-    const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = (vPeri - vC) * 1.10;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Free return: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-  else if (p === 'venus_swing'){
+    dv = vPeri - vC;
+    if (p === 'fast_moon') dv *= 1.35;
+    if (p === 'free_return') dv *= 1.10;
+  } else if (p === 'venus_swing'){
+    targetName = 'venus';
     const v = S.bodies.venus;
     const r2 = v.pos.distanceTo(e.pos);
     const aT = (r1 + r2) / 2;
     const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = vPeri - vC;
+    dv = vPeri - vC;
+  }
+  if (dv !== 0){
     S.ship.vel.addScaledVector(vHat, dv);
     S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Venus swingby transfer: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
+    setStatus(`Preset ${p} -> ${targetName}: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
   }
   setStatus(`Preset applied: ${p}`, 'ok');
 }
@@ -1200,19 +1115,10 @@ function executeBurn(){
 const NN_IN = 8, NN_H = 6, NN_OUT = 4;
 const DNA_LEN = NN_IN*NN_H + NN_H*NN_OUT;
 function nnForward(dna, x){
-  const h = new Array(NN_H);
-  let k = 0;
-  for (let j=0;j<NN_H;j++){
-    let s = 0;
-    for (let i=0;i<NN_IN;i++) s += x[i]*dna[k++];
-    h[j] = Math.tanh(s);
-  }
+  const h = new Array(NN_H); let k = 0;
+  for (let j=0;j<NN_H;j++){ let s = 0; for (let i=0;i<NN_IN;i++) s += x[i]*dna[k++]; h[j] = Math.tanh(s); }
   const o = new Array(NN_OUT);
-  for (let j=0;j<NN_OUT;j++){
-    let s = 0;
-    for (let i=0;i<NN_H;i++) s += h[i]*dna[k++];
-    o[j] = 1/(1+Math.exp(-s));
-  }
+  for (let j=0;j<NN_OUT;j++){ let s = 0; for (let i=0;i<NN_H;i++) s += h[i]*dna[k++]; o[j] = 1/(1+Math.exp(-s)); }
   return o;
 }
 function makeDNA(){ const d = new Float32Array(DNA_LEN); for (let i=0;i<DNA_LEN;i++) d[i] = Math.random()*2 - 1; return d; }
@@ -1221,10 +1127,7 @@ function crossover(a, b){
   const c = new Float32Array(DNA_LEN);
   const cuts = [Math.random()*DNA_LEN|0, Math.random()*DNA_LEN|0].sort((x,y)=>x-y);
   let src = a;
-  for (let i=0;i<DNA_LEN;i++){
-    if (i === cuts[0] || i === cuts[1]) src = (src === a ? b : a);
-    c[i] = src[i];
-  }
+  for (let i=0;i<DNA_LEN;i++){ if (i === cuts[0] || i === cuts[1]) src = (src === a ? b : a); c[i] = src[i]; }
   return c;
 }
 function mutate(d, rate, sigma){
@@ -1249,8 +1152,7 @@ function evalDNA(dna, body){
     vSide += -(o[1]-0.5) * aThr * 0.3 * dt;
     alt += vDown * dt;
     const dm = thr * (S.ship.thrustKN*1000) / (S.ship.isp*G0) * dt;
-    fuel = Math.max(0, fuel - dm);
-    mass = S.ship.dry + fuel;
+    fuel = Math.max(0, fuel - dm); mass = S.ship.dry + fuel;
     t += dt;
     if (alt < 0){
       const vTouch = Math.sqrt(vDown*vDown + vSide*vSide);
@@ -1279,19 +1181,12 @@ class GA {
       next.push(c);
     }
     const seen = new Set();
-    for (const d of next){
-      const h = dnaHash(d);
-      if (seen.has(h)) mutate(d, 0.4, 0.5);
-      seen.add(h);
-    }
+    for (const d of next){ const h = dnaHash(d); if (seen.has(h)) mutate(d, 0.4, 0.5); seen.add(h); }
     this.pop = next; this.gen++;
   }
   _tournament(scores){
     let bi = (Math.random()*this.size)|0, bs = scores[bi];
-    for (let k=0;k<3;k++){
-      const i = (Math.random()*this.size)|0;
-      if (scores[i] > bs){ bs = scores[i]; bi = i; }
-    }
+    for (let k=0;k<3;k++){ const i = (Math.random()*this.size)|0; if (scores[i] > bs){ bs = scores[i]; bi = i; } }
     return bi;
   }
 }
@@ -1299,10 +1194,7 @@ let gaIntervalHandle = null;
 function startAutoLand(){
   const target = ($('landTarget')?.value) || 'moon';
   const body = S.bodies[target] || S.bodies.moon;
-  S.ga = new GA(body);
-  S.gaActive = true;
-  S.autoLandActive = false;
-  S.autoLandBody = body;
+  S.ga = new GA(body); S.gaActive = true; S.autoLandActive = false; S.autoLandBody = body;
   const maxGen = parseInt($('gaGenMax')?.value || 60, 10);
   setStatus(`GA training start (max ${maxGen} gen, pop 128)`, 'ga');
   if (gaIntervalHandle) clearInterval(gaIntervalHandle);
@@ -1312,16 +1204,14 @@ function startAutoLand(){
     setStatus(`GA Gen ${S.ga.gen}/${maxGen}  best=${S.ga.bestScore.toFixed(1)}`, 'ga');
     if (S.ga.bestScore > 80 || S.ga.gen >= maxGen){
       clearInterval(gaIntervalHandle); gaIntervalHandle = null;
-      S.gaActive = false;
-      S.autoLandActive = true;
+      S.gaActive = false; S.autoLandActive = true;
       setStatus(`GA done. Auto-land engaged (best=${S.ga.bestScore.toFixed(1)})`, 'ok');
     }
   }, 30);
 }
 function stopGA(){
   if (gaIntervalHandle){ clearInterval(gaIntervalHandle); gaIntervalHandle = null; }
-  S.gaActive = false;
-  S.autoLandActive = false;
+  S.gaActive = false; S.autoLandActive = false;
   setStatus('GA stopped by user', 'warn');
 }
 function applyAutoLandControl(){
@@ -1399,7 +1289,6 @@ function bindUI(){
   });
   $('applyPreset')?.addEventListener('click', applyPreset);
   $('burnExec')?.addEventListener('click', executeBurn);
-
   const dirBtns = { mPro:'prograde', mRetro:'retrograde', mNormal:'normal', mRadial:'radial' };
   for (const id in dirBtns){
     const btn = $(id);
@@ -1409,10 +1298,8 @@ function bindUI(){
       btn.classList.add('active');
     });
   }
-
   $('autoLand')?.addEventListener('click', startAutoLand);
   $('gaStop')?.addEventListener('click', stopGA);
-
   $('tpPlan')?.addEventListener('click', handlePlanTransfer);
   $('tpExecute')?.addEventListener('click', executeTransferBurn);
 
@@ -1425,10 +1312,8 @@ function bindUI(){
     const sf = $('slFuel'); if (sf) sf.value = v.fuel;
     const si = $('slIsp'); if (si) si.value = v.isp;
     const st = $('slThrust'); if (st) st.value = v.thrust;
-    setText('labDry', v.dry + ' kg');
-    setText('labFuel', v.fuel + ' kg');
-    setText('labIsp', v.isp + ' s');
-    setText('labThrust', v.thrust + ' kN');
+    setText('labDry', v.dry + ' kg'); setText('labFuel', v.fuel + ' kg');
+    setText('labIsp', v.isp + ' s'); setText('labThrust', v.thrust + ' kN');
     setStatus(`Vehicle: ${e.target.value}`, 'sys');
   });
   const sliderMap = {
@@ -1443,12 +1328,8 @@ function bindUI(){
       const v = parseFloat(e.target.value);
       if (!isFinite(v)) return;
       const info = sliderMap[id];
-      if (info.key === 'fuel0'){
-        S.ship.fuel0 = v;
-        S.ship.fuel = Math.min(S.ship.fuel, v);
-      } else {
-        S.ship[info.key] = v;
-      }
+      if (info.key === 'fuel0'){ S.ship.fuel0 = v; S.ship.fuel = Math.min(S.ship.fuel, v); }
+      else { S.ship[info.key] = v; }
       setText(info.label, v + info.suffix);
     });
   }
@@ -1484,21 +1365,18 @@ function bindUI(){
   });
   $('exportCsv')?.addEventListener('click', exportCSV);
   $('syncHorizons')?.addEventListener('click', () => setStatus('Horizons sync not implemented (local Kepler)', 'warn'));
-
   const helpBtn = $('helpBtn'), helpClose = $('helpClose'), overlay = $('helpOverlay');
   helpBtn?.addEventListener('click', () => overlay?.classList.add('show'));
   helpClose?.addEventListener('click', () => overlay?.classList.remove('show'));
   overlay?.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
-
   addEventListener('keydown', e => {
     if (e.code === 'Space' && e.target === document.body){ e.preventDefault(); $('play')?.click(); }
     if (e.key === 'r' || e.key === 'R'){ if (e.target === document.body) $('reset')?.click(); }
   });
-
   applyLanguage();
 }
 
-/* =====[ PART 15 ] ==== 람베르트 솔버 (Bisection, robust) ===================== */
+/* =====[ PART 15 ] ==== 람베르트 솔버 (Bisection) ===================== */
 function stumpffC(z){
   if (z > 1e-8){ const sz = Math.sqrt(z); return (1 - Math.cos(sz)) / z; }
   else if (z < -1e-8){ const sz = Math.sqrt(-z); return (Math.cosh(sz) - 1) / (-z); }
@@ -1514,26 +1392,15 @@ function lambertSolver(r1, r2, dt, mu, prograde){
   if (prograde === undefined) prograde = true;
   const r1m = r1.length();
   const r2m = r2.length();
-  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0){
-    console.warn('[Lambert] invalid inputs');
-    return null;
-  }
+  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0) return null;
   let cosDth = r1.dot(r2) / (r1m * r2m);
   cosDth = Math.max(-1, Math.min(1, cosDth));
   const crossZ = r1.x*r2.y - r1.y*r2.x;
   let dth = Math.acos(cosDth);
   if (prograde){ if (crossZ < 0) dth = 2*Math.PI - dth; }
   else { if (crossZ >= 0) dth = 2*Math.PI - dth; }
-
   const A = Math.sin(dth) * Math.sqrt(r1m*r2m / (1 - cosDth));
-  if (Math.abs(A) < 1e-9){
-    console.warn('[Lambert] A near zero (dth ~ 0 or 180 deg)');
-    return null;
-  }
-
-  console.log('[Lambert] r1=' + r1m.toFixed(1) + ' r2=' + r2m.toFixed(1) +
-              ' dth=' + (dth*180/Math.PI).toFixed(1) + 'deg A=' + A.toFixed(1) +
-              ' dt=' + (dt/86400).toFixed(3) + 'd');
+  if (Math.abs(A) < 1e-9) return null;
 
   function yOfZ(z){
     const C = stumpffC(z);
@@ -1543,40 +1410,25 @@ function lambertSolver(r1, r2, dt, mu, prograde){
   function FofZ(z){
     const C = stumpffC(z);
     if (C < 1e-12) return NaN;
-    const S_ = stumpffS(z);
+    const Sf = stumpffS(z);
     const y = yOfZ(z);
     if (y < 0) return NaN;
-    return Math.pow(y/C, 1.5) * S_ + A*Math.sqrt(y) - Math.sqrt(mu)*dt;
+    return Math.pow(y/C, 1.5) * Sf + A*Math.sqrt(y) - Math.sqrt(mu)*dt;
   }
-
-  /* bracket search */
   let zLo = -50, zHi = 50;
   let F_lo = FofZ(zLo), F_hi = FofZ(zHi);
   let t = 0;
   while ((!isFinite(F_lo)) && t < 100){ zLo += 5; F_lo = FofZ(zLo); t++; }
   t = 0;
   while ((!isFinite(F_hi)) && t < 100){ zHi -= 5; F_hi = FofZ(zHi); t++; }
-
-  if (!isFinite(F_lo) || !isFinite(F_hi)){
-    console.warn('[Lambert] no finite F endpoints');
-    return null;
-  }
-
+  if (!isFinite(F_lo) || !isFinite(F_hi)) return null;
   t = 0;
   while (F_lo * F_hi > 0 && t < 30){
     if (Math.abs(F_lo) < Math.abs(F_hi)){ zLo -= 50; F_lo = FofZ(zLo); }
     else { zHi += 50; F_hi = FofZ(zHi); }
     t++;
   }
-  if (F_lo * F_hi > 0){
-    console.warn('[Lambert] cannot bracket root. F_lo=' + F_lo + ' F_hi=' + F_hi);
-    return null;
-  }
-
-  console.log('[Lambert] bracket z in [' + zLo.toFixed(2) + ', ' + zHi.toFixed(2) +
-              ']  F_lo=' + F_lo.toExponential(2) + ' F_hi=' + F_hi.toExponential(2));
-
-  /* bisection */
+  if (F_lo * F_hi > 0) return null;
   let z = 0;
   for (let iter = 0; iter < 200; iter++){
     z = (zLo + zHi) / 2;
@@ -1587,22 +1439,14 @@ function lambertSolver(r1, r2, dt, mu, prograde){
     else { zHi = z; F_hi = F; }
     if (Math.abs(zHi - zLo) < 1e-11) break;
   }
-
   const y = yOfZ(z);
-  if (y < 0){
-    console.warn('[Lambert] y<0 at z=' + z);
-    return null;
-  }
+  if (y < 0) return null;
   const f = 1 - y/r1m;
   const g = A * Math.sqrt(y/mu);
   const gdot = 1 - y/r2m;
-  if (Math.abs(g) < 1e-9){
-    console.warn('[Lambert] g near zero');
-    return null;
-  }
+  if (Math.abs(g) < 1e-9) return null;
   const v1 = r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g);
   const v2 = r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g);
-  console.log('[Lambert] converged z=' + z.toFixed(4) + ' |v1|=' + v1.length().toFixed(3) + ' km/s');
   return { v1, v2, z, converged: true, dth };
 }
 
@@ -1633,31 +1477,24 @@ function planTransferTo(targetName, tofDays){
   const centralNow = getBodyStateAt(centralName, S.sim.t);
   const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
   const targetFuture = getBodyStateAt(targetName, S.sim.t + tofDays*DAY);
-  if (!centralNow || !centralFuture || !targetFuture){
-    setStatus('Cannot compute future states', 'err');
-    return null;
-  }
+  if (!centralNow || !centralFuture || !targetFuture) return null;
   const r1 = S.ship.pos.clone().sub(centralNow.pos);
   const r2 = targetFuture.pos.clone().sub(centralFuture.pos);
   const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
   const sol = lambertSolver(r1, r2, tofDays*DAY, mu, true);
-  if (!sol){ setStatus('Lambert solver failed', 'err'); return null; }
-
+  if (!sol) return null;
   const shipV_new = sol.v1.clone().add(centralNow.vel);
   const dvVec = shipV_new.clone().sub(S.ship.vel);
   const dvMag = dvVec.length() * 1000;
-  const dvKm = dvVec.length();
   const vNow = S.ship.vel.clone().normalize();
   const dvDir = dvVec.clone().normalize();
-  const cosAngle = vNow.dot(dvDir);
-  const angleDeg = Math.acos(Math.max(-1, Math.min(1, cosAngle))) * 180/Math.PI;
-
+  const angleDeg = Math.acos(Math.max(-1, Math.min(1, vNow.dot(dvDir)))) * 180/Math.PI;
   const plan = {
     targetName, centralName, tofDays,
-    dvVec, dvMag, dvKm, angleDeg,
+    dvVec, dvMag, angleDeg,
     arrivalPos: targetFuture.pos.clone(),
     arrivalTime: S.sim.t + tofDays*DAY,
-    converged: sol.converged,
+    dth: sol.dth,
   };
   S.transferPlan = plan;
   return plan;
@@ -1665,7 +1502,7 @@ function planTransferTo(targetName, tofDays){
 
 function executeTransferBurn(){
   const plan = S.transferPlan;
-  if (!plan){ setStatus('No transfer plan. Click PLAN TRANSFER first.', 'warn'); return; }
+  if (!plan){ setStatus('No transfer plan.', 'warn'); return; }
   const m0 = S.ship.dry + S.ship.fuel;
   const ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag/ve));
@@ -1676,8 +1513,8 @@ function executeTransferBurn(){
   S.ship.vel.add(plan.dvVec);
   S.ship.fuel -= fuelNeed;
   S.ship.dvUsed += plan.dvMag;
-  const dirLabel = (plan.angleDeg < 20) ? 'prograde-ish'
-                 : (plan.angleDeg > 160) ? 'retrograde-ish'
+  const dirLabel = (plan.angleDeg < 20) ? 'prograde'
+                 : (plan.angleDeg > 160) ? 'retrograde'
                  : `off-axis ${plan.angleDeg.toFixed(0)}°`;
   setStatus(`TRANSFER BURN: dV=${plan.dvMag.toFixed(0)} m/s (${dirLabel}, fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
   setStatus(`Aim: ${plan.targetName} in ${plan.tofDays} d`, 'phys');
@@ -1704,14 +1541,27 @@ function updateTransferPlanUI(){
 function handlePlanTransfer(){
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
+  const doAlign = $('tpAlign')?.checked !== false;
+
   setStatus(`Planning transfer to ${target} (tof=${tof} d)...`, 'sys');
+
+  /* ★ 호만 기하로 자동 정렬: 방향이 항상 prograde 쪽으로 */
+  if (doAlign){
+    const ok = autoAlignForTransfer(target, tof);
+    if (ok){
+      setStatus(`Parking orbit aligned for Hohmann geometry (dth~175°)`, 'sys');
+    } else {
+      setStatus(`Auto-align failed, using current position`, 'warn');
+    }
+  }
+
   const plan = planTransferTo(target, tof);
   if (!plan){ setStatus('Transfer plan failed', 'err'); return; }
   updateTransferPlanUI();
-  setStatus(`Plan ready: dV=${plan.dvMag.toFixed(0)} m/s, arrival ${plan.tofDays} d`, 'ok');
+  setStatus(`Plan ready: dV=${plan.dvMag.toFixed(0)} m/s, angle=${plan.angleDeg.toFixed(1)}°, dth=${(plan.dth*180/Math.PI).toFixed(1)}°`, 'ok');
 }
 
-/* =====[ PART 17 ] ==== 메인 루프 ===================== */
+/* =====[ PART 17 ] ==== 메인 루프 (성능 개선) ===================== */
 let lastFrame = performance.now();
 let lastLogTime = 0;
 
@@ -1724,9 +1574,16 @@ function animate(){
   if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
     let remaining = realDt * S.sim.warp;
     let safety = 200000;
+    let bodyCounter = 0;
+
+    /* 초기 body 위치 세팅 */
+    computeBodies(S.sim.t);
+
     while (remaining > 0 && safety-- > 0){
+      /* ★ 천체 위치 재계산은 10 서브스텝마다만 (성능) */
+      if (bodyCounter++ % 10 === 0) computeBodies(S.sim.t);
+
       const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
-      computeBodies(S.sim.t);
       applyAutoLandControl();
       if (S.sim.method === 'euler') stepEuler(dtNow);
       else stepRK4(dtNow);
@@ -1735,6 +1592,9 @@ function animate(){
       remaining -= dtNow;
       if (S.ship.landed || S.ship.crashed) break;
     }
+    /* 루프 끝나고 최종 위치 반영 */
+    computeBodies(S.sim.t);
+
     if (now - lastLogTime > 1000){ lastLogTime = now; logRow(); }
   } else {
     computeBodies(S.sim.t);
@@ -1763,7 +1623,7 @@ function boot(){
   bindUI();
   logMsg('sys', 'CELESTIUM 4.0 booted');
   logMsg('sys', 'Pick a MISSION PRESET, hit APPLY PRESET, then PLAY');
-  logMsg('sys', 'Use TRANSFER PLANNER for Lambert transfer calculation');
+  logMsg('sys', 'TRANSFER PLANNER auto-aligns parking orbit for prograde burn');
   setTimeout(() => debugInitialState(), 100);
   animate();
 }
