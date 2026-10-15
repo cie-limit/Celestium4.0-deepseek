@@ -10,35 +10,20 @@
 body { background: #000; color: #aaddff; overflow: hidden; height: 100vh; width: 100vw; }
 #canvas-container { position: fixed; inset: 0; }
 #canvas-container canvas { display: block; }
-.panel {
-  position: fixed; background: rgba(5,10,20,0.92);
-  border: 1px solid #004488; padding: 10px 12px;
-  box-shadow: 0 0 15px rgba(0,100,255,0.2);
-  border-radius: 6px; z-index: 10; font-size: 11px;
-  backdrop-filter: blur(2px);
-}
+.panel { position: fixed; background: rgba(5,10,20,0.92); border: 1px solid #004488; padding: 10px 12px; box-shadow: 0 0 15px rgba(0,100,255,0.2); border-radius: 6px; z-index: 10; font-size: 11px; backdrop-filter: blur(2px); }
 #panel-top { top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; max-width: 95vw; justify-content: center; }
 #panel-left { top: 90px; left: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; }
 #panel-right { top: 90px; right: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; }
 .sc-header { color: #00ffff; font-size: 12px; border-bottom: 1px solid #004488; margin-bottom: 8px; padding-bottom: 5px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
 .sc-header:first-child { margin-top: 0; }
 .version-tag { color: #ffcc00; font-size: 9px; margin-left: 4px; }
-button {
-  border: 1px solid #00ffff; color: #00ffff;
-  background: rgba(0,50,100,0.5); padding: 5px 10px;
-  font-family: 'Orbitron', sans-serif; font-size: 10px; cursor: pointer;
-  letter-spacing: 1px; border-radius: 3px; transition: all 0.15s;
-}
+button { border: 1px solid #00ffff; color: #00ffff; background: rgba(0,50,100,0.5); padding: 5px 10px; font-family: 'Orbitron', sans-serif; font-size: 10px; cursor: pointer; letter-spacing: 1px; border-radius: 3px; transition: all 0.15s; }
 button:hover { background: #00ffff; color: #000; }
 button.active { background: #00ffff; color: #000; font-weight: 700; }
 button.danger { border-color: #ff5555; color: #ff5555; }
 button.danger:hover { background: #ff5555; color: #000; }
 input[type="range"] { width: 100%; accent-color: #00ffff; }
-input[type="number"], input[type="text"], select, input[type="date"] {
-  background: rgba(0,20,40,0.8); border: 1px solid #003366; color: #aaddff;
-  padding: 3px 6px; font-family: 'Orbitron', sans-serif; font-size: 11px;
-  width: 100%; border-radius: 3px;
-}
+input[type="number"], input[type="text"], select, input[type="date"] { background: rgba(0,20,40,0.8); border: 1px solid #003366; color: #aaddff; padding: 3px 6px; font-family: 'Orbitron', sans-serif; font-size: 11px; width: 100%; border-radius: 3px; }
 input[type="checkbox"] { accent-color: #00ffff; }
 .row { display: flex; justify-content: space-between; margin: 3px 0; align-items: center; gap: 6px; }
 .row label { color: #88ccff; font-size: 10px; }
@@ -51,12 +36,7 @@ input[type="checkbox"] { accent-color: #00ffff; }
 .lang-toggle button { padding: 3px 8px; font-size: 10px; }
 .metric-box { background: rgba(0,50,100,0.25); border: 1px solid #003366; padding: 6px 8px; border-radius: 3px; margin: 4px 0; }
 h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
-#chat-log {
-  position: fixed; bottom: 10px; right: 10px; width: 340px; max-height: 280px;
-  background: rgba(5,10,20,0.92); border: 1px solid #004488;
-  border-radius: 6px; z-index: 10; display: flex; flex-direction: column;
-  backdrop-filter: blur(2px); box-shadow: 0 0 15px rgba(0,100,255,0.2);
-}
+#chat-log { position: fixed; bottom: 10px; right: 10px; width: 340px; max-height: 280px; background: rgba(5,10,20,0.92); border: 1px solid #004488; border-radius: 6px; z-index: 10; display: flex; flex-direction: column; backdrop-filter: blur(2px); box-shadow: 0 0 15px rgba(0,100,255,0.2); }
 #chat-log .log-header { padding: 6px 10px; color: #00ffff; font-size: 11px; letter-spacing: 2px; border-bottom: 1px solid #004488; text-transform: uppercase; }
 #log-body { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 10px; line-height: 1.55; min-height: 120px; }
 .log-line { margin: 2px 0; word-wrap: break-word; }
@@ -77,21 +57,9 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
 #help-content p, #help-content li { font-size: 12px; line-height: 1.5; color: #aaddff; margin-bottom: 4px; }
 #help-content ul { margin-left: 16px; }
 #help-content code { background: rgba(0,50,100,0.5); padding: 1px 5px; border-radius: 2px; color: #ffcc00; }
-#mobile-console {
-  position: fixed; top: 0; left: 0; right: 0; height: 28vh;
-  background: rgba(0,0,0,0.94); color: #00ff88;
-  font-family: monospace; font-size: 11px;
-  padding: 6px 10px; overflow-y: auto; z-index: 9999;
-  border-bottom: 2px solid #00ffff;
-  white-space: pre-wrap; word-break: break-all; display: none;
-}
+#mobile-console { position: fixed; top: 0; left: 0; right: 0; height: 28vh; background: rgba(0,0,0,0.94); color: #00ff88; font-family: monospace; font-size: 11px; padding: 6px 10px; overflow-y: auto; z-index: 9999; border-bottom: 2px solid #00ffff; white-space: pre-wrap; word-break: break-all; display: none; }
 #mobile-console.show { display: block; }
-#mobile-console-toggle {
-  position: fixed; top: 6px; right: 6px; z-index: 10000;
-  background: rgba(0,255,255,0.85); color: #000; border: 0;
-  padding: 4px 8px; border-radius: 3px; font-size: 10px;
-  font-family: 'Orbitron', sans-serif;
-}
+#mobile-console-toggle { position: fixed; top: 6px; right: 6px; z-index: 10000; background: rgba(0,255,255,0.85); color: #000; border: 0; padding: 4px 8px; border-radius: 3px; font-size: 10px; font-family: 'Orbitron', sans-serif; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(0,20,40,0.5); }
 ::-webkit-scrollbar-thumb { background: #004488; border-radius: 3px; }
@@ -115,14 +83,16 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   <button id="btn-help">?</button>
   <div style="display:flex; gap:6px; align-items:center;">
     <label style="font-size:10px;color:#88ccff;" data-i18n="warp">WARP</label>
-    <select id="time-warp" style="width:150px;">
+    <select id="time-warp" style="width:160px;">
       <option value="1">1× (real-time)</option>
       <option value="60">60× (1 min/s)</option>
       <option value="3600">3,600× (1 h/s)</option>
       <option value="86400" selected>86,400× (1 day/s)</option>
+      <option value="432000">432,000× (5 d/s)</option>
       <option value="864000">864,000× (10 d/s)</option>
       <option value="2592000">2,592,000× (30 d/s)</option>
       <option value="5184000">5,184,000× (60 d/s)</option>
+      <option value="25920000">25,920,000× (300 d/s)</option>
     </select>
   </div>
   <div style="display:flex; gap:6px; align-items:center;">
@@ -206,11 +176,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <label>Time of Flight (days)</label>
     <input type="number" id="tp-tof" value="5" min="0.1" max="500" step="0.1">
   </div>
-  <div class="row" style="font-size:10px;color:#88ccff;">
-    <label style="color:#88ccff;font-size:10px;">Auto-align parking orbit</label>
-    <input type="checkbox" id="tp-align" checked>
-  </div>
-  <button id="btn-tp-plan" style="width:100%;">PLAN TRANSFER</button>
+  <button id="btn-tp-plan" style="width:100%;">PLAN HOHMANN TRANSFER</button>
   <div class="metric-box" id="tp-result" style="margin-top:6px; display:none;">
     <div class="row"><label>ΔV needed</label><span class="val" id="tp-dv">-- m/s</span></div>
     <div class="row"><label>Direction</label><span class="val" id="tp-dir">--</span></div>
@@ -324,8 +290,8 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
       <h3>Quick start</h3>
       <ul>
         <li>Pick a <code>MISSION PRESET</code> → <code>APPLY PRESET</code> → <code>PLAY</code>.</li>
-        <li>Use <code>TRANSFER PLANNER</code> for Lambert transfer to Moon/Mars/Venus.</li>
-        <li>Auto-align places your parking orbit at the Hohmann launch phase.</li>
+        <li>Use <code>TRANSFER PLANNER</code> to compute Hohmann transfer to Moon/Mars/Venus.</li>
+        <li>Auto-align places your parking orbit at the Hohmann launch phase (position reset is automatic).</li>
       </ul>
     </div>
     <div id="help-body-ko" style="display:none;">
@@ -333,8 +299,8 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
       <h3>빠른 시작</h3>
       <ul>
         <li><code>MISSION PRESET</code> 선택 → <code>APPLY PRESET</code> → <code>PLAY</code></li>
-        <li><code>TRANSFER PLANNER</code>로 달/화성/금성 람베르트 전이 계산</li>
-        <li>Auto-align은 주차 궤도를 호만 발사 위상에 자동 배치</li>
+        <li><code>TRANSFER PLANNER</code>로 달/화성/금성 호만 전이 계산</li>
+        <li>위치는 자동으로 호만 발사 위상에 맞춰 리셋됩니다</li>
       </ul>
     </div>
     <div style="text-align:right; margin-top:14px;">
@@ -374,7 +340,7 @@ const UI = {
   helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
   oeRef:'oe-ref', oeA:'oe-a', oeEcc:'oe-ecc', oeInc:'oe-inc',
   oeT:'oe-T', oeRp:'oe-rp', oeRa:'oe-ra', oeEner:'oe-ener', oeAng:'oe-ang',
-  tpTarget:'tp-target', tpTof:'tp-tof', tpAlign:'tp-align', tpPlan:'btn-tp-plan',
+  tpTarget:'tp-target', tpTof:'tp-tof', tpPlan:'btn-tp-plan',
   tpResult:'tp-result', tpDv:'tp-dv', tpDir:'tp-dir', tpArr:'tp-arr',
   tpExecute:'btn-tp-execute',
 };
@@ -431,8 +397,8 @@ const AU = 149597870.7;
 const DAY = 86400;
 const DEG = Math.PI/180;
 
-/* L0 = mean longitude at J2000; om = longitude of ascending node;
-   w = argument of periapsis.  Mean anomaly M = L0 - om - w. */
+/* L0 = mean longitude at J2000, om = longitude of ascending node, w = arg of periapsis.
+   Mean anomaly M = L0 - om - w. */
 const BODY = {
   sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
   mercury: { mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun',
@@ -531,7 +497,7 @@ function fmt(n, digits=2){
   return n.toFixed(digits);
 }
 
-/* =====[ PART 4 ] === Three.js 초기화 (1:1 스케일 + 발광 마커) ===================== */
+/* =====[ PART 4 ] === Three.js 초기화 ===================== */
 function createGlowTexture(hexColor){
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -633,9 +599,7 @@ function initScene(){
   S.rdr.render(S.scene, S.cam);
 }
 
-/* =====[ PART 5 ] ==== 물리 엔진 (RK4 + 가변질량) ===================== */
-
-/* ★ 여기가 근본 버그 수정: M = L0 - om - w (om을 빼는 것을 잊었었음) */
+/* =====[ PART 5 ] ==== 물리 엔진 ===================== */
 function solveKepler(M, e){
   M = ((M % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
   let E = M + e*Math.sin(M);
@@ -652,7 +616,8 @@ function solveKepler(M, e){
 function keplerStateVectors(el, mu_parent, days){
   const a = el.a, e = el.e;
   const n = Math.sqrt(mu_parent/(a*a*a));
-  const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;   /* ★ FIXED */
+  /* ★ M = L0 - om - w (om 반드시 포함) */
+  const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;
   const E = solveKepler(M, e);
   const cE = Math.cos(E), sE = Math.sin(E);
   const b  = a*Math.sqrt(1-e*e);
@@ -822,7 +787,7 @@ function debugInitialState(){
   const vMag = v.length();
   const vCirc = Math.sqrt(e.mu / rMag);
   console.log('=== Celestium debug ===');
-  console.log('  Earth |pos|=', e.pos.length().toExponential(3), 'km, |vel|=', e.vel.length().toFixed(3), 'km/s');
+  console.log('  Earth pos=', e.pos.length().toExponential(3), 'km, vel=', e.vel.length().toFixed(3), 'km/s');
   console.log('  Ship alt=', (rMag - e.R).toFixed(1), 'km, |v|=', vMag.toFixed(3), 'km/s, v_circ=', vCirc.toFixed(3));
   const moon = S.bodies.moon;
   if (moon) console.log('  Moon dist from Earth=', moon.pos.distanceTo(e.pos).toFixed(0), 'km');
@@ -995,7 +960,7 @@ function resetShipToParkingOrbit(){
   if (alt > 40000) alt = 40000;
   const r = e.R + alt;
   const rHat = new THREE.Vector3(1,0,0);
-  const vHat = new THREE.Vector3(0,1,0);   /* XY 평면 궤도 */
+  const vHat = new THREE.Vector3(0,1,0);
   const vCirc = Math.sqrt(e.mu / r);
   S.ship.pos.copy(e.pos).addScaledVector(rHat, r);
   S.ship.vel.copy(e.vel).addScaledVector(vHat, vCirc);
@@ -1011,51 +976,14 @@ function resetShipToParkingOrbit(){
   debugInitialState();
 }
 
-/* ★ 주차 궤도를 목표 도착 위상에 자동 정렬 (dth≈175° 호만 기하) */
-function autoAlignForTransfer(targetName, tofDays){
-  const centralName = pickCentralBody(targetName);
-  const centralNow = getBodyStateAt(centralName, S.sim.t);
-  const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
-  const targetFuture = getBodyStateAt(targetName, S.sim.t + tofDays*DAY);
-  if (!centralNow || !centralFuture || !targetFuture) return false;
-
-  /* 도착 시점의 목표를 중심 기준 상대 위치로 */
-  const r2 = targetFuture.pos.clone().sub(centralFuture.pos);
-  const r2_xy = new THREE.Vector3(r2.x, r2.y, 0);
-  if (r2_xy.lengthSq() < 1) return false;
-  const r2_angle = Math.atan2(r2_xy.y, r2_xy.x);
-
-  /* 호만 기하: 우주선이 (도착 각도 - 175°)에 있으면 dth ≈ 175° */
-  const shipAngle = r2_angle - (175 * Math.PI/180);
-  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
-
-  /* 현재 LEO 반지름 유지 */
-  const currentR = S.ship.pos.distanceTo(centralNow.pos);
-
-  /* 새 위치 */
-  S.ship.pos.copy(centralNow.pos).addScaledVector(r1_dir, currentR);
-
-  /* 새 속도: XY 평면 접선 방향, 반시계 */
-  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-  const muC = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
-  const v_circ = Math.sqrt(muC / currentR);
-  S.ship.vel.copy(centralNow.vel).addScaledVector(vHat, v_circ);
-
-  S.trailPos.length = 0;
-  lastTrailPos.copy(S.ship.pos);
-  return true;
-}
-
 function applyPreset(){
   const p = ($('mPreset')?.value) || 'leo';
   resetShipToParkingOrbit();
   if (p === 'leo'){ setStatus(`Preset applied: leo`, 'ok'); return; }
-
   const e = S.bodies.earth;
   const r1 = e.R + 200;
   const vC = Math.sqrt(e.mu / r1);
   const vHat = S.ship.vel.clone().sub(e.vel).normalize();
-
   let dv = 0, targetName = '';
   if (p === 'hohmann_moon' || p === 'fast_moon' || p === 'free_return' || p === 'hohmann_mars'){
     targetName = (p === 'hohmann_mars') ? 'mars' : 'moon';
@@ -1376,80 +1304,7 @@ function bindUI(){
   applyLanguage();
 }
 
-/* =====[ PART 15 ] ==== 람베르트 솔버 (Bisection) ===================== */
-function stumpffC(z){
-  if (z > 1e-8){ const sz = Math.sqrt(z); return (1 - Math.cos(sz)) / z; }
-  else if (z < -1e-8){ const sz = Math.sqrt(-z); return (Math.cosh(sz) - 1) / (-z); }
-  return 0.5;
-}
-function stumpffS(z){
-  if (z > 1e-8){ const sz = Math.sqrt(z); return (sz - Math.sin(sz)) / Math.pow(z, 1.5); }
-  else if (z < -1e-8){ const sz = Math.sqrt(-z); return (Math.sinh(sz) - sz) / Math.pow(-z, 1.5); }
-  return 1/6;
-}
-
-function lambertSolver(r1, r2, dt, mu, prograde){
-  if (prograde === undefined) prograde = true;
-  const r1m = r1.length();
-  const r2m = r2.length();
-  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0) return null;
-  let cosDth = r1.dot(r2) / (r1m * r2m);
-  cosDth = Math.max(-1, Math.min(1, cosDth));
-  const crossZ = r1.x*r2.y - r1.y*r2.x;
-  let dth = Math.acos(cosDth);
-  if (prograde){ if (crossZ < 0) dth = 2*Math.PI - dth; }
-  else { if (crossZ >= 0) dth = 2*Math.PI - dth; }
-  const A = Math.sin(dth) * Math.sqrt(r1m*r2m / (1 - cosDth));
-  if (Math.abs(A) < 1e-9) return null;
-
-  function yOfZ(z){
-    const C = stumpffC(z);
-    if (Math.abs(C) < 1e-12) return -1;
-    return r1m + r2m + A*(z*stumpffS(z) - 1)/Math.sqrt(C);
-  }
-  function FofZ(z){
-    const C = stumpffC(z);
-    if (C < 1e-12) return NaN;
-    const Sf = stumpffS(z);
-    const y = yOfZ(z);
-    if (y < 0) return NaN;
-    return Math.pow(y/C, 1.5) * Sf + A*Math.sqrt(y) - Math.sqrt(mu)*dt;
-  }
-  let zLo = -50, zHi = 50;
-  let F_lo = FofZ(zLo), F_hi = FofZ(zHi);
-  let t = 0;
-  while ((!isFinite(F_lo)) && t < 100){ zLo += 5; F_lo = FofZ(zLo); t++; }
-  t = 0;
-  while ((!isFinite(F_hi)) && t < 100){ zHi -= 5; F_hi = FofZ(zHi); t++; }
-  if (!isFinite(F_lo) || !isFinite(F_hi)) return null;
-  t = 0;
-  while (F_lo * F_hi > 0 && t < 30){
-    if (Math.abs(F_lo) < Math.abs(F_hi)){ zLo -= 50; F_lo = FofZ(zLo); }
-    else { zHi += 50; F_hi = FofZ(zHi); }
-    t++;
-  }
-  if (F_lo * F_hi > 0) return null;
-  let z = 0;
-  for (let iter = 0; iter < 200; iter++){
-    z = (zLo + zHi) / 2;
-    const F = FofZ(z);
-    if (!isFinite(F)){ zLo = z; continue; }
-    if (Math.abs(F) < 1e-4) break;
-    if ((F > 0) === (F_lo > 0)){ zLo = z; F_lo = F; }
-    else { zHi = z; F_hi = F; }
-    if (Math.abs(zHi - zLo) < 1e-11) break;
-  }
-  const y = yOfZ(z);
-  if (y < 0) return null;
-  const f = 1 - y/r1m;
-  const g = A * Math.sqrt(y/mu);
-  const gdot = 1 - y/r2m;
-  if (Math.abs(g) < 1e-9) return null;
-  const v1 = r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g);
-  const v2 = r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g);
-  return { v1, v2, z, converged: true, dth };
-}
-
+/* =====[ PART 15 ] ==== 호만 전이 계산 (Lambert 대신 직접 호만 공식) ===================== */
 function getBodyStateAt(name, simT){
   if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
   const b = BODY[name];
@@ -1470,31 +1325,65 @@ function pickCentralBody(targetName){
   return 'sun';
 }
 
-/* =====[ PART 16 ] ==== 전이 계획 + 실행 ===================== */
+/* ★ 완전히 새로운 전이 계획: 호만 공식 직접 계산 + 자동 위상 정렬 */
 function planTransferTo(targetName, tofDays){
-  if (!isFinite(tofDays) || tofDays <= 0){ setStatus('Invalid time of flight', 'warn'); return null; }
   const centralName = pickCentralBody(targetName);
   const centralNow = getBodyStateAt(centralName, S.sim.t);
   const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
   const targetFuture = getBodyStateAt(targetName, S.sim.t + tofDays*DAY);
-  if (!centralNow || !centralFuture || !targetFuture) return null;
-  const r1 = S.ship.pos.clone().sub(centralNow.pos);
-  const r2 = targetFuture.pos.clone().sub(centralFuture.pos);
+  if (!centralNow || !centralFuture || !targetFuture){
+    setStatus('Cannot compute future states', 'err');
+    return null;
+  }
+
+  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
+  const r2_mag = r2_vec.length();
+  if (r2_mag < 100){ setStatus('Target too close', 'err'); return null; }
+
+  /* 목표 도착 각도 (XY 평면 투영) */
+  const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
+
+  /* 현재 우주선의 중심으로부터 거리 */
+  const currentR = S.ship.pos.distanceTo(centralNow.pos);
   const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
-  const sol = lambertSolver(r1, r2, tofDays*DAY, mu, true);
-  if (!sol) return null;
-  const shipV_new = sol.v1.clone().add(centralNow.vel);
-  const dvVec = shipV_new.clone().sub(S.ship.vel);
-  const dvMag = dvVec.length() * 1000;
-  const vNow = S.ship.vel.clone().normalize();
-  const dvDir = dvVec.clone().normalize();
-  const angleDeg = Math.acos(Math.max(-1, Math.min(1, vNow.dot(dvDir)))) * 180/Math.PI;
+
+  /* ★ 호만 발사 위상: 우주선을 도착 각도 - 175°에 배치
+     (180°가 아닌 175°를 쓰는 이유: 정확히 180°면 람베르트/기하가 특이점) */
+  const shipAngle = r2_angle - (175 * Math.PI / 180);
+  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
+
+  /* 우주선 위치 재설정 */
+  S.ship.pos.copy(centralNow.pos).addScaledVector(r1_dir, currentR);
+
+  /* 우주선 속도를 LEO 원궤도 속도로 재설정 (접선 방향, 반시계) */
+  const v_circ = Math.sqrt(mu / currentR);
+  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
+  S.ship.vel.copy(centralNow.vel).addScaledVector(vHat, v_circ);
+
+  /* 호만 전이 속도: v_peri = sqrt(mu * (2/r1 - 1/a_transfer)) */
+  const a_transfer = (currentR + r2_mag) / 2;
+  const v_peri = Math.sqrt(mu * (2/currentR - 1/a_transfer));
+
+  /* ΔV = v_peri - v_circ, 모두 접선 방향 */
+  const dvKm = v_peri - v_circ;
+  const dvVec = vHat.clone().multiplyScalar(dvKm);
+  const dvMag = Math.abs(dvKm) * 1000;
+
+  /* 궤적선 리셋 */
+  S.trailPos.length = 0;
+  lastTrailPos.copy(S.ship.pos);
+
+  console.log('[Hohmann] r1=' + currentR.toFixed(1) + ' km, r2=' + r2_mag.toFixed(1) +
+              ' km, v_circ=' + v_circ.toFixed(3) + ' km/s, v_peri=' + v_peri.toFixed(3) +
+              ' km/s, dV=' + dvMag.toFixed(0) + ' m/s, shipAngle=' + (shipAngle*180/Math.PI).toFixed(1) +
+              '°, r2_angle=' + (r2_angle*180/Math.PI).toFixed(1) + '°');
+
   const plan = {
     targetName, centralName, tofDays,
-    dvVec, dvMag, angleDeg,
+    dvVec, dvMag,
+    angleDeg: 0,     /* 순수 prograde */
     arrivalPos: targetFuture.pos.clone(),
     arrivalTime: S.sim.t + tofDays*DAY,
-    dth: sol.dth,
   };
   S.transferPlan = plan;
   return plan;
@@ -1513,10 +1402,7 @@ function executeTransferBurn(){
   S.ship.vel.add(plan.dvVec);
   S.ship.fuel -= fuelNeed;
   S.ship.dvUsed += plan.dvMag;
-  const dirLabel = (plan.angleDeg < 20) ? 'prograde'
-                 : (plan.angleDeg > 160) ? 'retrograde'
-                 : `off-axis ${plan.angleDeg.toFixed(0)}°`;
-  setStatus(`TRANSFER BURN: dV=${plan.dvMag.toFixed(0)} m/s (${dirLabel}, fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
+  setStatus(`TRANSFER BURN: dV=${plan.dvMag.toFixed(0)} m/s prograde (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
   setStatus(`Aim: ${plan.targetName} in ${plan.tofDays} d`, 'phys');
   S.transferPlan = null;
   if ($('tpResult')) $('tpResult').style.display = 'none';
@@ -1533,7 +1419,7 @@ function updateTransferPlanUI(){
   if ($('tpResult')) $('tpResult').style.display = 'block';
   if ($('tpExecute')) $('tpExecute').style.display = 'block';
   setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
-  setText('tpDir', plan.angleDeg.toFixed(1) + '° from velocity');
+  setText('tpDir', plan.angleDeg.toFixed(1) + '° (prograde)');
   const arrivalDate = new Date((S.sim.t0 + plan.arrivalTime)*1000);
   setText('tpArr', arrivalDate.toISOString().slice(0,10) + ' (' + plan.tofDays + ' d)');
 }
@@ -1541,27 +1427,14 @@ function updateTransferPlanUI(){
 function handlePlanTransfer(){
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
-  const doAlign = $('tpAlign')?.checked !== false;
-
-  setStatus(`Planning transfer to ${target} (tof=${tof} d)...`, 'sys');
-
-  /* ★ 호만 기하로 자동 정렬: 방향이 항상 prograde 쪽으로 */
-  if (doAlign){
-    const ok = autoAlignForTransfer(target, tof);
-    if (ok){
-      setStatus(`Parking orbit aligned for Hohmann geometry (dth~175°)`, 'sys');
-    } else {
-      setStatus(`Auto-align failed, using current position`, 'warn');
-    }
-  }
-
+  setStatus(`Planning Hohmann transfer to ${target} (tof=${tof} d)...`, 'sys');
   const plan = planTransferTo(target, tof);
   if (!plan){ setStatus('Transfer plan failed', 'err'); return; }
   updateTransferPlanUI();
-  setStatus(`Plan ready: dV=${plan.dvMag.toFixed(0)} m/s, angle=${plan.angleDeg.toFixed(1)}°, dth=${(plan.dth*180/Math.PI).toFixed(1)}°`, 'ok');
+  setStatus(`Plan ready: dV=${plan.dvMag.toFixed(0)} m/s prograde, arrival in ${plan.tofDays} d`, 'ok');
 }
 
-/* =====[ PART 17 ] ==== 메인 루프 (성능 개선) ===================== */
+/* =====[ PART 16 ] ==== 메인 루프 ===================== */
 let lastFrame = performance.now();
 let lastLogTime = 0;
 
@@ -1575,14 +1448,9 @@ function animate(){
     let remaining = realDt * S.sim.warp;
     let safety = 200000;
     let bodyCounter = 0;
-
-    /* 초기 body 위치 세팅 */
     computeBodies(S.sim.t);
-
     while (remaining > 0 && safety-- > 0){
-      /* ★ 천체 위치 재계산은 10 서브스텝마다만 (성능) */
       if (bodyCounter++ % 10 === 0) computeBodies(S.sim.t);
-
       const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
       applyAutoLandControl();
       if (S.sim.method === 'euler') stepEuler(dtNow);
@@ -1592,9 +1460,7 @@ function animate(){
       remaining -= dtNow;
       if (S.ship.landed || S.ship.crashed) break;
     }
-    /* 루프 끝나고 최종 위치 반영 */
     computeBodies(S.sim.t);
-
     if (now - lastLogTime > 1000){ lastLogTime = now; logRow(); }
   } else {
     computeBodies(S.sim.t);
@@ -1607,7 +1473,7 @@ function animate(){
   if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
 }
 
-/* =====[ PART 18 ] ==== Boot ===================== */
+/* =====[ PART 17 ] ==== Boot ===================== */
 function boot(){
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -1622,8 +1488,8 @@ function boot(){
   initScene();
   bindUI();
   logMsg('sys', 'CELESTIUM 4.0 booted');
-  logMsg('sys', 'Pick a MISSION PRESET, hit APPLY PRESET, then PLAY');
-  logMsg('sys', 'TRANSFER PLANNER auto-aligns parking orbit for prograde burn');
+  logMsg('sys', 'PLAN HOHMANN TRANSFER auto-aligns parking orbit to launch phase');
+  logMsg('sys', 'Then EXECUTE TRANSFER BURN to depart toward target');
   setTimeout(() => debugInitialState(), 100);
   animate();
 }
