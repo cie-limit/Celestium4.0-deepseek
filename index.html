@@ -1205,7 +1205,7 @@ function resetShipToParkingOrbit(){
   const r = e.R + alt;
 
   const rHat = new THREE.Vector3(1,0,0);
-  const vHat = new THREE.Vector3(0,0,1);
+  const vHat = new THREE.Vector3(0,1,0);
   const vCirc = Math.sqrt(e.mu / r);
 
   S.ship.pos.copy(e.pos).addScaledVector(rHat, r);
