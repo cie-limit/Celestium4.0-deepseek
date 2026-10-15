@@ -2413,17 +2413,59 @@ function syncMeshes(){
 }
 
 /* =====[ PART 8 ] ==== 카메라 모드 ===================== */
+/* =====[ PART 8 ] ==== 카메라 모드 (자동 줌 포함) ===================== */
 function updateCamera(){
-  if (S.camMode === 'free'){ S.ctrl.update(); return; }
+  if (S.camMode === 'free'){
+    S._lastCamMode = 'free';
+    S.ctrl.update();
+    return;
+  }
+
+  // 시각 스케일 반영: Exaggerated면 30배 확대된 구 기준으로 거리 계산
+  const visK = (S.vis.scale === 'exag') ? S.vis.scaleK : 1;
 
   let tgt = null;
-  if      (S.camMode === 'ship')  tgt = S.ship.pos;
-  else if (S.camMode === 'earth' && S.bodies.earth) tgt = S.bodies.earth.pos;
-  else if (S.camMode === 'moon'  && S.bodies.moon)  tgt = S.bodies.moon.pos;
-  else if (S.camMode === 'sun')   tgt = S.bodies.sun.pos;
+  let viewDist = 50000;
+
+  if (S.camMode === 'ship'){
+    tgt = S.ship.pos;
+    // 우주선 모델은 scale 1e4로 그려짐 → 화면상 크기 ≈ 25,000 km
+    // 그 크기의 4배 거리에서 보면 우주선이 화면에 적당히 보임
+    viewDist = 100000;
+  }
+  else if (S.camMode === 'earth' && S.bodies.earth){
+    tgt = S.bodies.earth.pos;
+    viewDist = S.bodies.earth.R * visK * 4;   // 확대된 지구 반지름의 4배
+  }
+  else if (S.camMode === 'moon' && S.bodies.moon){
+    tgt = S.bodies.moon.pos;
+    viewDist = S.bodies.moon.R * visK * 4;
+  }
+  else if (S.camMode === 'sun'){
+    tgt = S.bodies.sun.pos;
+    viewDist = S.bodies.sun.R * visK * 4;
+  }
 
   if (!tgt){ S.ctrl.update(); return; }
 
+  // 모드 전환 시 1회: 카메라를 그 천체 정면으로 스냅
+  if (S._lastCamMode !== S.camMode){
+    S._lastCamMode = S.camMode;
+
+    // 현재 카메라 방향(어디서 보는지)은 유지, 거리만 새로 맞춤
+    let dir = S.cam.position.clone().sub(S.ctrl.target);
+    if (dir.lengthSq() < 1e-9) dir.set(1, 0.5, 1);
+    dir.normalize();
+
+    S.ctrl.target.copy(tgt);
+    S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
+    S.ctrl.minDistance = Math.max(viewDist * 0.1, 100);
+    S.ctrl.maxDistance = viewDist * 50;
+    S.ctrl.update();
+    return;
+  }
+
+  // 이후 프레임: 천체를 부드럽게 따라가기
   const prev = S.ctrl.target.clone();
   S.ctrl.target.lerp(tgt, 0.20);
   const delta = S.ctrl.target.clone().sub(prev);
