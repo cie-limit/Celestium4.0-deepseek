@@ -181,7 +181,6 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
 
 <div id="canvas-container"></div>
 
-<!-- Mobile debug console -->
 <div id="mobile-console"></div>
 <button id="mobile-console-toggle" onclick="toggleMobileConsole()">DBG</button>
 
@@ -240,1307 +239,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <div class="row"><label data-i18n="dv_used">ΔV USED</label><span class="val" id="tm-dv">-- m/s</span></div>
   </div>
 
-  <div class="sc-header" data-i18n="mission">MISSION PRESET</div>
-  <div class="field">
-    <select id="mission-preset">
-      <option value="leo" data-i18n="m_leo">LEO Parking Orbit (200 km)</option>
-      <option value="hohmann_moon" data-i18n="m_hm">Hohmann Transfer → Moon</option>
-      <option value="fast_moon" data-i18n="m_fm">Fast Transfer → Moon (3 days)</option>
-      <option value="free_return" data-i18n="m_fr">Free Return Trajectory</option>
-      <option value="hohmann_mars" data-i18n="m_hmars">Hohmann Transfer → Mars</option>
-      <option value="venus_swing" data-i18n="m_vs">Venus Swingby → Mars</option>
-      <option value="custom" data-i18n="m_custom">Custom</option>
-    </select>
-  </div>
-  <button id="btn-apply-preset" style="width:100%;" data-i18n="apply">APPLY PRESET</button>
-
-  <div class="sc-header" data-i18n="modes">MANEUVER</div>
-  <div class="tabs">
-    <button id="tab-prograde" class="active" data-i18n="prograde">Prograde</button>
-    <button id="tab-retro" data-i18n="retrograde">Retro</button>
-    <button id="tab-normal" data-i18n="normal">Normal</button>
-    <button id="tab-radial" data-i18n="radial">Radial</button>
-  </div>
-  <div class="field">
-    <label data-i18n="burn_dv">ΔV (m/s)</label>
-    <input type="number" id="burn-dv" value="100" min="1" max="10000">
-  </div>
-  <button id="btn-burn" style="width:100%;" data-i18n="execute">EXECUTE BURN</button>
-
-  <div class="sc-header" data-i18n="landing">LANDING</div>
-  <div class="field">
-    <label data-i18n="target">Target</label>
-    <select id="landing-target">
-      <option value="moon" selected>Moon</option>
-      <option value="mars">Mars</option>
-      <option value="earth">Earth</option>
-    </select>
-  </div>
-  <div class="field">
-    <label data-i18n="ga_max_gen">GA Max Gen</label>
-    <input type="number" id="ga-gen-max" value="60" min="10" max="500">
-  </div>
-  <button id="btn-landing-mode" style="width:100%;" data-i18n="enable_landing">ENABLE AUTO-LAND</button>
-  <button id="btn-ga-stop" class="danger" style="width:100%; margin-top:4px;" data-i18n="stop">STOP GA</button>
-</div>
-
-<!-- RIGHT PANEL -->
-<div id="panel-right" class="panel">
-  <div class="sc-header" data-i18n="vehicle">VEHICLE PARAMETERS</div>
-  <div class="field">
-    <label data-i18n="vehicle_preset">Preset</label>
-    <select id="vehicle-preset">
-      <option value="apollo" data-i18n="v_apollo">Apollo S-IVB</option>
-      <option value="starship" data-i18n="v_ss">SpaceX Starship</option>
-      <option value="sls" data-i18n="v_sls">SLS Block 1B</option>
-      <option value="custom" data-i18n="v_custom">Custom</option>
-    </select>
-  </div>
-  <div class="field">
-    <label><span data-i18n="dry_mass">Dry Mass</span>: <span class="val" id="lab-dry">13500 kg</span></label>
-    <input type="range" id="sl-dry" min="1000" max="200000" step="500" value="13500">
-  </div>
-  <div class="field">
-    <label><span data-i18n="fuel_cap">Fuel Capacity</span>: <span class="val" id="lab-fuel">110000 kg</span></label>
-    <input type="range" id="sl-fuel" min="1000" max="2000000" step="1000" value="110000">
-  </div>
-  <div class="field">
-    <label><span data-i18n="isp">Isp (s)</span>: <span class="val" id="lab-isp">421 s</span></label>
-    <input type="range" id="sl-isp" min="200" max="500" step="1" value="421">
-  </div>
-  <div class="field">
-    <label><span data-i18n="thrust">Max Thrust</span>: <span class="val" id="lab-thrust">1000 kN</span></label>
-    <input type="range" id="sl-thrust" min="50" max="20000" step="50" value="1000">
-  </div>
-
-  <div class="sc-header" data-i18n="initcond">INITIAL CONDITIONS</div>
-  <div class="field">
-    <label data-i18n="parkorbit">Parking Orbit Altitude (km)</label>
-    <input type="number" id="parking-alt" value="200" min="100" max="40000" step="10">
-  </div>
-  <div class="field">
-    <label data-i18n="launch_date">Launch Date (UTC)</label>
-    <input type="date" id="in-date">
-  </div>
-  <div class="field">
-    <label data-i18n="dt">Integration Step Δt (s)</label>
-    <select id="in-dt">
-      <option value="1">1 s (high accuracy)</option>
-      <option value="5" selected>5 s (recommended)</option>
-      <option value="10">10 s</option>
-      <option value="60">60 s</option>
-      <option value="300">300 s (fast)</option>
-    </select>
-  </div>
-  <div class="field">
-    <label data-i18n="integrator">Integrator</label>
-    <select id="in-integrator">
-      <option value="rk4" selected>RK4</option>
-      <option value="euler">Euler-Cromer</option>
-    </select>
-  </div>
-
-  <div class="sc-header" data-i18n="trail">TRAJECTORY TRAIL</div>
-  <div class="row">
-    <label data-i18n="trail_show">Show Trail</label>
-    <input type="checkbox" id="cb-trail" checked>
-  </div>
-  <div class="field">
-    <label data-i18n="trail_max">Max Points</label>
-    <input type="number" id="trail-max" value="5000" min="100" max="50000" step="100">
-  </div>
-  <button id="btn-clear-trail" style="width:100%;" data-i18n="clear_trail">CLEAR TRAIL</button>
-
-  <div class="sc-header" data-i18n="online">ONLINE EPHEMERIS</div>
-  <div class="row" style="font-size:10px;color:#88ccff;">
-    <span data-i18n="online_desc">Offline JS Kepler approx (default)</span>
-  </div>
-  <button id="btn-sync-horizons" style="width:100%; margin-top:4px;" data-i18n="sync">SYNC WITH HORIZONS</button>
-
-  <div class="sc-header" data-i18n="export">EXPORT</div>
-  <button id="export-csv" style="width:100%;" data-i18n="export_csv">EXPORT CSV</button>
-</div>
-
-<!-- CHAT LOG -->
-<div id="chat-log">
-  <div class="log-header">MISSION LOG</div>
-  <div id="log-body"></div>
-</div>
-
-<!-- HELP OVERLAY -->
-<div id="help-overlay">
-  <div id="help-content">
-    <h2 data-i18n="help_title">CELESTIUM 4.0 - QUICK GUIDE</h2>
-    <div id="help-body-en">
-      <p>Celestium 4.0 is a browser-native solar-system simulator. All physics is computed locally using Newtonian N-body integration.</p>
-      <h3>Quick start</h3>
-      <ul>
-        <li>Pick a <code>MISSION PRESET</code>, hit <code>APPLY PRESET</code>, then <code>PLAY</code>.</li>
-        <li>Use <code>WARP</code> to fast-forward time. 86,400× = 1 day per second.</li>
-        <li><code>CAMERA</code> follows ship, Earth, Moon, or Sun.</li>
-        <li><code>MANEUVER</code> executes prograde/retrograde/normal/radial burns.</li>
-        <li><code>ENABLE AUTO-LAND</code> trains a GA-based neural network to land.</li>
-      </ul>
-      <h3>Physics</h3>
-      <ul>
-        <li>Sun + Mercury + Venus + Earth + Moon + Mars N-body Newtonian gravity.</li>
-        <li>RK4 or Euler-Cromer (Δt configurable).</li>
-        <li>Tsiolkovsky mass depletion: m-dot = T/(Isp*g0).</li>
-        <li>Spacecraft is a test mass (restricted N-body).</li>
-      </ul>
-      <h3>Keys</h3>
-      <ul>
-        <li>Mouse drag / wheel: orbit &amp; zoom camera</li>
-        <li>Space: play/pause</li>
-        <li>R: reset</li>
-      </ul>
-    </div>
-    <div id="help-body-ko" style="display:none;">
-      <p>Celestium 4.0은 브라우저 기반 태양계 시뮬레이터입니다. 모든 물리는 로컬에서 뉴턴 N체 적분으로 계산됩니다.</p>
-      <h3>빠른 시작</h3>
-      <ul>
-        <li>좌측 <code>MISSION PRESET</code>에서 시나리오 선택 → <code>APPLY PRESET</code> → <code>PLAY</code></li>
-        <li><code>WARP</code>으로 시간 가속. 86,400× = 1초에 1일</li>
-        <li><code>CAMERA</code>로 우주선·지구·달·태양 추적</li>
-        <li><code>MANEUVER</code>에서 진행/역행/법선/지름 방향 분사</li>
-        <li><code>ENABLE AUTO-LAND</code>은 GA 기반 신경망으로 자동 착륙</li>
-      </ul>
-      <h3>물리 엔진</h3>
-      <ul>
-        <li>태양 + 수성 + 금성 + 지구 + 달 + 화성 N체 뉴턴 중력</li>
-        <li>RK4 또는 Euler-Cromer 적분 (Δt 선택 가능)</li>
-        <li>치올콥스키 질량 변화: m-dot = T/(Isp*g0)</li>
-        <li>우주선은 시험질량 (제한 N체)</li>
-      </ul>
-      <h3>단축키</h3>
-      <ul>
-        <li>마우스 드래그/휠: 카메라 회전·줌</li>
-        <li>Space: 재생/일시정지</li>
-        <li>R: 리셋</li>
-      </ul>
-    </div>
-    <div style="text-align:right; margin-top:14px;">
-      <button id="btn-close-help">CLOSE</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-'use strict';
-
-/* =====[ PART 0 ] === UI ID 매핑 + 헬퍼 + 로그 + 모바일 콘솔 ===================== */
-const UI = {
-  canvas:'canvas-container',
-  simTime:'tm-time', date:'tm-date', shipMass:'tm-mass', fuel:'tm-fuel',
-  speed:'tm-speed', altEarth:'tm-alt-e', altMoon:'tm-alt-m',
-  distMars:'tm-alt-mars', dvUsed:'tm-dv',
-  mPreset:'mission-preset', applyPreset:'btn-apply-preset',
-  mPro:'tab-prograde', mRetro:'tab-retro',
-  mNormal:'tab-normal', mRadial:'tab-radial',
-  dvInput:'burn-dv', burnExec:'btn-burn',
-  landTarget:'landing-target', autoLand:'btn-landing-mode',
-  gaGenMax:'ga-gen-max', gaStop:'btn-ga-stop',
-  showTrail:'cb-trail', maxPoints:'trail-max', clearTrail:'btn-clear-trail',
-  play:'btn-play', reset:'btn-reset', warp:'time-warp',
-  visual:'scale-mode', camera:'camera-mode',
-  langEn:'lang-en', langKo:'lang-ko',
-  exportCsv:'export-csv',
-  parkAlt:'parking-alt', launchDate:'in-date',
-  dt:'in-dt', integrator:'in-integrator',
-  vehiclePreset:'vehicle-preset',
-  slDry:'sl-dry', slFuel:'sl-fuel', slIsp:'sl-isp', slThrust:'sl-thrust',
-  labDry:'lab-dry', labFuel:'lab-fuel', labIsp:'lab-isp', labThrust:'lab-thrust',
-  syncHorizons:'btn-sync-horizons',
-  helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
-};
-
-const $ = (k) => document.getElementById(UI[k] || k);
-const setText = (k, t) => { const el = $(k); if (el) el.textContent = t; };
-
-/* ---- Mobile debug console (태블릿용) ---- */
-function toggleMobileConsole(){
-  const el = document.getElementById('mobile-console');
-  if (el) el.classList.toggle('show');
-}
-(function setupMobileConsole(){
-  const origLog   = console.log.bind(console);
-  const origWarn  = console.warn.bind(console);
-  const origError = console.error.bind(console);
-  function append(tag, args){
-    const el = document.getElementById('mobile-console');
-    if (!el) { origLog(...args); return; }
-    const text = Array.from(args).map(a => {
-      if (a === null) return 'null';
-      if (a === undefined) return 'undefined';
-      if (typeof a === 'object') { try { return JSON.stringify(a); } catch(e){ return String(a); } }
-      return String(a);
-    }).join(' ');
-    el.textContent += `[${tag}] ${text}\n`;
-    el.scrollTop = el.scrollHeight;
-  }
-  console.log   = (...a) => { origLog(...a);  append('LOG', a); };
-  console.warn  = (...a) => { origWarn(...a); append('WRN', a); };
-  console.error = (...a) => { origError(...a); append('ERR', a); };
-  window.addEventListener('error', e => append('ERR', [e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')]));
-})();
-
-/* ---- Mission log (Valkorant style chat log) ---- */
-const LOG_MAX = 5000;
-function logMsg(tag, text){
-  const host = document.getElementById('log-body');
-  if (!host){ console.log(`[${tag}] ${text}`); return; }
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  const ss = String(now.getSeconds()).padStart(2,'0');
-  const line = document.createElement('div');
-  line.className = 'log-line log-' + tag;
-  line.innerHTML = `<span class="log-time">[${hh}:${mm}:${ss}]</span> <span class="log-tag">${tag.toUpperCase()}</span> ${text}`;
-  host.appendChild(line);
-  while (host.childElementCount > LOG_MAX) host.removeChild(host.firstChild);
-  host.scrollTop = host.scrollHeight;
-}
-function setStatus(text, tag='sys'){ logMsg(tag, text); }
-
-/* =====[ PART 1 ] === 상수 + 천체 데이터 + 비히클 ===================== */
-const G0 = 9.80665;
-const J2000_MS = Date.UTC(2000,0,1,12,0,0);
-const AU = 149597870.7;
-const DAY = 86400;
-const DEG = Math.PI/180;
-
-const BODY = {
-  sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
-  mercury: {
-    mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun',
-    el: { a: 0.387098*AU, e: 0.205630, i: 7.005, om: 48.331, w: 29.124, L0: 252.250 }
-  },
-  venus: {
-    mu: 324858.592, R: 6051.8, col: 0xddbb66, parent: 'sun',
-    el: { a: 0.723332*AU, e: 0.006772, i: 3.3946, om: 76.680, w: 54.884, L0: 181.979 }
-  },
-  earth: {
-    mu: 398600.4418, R: 6371.0, col: 0x2a66cc, parent: 'sun',
-    el: { a: 1.000000*AU, e: 0.016709, i: 0.0000, om: 0.0, w: 114.20783, L0: 100.46435 }
-  },
-  moon: {
-    mu: 4902.800, R: 1737.4, col: 0xcccccc, parent: 'earth',
-    el: { a: 384400.0, e: 0.0549, i: 5.145, om: 125.08, w: 318.15, L0: 115.3654, mu_p: 398600.4418 }
-  },
-  mars: {
-    mu: 42828.375, R: 3389.5, col: 0xcc4422, parent: 'sun',
-    el: { a: 1.52366231*AU, e: 0.093412, i: 1.85061, om: 49.57854, w: 336.04084, L0: 355.45332 }
-  },
-};
-
-const VEHICLES = {
-  'apollo':    { dry: 13500,  fuel: 110000,  isp: 421, thrust: 1000 },
-  'starship':  { dry: 120000, fuel: 1200000, isp: 380, thrust: 16000 },
-  'sls':       { dry: 12000,  fuel: 130000,  isp: 462, thrust: 440 },
-  'custom':    { dry: 50000,  fuel: 200000,  isp: 350, thrust: 5000 },
-};
-
-/* =====[ PART 2 ] === 전역 상태 S ===================== */
-const S = {
-  scene: null, cam: null, rdr: null, ctrl: null,
-  meshes: {}, trail: null, trailPos: [], trailMax: 5000, trailMinKm: 10,
-  bodies: {},
-  ship: {
-    pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-    dry: 13500, fuel: 110000, fuel0: 110000, isp: 421, thrustKN: 1000,
-    throttle: 0, burnDir: 'prograde', landed: false, crashed: false,
-    dvUsed: 0, refFrame: 'earth',
-  },
-  sim: { t0: Date.UTC(2026,5,5)/1000, t: 0, warp: 1, paused: true, dt: 5, method: 'rk4' },
-  vis: { scale: 'exag', scaleK: 30, trail: true },
-  camMode: 'free', camTarget: 'earth',
-  csvLog: [],
-  ga: null, gaActive: false, autoLandActive: false, autoLandBody: null,
-  lang: 'en',
-  langs: {
-    en: {
-      warp:'WARP', visual:'VISUAL', scale_exag:'Exaggerated', scale_real:'Realistic 1:1',
-      camera:'CAMERA', cam_free:'Free Orbit', cam_ship:'Ship Follow',
-      cam_earth:'Earth Centered', cam_moon:'Moon Centered', cam_sun:'Sun Centered',
-      telemetry:'TELEMETRY', sim_time:'SIM TIME', sim_date:'DATE',
-      ship_mass:'SHIP MASS', fuel:'FUEL', speed:'SPEED',
-      alt_earth:'ALT (Earth)', alt_moon:'ALT (Moon)', alt_mars:'DIST (Mars)',
-      dv_used:'dV USED',
-      mission:'MISSION PRESET', apply:'APPLY PRESET',
-      m_leo:'LEO Parking Orbit (200 km)', m_hm:'Hohmann Transfer → Moon',
-      m_fm:'Fast Transfer → Moon (3 days)', m_fr:'Free Return Trajectory',
-      m_hmars:'Hohmann Transfer → Mars', m_vs:'Venus Swingby → Mars', m_custom:'Custom',
-      modes:'MANEUVER', prograde:'Prograde', retrograde:'Retro', normal:'Normal', radial:'Radial',
-      burn_dv:'dV (m/s)', execute:'EXECUTE BURN',
-      landing:'LANDING', target:'Target', ga_max_gen:'GA Max Gen',
-      enable_landing:'ENABLE AUTO-LAND', stop:'STOP GA',
-      vehicle:'VEHICLE PARAMETERS', vehicle_preset:'Preset',
-      v_apollo:'Apollo S-IVB', v_ss:'SpaceX Starship', v_sls:'SLS Block 1B', v_custom:'Custom',
-      dry_mass:'Dry Mass', fuel_cap:'Fuel Capacity', isp:'Isp (s)', thrust:'Max Thrust',
-      initcond:'INITIAL CONDITIONS', parkorbit:'Parking Orbit Altitude (km)',
-      launch_date:'Launch Date (UTC)', dt:'Integration Step (s)', integrator:'Integrator',
-      trail:'TRAJECTORY TRAIL', trail_show:'Show Trail', trail_max:'Max Points', clear_trail:'CLEAR TRAIL',
-      online:'ONLINE EPHEMERIS', online_desc:'Offline JS Kepler approx (default)',
-      sync:'SYNC WITH HORIZONS', export:'EXPORT', export_csv:'EXPORT CSV',
-      help_title:'CELESTIUM 4.0 - QUICK GUIDE',
-    },
-    ko: {
-      warp:'시간 가속', visual:'화면 비율', scale_exag:'과장된 크기', scale_real:'실제 비율 (1:1)',
-      camera:'카메라', cam_free:'자유 시점', cam_ship:'우주선 추적',
-      cam_earth:'지구 중심', cam_moon:'달 중심', cam_sun:'태양 중심',
-      telemetry:'원격 측정', sim_time:'시뮬레이션 시간', sim_date:'날짜',
-      ship_mass:'선체 질량', fuel:'남은 연료', speed:'속도',
-      alt_earth:'고도 (지구)', alt_moon:'고도 (달)', alt_mars:'거리 (화성)',
-      dv_used:'사용된 dV',
-      mission:'미션 프리셋', apply:'프리셋 적용',
-      m_leo:'지구 저궤도 주차 (200 km)', m_hm:'호만 전이 → 달',
-      m_fm:'빠른 전이 → 달 (3일)', m_fr:'자유 귀환 궤도',
-      m_hmars:'호만 전이 → 화성', m_vs:'금성 스윙바이 → 화성', m_custom:'사용자 지정',
-      modes:'기동', prograde:'진행 방향', retrograde:'역행 방향', normal:'법선 방향', radial:'지름 방향',
-      burn_dv:'dV (m/s)', execute:'분사 실행',
-      landing:'착륙', target:'목표', ga_max_gen:'GA 최대 세대',
-      enable_landing:'자동 착륙 활성화', stop:'GA 중단',
-      vehicle:'우주선 파라미터', vehicle_preset:'프리셋',
-      v_apollo:'아폴로 S-IVB', v_ss:'스페이스X 스타십', v_sls:'SLS Block 1B', v_custom:'사용자 지정',
-      dry_mass:'건조 질량', fuel_cap:'연료 용량', isp:'비추력 (s)', thrust:'최대 추력',
-      initcond:'초기 조건', parkorbit:'주차 궤도 고도 (km)',
-      launch_date:'발사 날짜 (UTC)', dt:'적분 스텝 (s)', integrator:'적분기',
-      trail:'궤적선', trail_show:'궤적선 표시', trail_max:'최대 점 개수', clear_trail:'궤적 지우기',
-      online:'온라인 천체력', online_desc:'오프라인 JS 케플러 근사 (기본)',
-      sync:'HORIZONS와 동기화', export:'내보내기', export_csv:'CSV 내보내기',
-      help_title:'CELESTIUM 4.0 - 빠른 안내',
-    }
-  }
-};
-
-/* =====[ PART 3 ] === 수치 유틸 ===================== */
-function fmt(n, digits=2){
-  if (!isFinite(n)) return '--';
-  if (Math.abs(n) >= 1e6) return n.toExponential(2);
-  return n.toFixed(digits);
-}
-
-/* =====[ PART 4 ] === Three.js 초기화 ===================== */
-function initScene(){
-  const host = document.getElementById(UI.canvas);
-  if (!host){ console.error('canvas host missing'); return; }
-
-  S.scene = new THREE.Scene();
-  S.scene.background = new THREE.Color(0x000005);
-
-  S.cam = new THREE.PerspectiveCamera(50, host.clientWidth/host.clientHeight, 10, 1e10);
-  S.cam.position.set(2*AU, 0.6*AU, 2*AU);
-
-  S.rdr = new THREE.WebGLRenderer({ antialias: true });
-  S.rdr.setSize(host.clientWidth, host.clientHeight);
-  S.rdr.setPixelRatio(Math.min(2, devicePixelRatio));
-  host.appendChild(S.rdr.domElement);
-
-  S.ctrl = new THREE.OrbitControls(S.cam, S.rdr.domElement);
-  S.ctrl.enableDamping = true;
-  S.ctrl.dampingFactor = 0.08;
-  S.ctrl.minDistance = 100;
-  S.ctrl.maxDistance = 1e10;
-
-  S.scene.add(new THREE.AmbientLight(0x666688, 0.6));
-  const sunLight = new THREE.PointLight(0xffffff, 2, 0, 0);
-  S.scene.add(sunLight);
-
-  const sg = new THREE.BufferGeometry();
-  const pts = [];
-  for (let i=0;i<4000;i++){
-    const r = 8e9;
-    const th = Math.acos(2*Math.random()-1);
-    const ph = 2*Math.PI*Math.random();
-    pts.push(r*Math.sin(th)*Math.cos(ph), r*Math.cos(th), r*Math.sin(th)*Math.sin(ph));
-  }
-  sg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  S.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 4e7 })));
-
-  for (const name in BODY){
-    const b = BODY[name];
-    const r = (S.vis.scale === 'exag') ? b.R * S.vis.scaleK : b.R;
-    const mat = (name === 'sun')
-      ? new THREE.MeshBasicMaterial({ color: b.col })
-      : new THREE.MeshStandardMaterial({ color: b.col, roughness: 0.85, emissive: b.col, emissiveIntensity: 0.05 });
-    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 36, 24), mat);
-    m.userData.baseR = r;
-    S.scene.add(m);
-    S.meshes[name] = m;
-  }
-
-  const ship = new THREE.Group();
-  ship.name = 'ship';
-  const bodyMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.5, 2.5, 16),
-    new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.5, roughness: 0.4 })
-  );
-  ship.add(bodyMesh);
-  const nose = new THREE.Mesh(
-    new THREE.ConeGeometry(0.5, 1.0, 16),
-    new THREE.MeshStandardMaterial({ color: 0xbbbbbb })
-  );
-  nose.position.y = 1.7;
-  ship.add(nose);
-  const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.4, 1.5, 12),
-    new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 })
-  );
-  flame.position.y = -2.0;
-  flame.rotation.x = Math.PI;
-  flame.visible = false;
-  flame.name = 'flame';
-  ship.add(flame);
-  ship.scale.setScalar(1e4);
-  S.scene.add(ship);
-  S.meshes.ship = ship;
-
-  const tg = new THREE.BufferGeometry();
-  tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
-  tg.setDrawRange(0, 0);
-  S.trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.9 }));
-  S.trail.frustumCulled = false;
-  S.scene.add(S.trail);
-
-  addEventListener('resize', () => {
-    S.cam.aspect = host.clientWidth / host.clientHeight;
-    S.cam.updateProjectionMatrix();
-    S.rdr.setSize(host.clientWidth, host.clientHeight);
-  });
-
-  computeBodies(0);
-  resetShipToParkingOrbit();
-  syncMeshes();
-  S.rdr.render(S.scene, S.cam);
-}
-
-/* =====[ PART 5 ] ==== 물리 엔진 (RK4 + 가변질량) ===================== */
-
-function solveKepler(M, e){
-  M = ((M % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-  let E = M + e*Math.sin(M);
-  for (let k=0;k<15;k++){
-    const f  = E - e*Math.sin(E) - M;
-    const fp = 1 - e*Math.cos(E);
-    const dE = f/fp;
-    E -= dE;
-    if (Math.abs(dE) < 1e-12) break;
-  }
-  return E;
-}
-
-function keplerStateVectors(el, mu_parent, days){
-  const a = el.a, e = el.e;
-  const n = Math.sqrt(mu_parent/(a*a*a));
-  const M = (el.L0 - el.w)*DEG + n*days*DAY;
-  const E = solveKepler(M, e);
-  const cE = Math.cos(E), sE = Math.sin(E);
-  const b  = a*Math.sqrt(1-e*e);
-  const denom = 1 - e*cE;
-  const xP = a*(cE - e);
-  const yP = b*sE;
-  const vxP = -a*n*sE / denom;
-  const vyP =  b*n*cE / denom;
-  const cO=Math.cos(el.om*DEG), sO=Math.sin(el.om*DEG);
-  const cW=Math.cos(el.w *DEG), sW=Math.sin(el.w *DEG);
-  const cI=Math.cos(el.i *DEG), sI=Math.sin(el.i *DEG);
-  const R11 =  cO*cW - sO*sW*cI;
-  const R12 = -cO*sW - sO*cW*cI;
-  const R21 =  sO*cW + cO*sW*cI;
-  const R22 = -sO*sW + cO*cW*cI;
-  const R31 =  sW*sI;
-  const R32 =  cW*sI;
-  return {
-    pos: new THREE.Vector3(R11*xP + R12*yP, R21*xP + R22*yP, R31*xP + R32*yP),
-    vel: new THREE.Vector3(R11*vxP + R12*vyP, R21*vxP + R22*vyP, R31*vxP + R32*vyP),
-  };
-}
-
-function computeBodies(simSec){
-  const epochMs = S.sim.t0*1000 + simSec*1000;
-  const days = (epochMs - J2000_MS)/(1000*DAY);
-
-  S.bodies.sun = {
-    pos: new THREE.Vector3(0,0,0),
-    vel: new THREE.Vector3(0,0,0),
-    mu: BODY.sun.mu,
-    R:  BODY.sun.R,
-  };
-
-  for (const name in BODY){
-    if (name === 'sun') continue;
-    const b = BODY[name];
-    const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
-    const st = keplerStateVectors(b.el, muParent, days);
-    const parent = S.bodies[b.parent];
-    if (parent){
-      st.pos.add(parent.pos);
-      st.vel.add(parent.vel);
-    }
-    S.bodies[name] = { pos: st.pos, vel: st.vel, mu: b.mu, R: b.R };
-  }
-}
-
-function gravityAt(pos){
-  const a = new THREE.Vector3();
-  for (const n in S.bodies){
-    const b = S.bodies[n];
-    const r = b.pos.clone().sub(pos);
-    const d2 = r.lengthSq();
-    const d = Math.sqrt(d2);
-    if (d < 1e-6) continue;
-    if (d < b.R){
-      a.addScaledVector(r.normalize(), b.mu * d / (b.R*b.R*b.R));
-    } else {
-      a.addScaledVector(r.normalize(), b.mu / d2);
-    }
-  }
-  return a;
-}
-
-function thrustAccel(pos, vel){
-  const out = new THREE.Vector3();
-  if (S.ship.throttle <= 0 || S.ship.fuel <= 0 || S.ship.landed || S.ship.crashed) return out;
-
-  const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-  const mass    = S.ship.dry + S.ship.fuel;
-  if (mass <= 0) return out;
-  const a_km_s2 = (thrustN / mass) * 1e-3;
-
-  const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
-  const rRel = pos.clone().sub(ref.pos);
-  const vRel = vel.clone().sub(ref.vel);
-
-  let dir;
-  switch (S.ship.burnDir){
-    case 'prograde':   dir = vRel.clone().normalize(); break;
-    case 'retrograde': dir = vRel.clone().normalize().negate(); break;
-    case 'normal':     dir = rRel.clone().cross(vRel).normalize(); break;
-    default:           dir = rRel.clone().normalize(); break;
-  }
-  if (!isFinite(dir.x) || dir.lengthSq() < 1e-12) return out;
-  return dir.multiplyScalar(a_km_s2);
-}
-
-function deriv(pos, vel){
-  return { dp: vel.clone(), dv: gravityAt(pos).add(thrustAccel(pos, vel)) };
-}
-
-function stepRK4(dt){
-  const p0 = S.ship.pos.clone(), v0 = S.ship.vel.clone();
-  const k1 = deriv(p0, v0);
-  const k2 = deriv(p0.clone().addScaledVector(k1.dp, dt/2), v0.clone().addScaledVector(k1.dv, dt/2));
-  const k3 = deriv(p0.clone().addScaledVector(k2.dp, dt/2), v0.clone().addScaledVector(k2.dv, dt/2));
-  const k4 = deriv(p0.clone().addScaledVector(k3.dp, dt),   v0.clone().addScaledVector(k3.dv, dt));
-
-  S.ship.pos.copy(p0)
-    .addScaledVector(k1.dp, dt/6).addScaledVector(k2.dp, dt/3)
-    .addScaledVector(k3.dp, dt/3).addScaledVector(k4.dp, dt/6);
-  S.ship.vel.copy(v0)
-    .addScaledVector(k1.dv, dt/6).addScaledVector(k2.dv, dt/3)
-    .addScaledVector(k3.dv, dt/3).addScaledVector(k4.dv, dt/6);
-
-  if (S.ship.throttle > 0 && S.ship.fuel > 0){
-    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-    const ve = S.ship.isp * G0;
-    const dm = Math.min(thrustN/ve * dt, S.ship.fuel);
-    S.ship.fuel -= dm;
-    const massAvg = S.ship.dry + S.ship.fuel + dm/2;
-    S.ship.dvUsed += (thrustN/massAvg) * dt;
-  }
-}
-
-function stepEuler(dt){
-  const a = gravityAt(S.ship.pos).add(thrustAccel(S.ship.pos, S.ship.vel));
-  S.ship.vel.addScaledVector(a, dt);
-  S.ship.pos.addScaledVector(S.ship.vel, dt);
-  if (S.ship.throttle > 0 && S.ship.fuel > 0){
-    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-    const ve = S.ship.isp * G0;
-    const dm = Math.min(thrustN/ve * dt, S.ship.fuel);
-    S.ship.fuel -= dm;
-    S.ship.dvUsed += (thrustN/(S.ship.dry + S.ship.fuel + dm/2)) * dt;
-  }
-}
-
-function checkCollision(){
-  for (const n in S.bodies){
-    if (n === 'sun') continue;
-    const b = S.bodies[n];
-    const d = S.ship.pos.distanceTo(b.pos);
-    if (d < b.R){
-      const relV = S.ship.vel.clone().sub(b.vel);
-      const speed = relV.length() * 1000;
-      if (speed < 50){
-        S.ship.landed = true;
-        S.ship.throttle = 0;
-        const rHat = S.ship.pos.clone().sub(b.pos).normalize();
-        S.ship.pos.copy(b.pos).addScaledVector(rHat, b.R);
-        S.ship.vel.copy(b.vel);
-        setStatus(`LANDED @ ${n.toUpperCase()}  v_rel=${speed.toFixed(1)} m/s`, 'ok');
-      } else {
-        S.ship.crashed = true;
-        S.ship.throttle = 0;
-        setStatus(`CRASHED @ ${n.toUpperCase()}  v_rel=${speed.toFixed(0)} m/s`, 'err');
-      }
-      return;
-    }
-  }
-  if (S.ship.pos.length() < S.bodies.sun.R){
-    S.ship.crashed = true; S.ship.throttle = 0;
-    setStatus('CRASHED @ SUN', 'err');
-  }
-}
-
-/* --- 적응형 dt --- */
-function nearestBodyInfo(pos){
-  let minD = Infinity, nearest = null, nearestName = null;
-  for (const n in S.bodies){
-    if (n === 'sun') continue;
-    const b = S.bodies[n];
-    const d = pos.distanceTo(b.pos);
-    if (d < minD){ minD = d; nearest = b; nearestName = n; }
-  }
-  return { body: nearest, name: nearestName, dist: minD };
-}
-
-function pickAdaptiveDt(maxDt){
-  const info = nearestBodyInfo(S.ship.pos);
-  if (!info.body) return maxDt;
-  const vRel = S.ship.vel.clone().sub(info.body.vel).length();
-  const vSafe = Math.max(0.001, vRel);
-  const dtOrbit = (info.dist / vSafe) / 50;
-  return Math.max(0.05, Math.min(maxDt, dtOrbit));
-}
-
-function debugInitialState(){
-  const e = S.bodies.earth;
-  if (!e){ console.warn('No Earth in S.bodies'); return; }
-  const r = S.ship.pos.clone().sub(e.pos);
-  const v = S.ship.vel.clone().sub(e.vel);
-  const rMag = r.length();
-  const vMag = v.length();
-  const vCirc = Math.sqrt(e.mu / rMag);
-  const energy = 0.5*vMag*vMag - e.mu/rMag;
-
-  console.log('=== Celestium debug ===');
-  console.log('  Earth |pos|=', e.pos.length().toExponential(3), 'km, |vel|=', e.vel.length().toFixed(3), 'km/s');
-  console.log('  Ship |r|=', rMag.toFixed(1), 'km  alt=', (rMag - e.R).toFixed(1), 'km');
-  console.log('  Ship |v|=', vMag.toFixed(3), 'km/s');
-  console.log('  v_circ:', vCirc.toFixed(3), 'km/s  ratio=', (vMag/vCirc*100).toFixed(1), '%');
-  console.log('  r.v:', r.dot(v).toFixed(2), '  energy:', energy.toFixed(3), 'km^2/s^2');
-}
-
-/* =====[ PART 6 ] ==== 텔레메트리 + 궤도 요소 UI 갱신 ===================== */
-function updateTelemetry(){
-  setText('simTime', fmt(S.sim.t/DAY, 3) + ' d');
-  const date = new Date((S.sim.t0 + S.sim.t)*1000);
-  setText('date', date.toISOString().slice(0,10));
-  const m = S.ship.dry + S.ship.fuel;
-  setText('shipMass', fmt(m, 0) + ' kg');
-  setText('fuel', fmt(S.ship.fuel, 0) + ' kg');
-  setText('speed', fmt(S.ship.vel.length(), 3) + ' km/s');
-
-  const e = S.bodies.earth, mo = S.bodies.moon, ma = S.bodies.mars;
-  if (e)  setText('altEarth', fmt(S.ship.pos.distanceTo(e.pos) - e.R, 0) + ' km');
-  if (mo) setText('altMoon',  fmt(S.ship.pos.distanceTo(mo.pos) - mo.R, 0) + ' km');
-  if (ma) setText('distMars', fmt(S.ship.pos.distanceTo(ma.pos), 0) + ' km');
-  setText('dvUsed', fmt(S.ship.dvUsed, 0) + ' m/s');
-
-  updateOrbitalElements();
-}
-
-/* --- 가장 가까운 천체를 기준 프레임으로 자동 선택 --- */
-function pickReferenceBody(){
-  let ref = S.bodies.earth, name = 'earth', minD = Infinity;
-  for (const n in S.bodies){
-    if (n === 'sun') continue;
-    const b = S.bodies[n];
-    const d = S.ship.pos.distanceTo(b.pos);
-    // 무차원 거리: 현재 거리 / 천체 반지름
-    const norm = d / b.R;
-    if (norm < minD){ minD = norm; ref = b; name = n; }
-  }
-  return { body: ref, name };
-}
-
-/* --- 상태벡터 → 궤도 6요소 + 보존량 --- */
-function computeOrbitalElements(){
-  const pick = pickReferenceBody();
-  const ref = pick.body;
-  const refName = pick.name.charAt(0).toUpperCase() + pick.name.slice(1);
-
-  const r = S.ship.pos.clone().sub(ref.pos);
-  const v = S.ship.vel.clone().sub(ref.vel);
-  const mu = ref.mu;
-
-  const rMag = r.length();
-  const vMag = v.length();
-  if (rMag < 1e-6 || mu <= 0) return { refName, valid: false };
-
-  // 비에너지 ε = v²/2 − μ/r
-  const energy = 0.5*vMag*vMag - mu/rMag;
-
-  // 비각운동량 h⃗ = r⃗ × v⃗
-  const h = r.clone().cross(v);
-  const hMag = h.length();
-
-  // 이심률 벡터 e⃗ = (v⃗ × h⃗)/μ − r̂
-  const eVec = v.clone().cross(h).divideScalar(mu).sub(r.clone().divideScalar(rMag));
-  const ecc = eVec.length();
-
-  // 장반경 a = −μ/(2ε)  (타원/쌍곡선 모두)
-  const a = (Math.abs(energy) > 1e-12) ? -mu/(2*energy) : Infinity;
-
-  // 경사각 i = acos(h_z / |h|)
-  const inc = (hMag > 1e-12)
-    ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI
-    : 0;
-
-  let rp_alt = null, ra_alt = null, period = null;
-  if (ecc < 1 && isFinite(a) && a > 0){
-    const rp = a * (1 - ecc);
-    const ra = a * (1 + ecc);
-    rp_alt = rp - ref.R;
-    ra_alt = ra - ref.R;
-    period = 2*Math.PI * Math.sqrt(a*a*a/mu);
-  }
-
-  return {
-    refName, ref,
-    a, ecc, inc, period,
-    rp_alt, ra_alt,
-    energy, hMag,
-    valid: true,
-  };
-}
-
-function updateOrbitalElements(){
-  const oe = computeOrbitalElements();
-  if (!oe.valid){
-    setText('oeRef', oe.refName);
-    return;
-  }
-
-  setText('oeRef', oe.refName);
-
-  if (isFinite(oe.a) && oe.a > 0){
-    setText('oeA', fmt(oe.a, 1) + ' km');
-  } else if (oe.a < 0){
-    setText('oeA', 'hyperbolic (a<0)');
-  } else {
-    setText('oeA', 'parabolic');
-  }
-
-  setText('oeEcc', oe.ecc.toFixed(5));
-  setText('oeInc', oe.inc.toFixed(3) + ' °');
-
-  if (oe.period !== null){
-    if (oe.period < 3600)        setText('oeT', (oe.period/60).toFixed(2) + ' min');
-    else if (oe.period < 86400)  setText('oeT', (oe.period/3600).toFixed(3) + ' h');
-    else                         setText('oeT', (oe.period/86400).toFixed(3) + ' d');
-  } else {
-    setText('oeT', '--');
-  }
-
-  if (oe.rp_alt !== null){
-    setText('oeRp', fmt(oe.rp_alt, 1) + ' km');
-  } else {
-    setText('oeRp', '--');
-  }
-
-  if (oe.ra_alt !== null){
-    setText('oeRa', fmt(oe.ra_alt, 1) + ' km');
-  } else {
-    setText('oeRa', '--');
-  }
-
-  setText('oeEner', oe.energy.toFixed(5) + ' km²/s²');
-  setText('oeAng', oe.hMag.toExponential(4) + ' km²/s');
-}
-
-/* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 ===================== */
-let lastTrailPos = new THREE.Vector3();
-function syncMeshes(){
-  for (const n in S.bodies){
-    const mesh = S.meshes[n];
-    if (!mesh) continue;
-    mesh.position.copy(S.bodies[n].pos);
-    const target = (S.vis.scale === 'exag') ? S.bodies[n].R * S.vis.scaleK : S.bodies[n].R;
-    if (mesh.userData.baseR !== target){
-      mesh.geometry.dispose();
-      mesh.geometry = new THREE.SphereGeometry(target, 36, 24);
-      mesh.userData.baseR = target;
-    }
-  }
-
-  if (S.meshes.ship){
-    S.meshes.ship.position.copy(S.ship.pos);
-    if (S.ship.vel.lengthSq() > 1e-12){
-      const look = S.ship.pos.clone().addScaledVector(S.ship.vel.clone().normalize(), 100);
-      S.meshes.ship.lookAt(look);
-      S.meshes.ship.rotateX(Math.PI/2);
-    }
-    const flame = S.meshes.ship.getObjectByName('flame');
-    if (flame){
-      flame.visible = S.ship.throttle > 0 && S.ship.fuel > 0;
-      if (flame.visible) flame.scale.y = 0.5 + S.ship.throttle/100;
-    }
-  }
-
-  if (S.vis.trail){
-    const minD = Math.max(S.trailMinKm, S.ship.pos.length() * 1e-5);
-    if (S.trailPos.length === 0 || S.ship.pos.distanceTo(lastTrailPos) > minD){
-      S.trailPos.push(S.ship.pos.clone());
-      if (S.trailPos.length > S.trailMax) S.trailPos.shift();
-      lastTrailPos.copy(S.ship.pos);
-
-      const arr = S.trail.geometry.attributes.position.array;
-      for (let i=0;i<S.trailPos.length;i++){
-        arr[i*3]   = S.trailPos[i].x;
-        arr[i*3+1] = S.trailPos[i].y;
-        arr[i*3+2] = S.trailPos[i].z;
-      }
-      S.trail.geometry.attributes.position.needsUpdate = true;
-      S.trail.geometry.setDrawRange(0, S.trailPos.length);
-    }
-    S.trail.visible = true;
-  } else {
-    S.trail.visible = false;
-  }
-}
-
-/* =====[ PART 8 ] ==== 카메라 모드 (자동 줌 포함) ===================== */
-function updateCamera(){
-  if (S.camMode === 'free'){
-    S._lastCamMode = 'free';
-    S.ctrl.update();
-    return;
-  }
-
-  let tgt = null, viewDist = 50000;
-  if (S.camMode === 'ship'){
-    tgt = S.ship.pos;
-    const pick = pickReferenceBody();
-    viewDist = Math.max(pick.body.R * 3, 2000);
-  }
-  else if (S.camMode === 'earth' && S.bodies.earth){
-    tgt = S.bodies.earth.pos;
-    viewDist = S.bodies.earth.R * 4;
-  }
-  else if (S.camMode === 'moon' && S.bodies.moon){
-    tgt = S.bodies.moon.pos;
-    viewDist = S.bodies.moon.R * 4;
-  }
-  else if (S.camMode === 'sun'){
-    tgt = S.bodies.sun.pos;
-    viewDist = S.bodies.sun.R * 4;
-  }
-
-  if (!tgt){ S.ctrl.update(); return; }
-
-  if (S._lastCamMode !== S.camMode){
-    S._lastCamMode = S.camMode;
-
-    let dir = S.cam.position.clone().sub(S.ctrl.target);
-    if (dir.lengthSq() < 1e-9) dir.set(1, 0.5, 1);
-    dir.normalize();
-
-    S.ctrl.target.copy(tgt);
-    S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
-    S.ctrl.minDistance = Math.max(viewDist * 0.1, 50);
-    S.ctrl.maxDistance = viewDist * 100;
-    S.ctrl.update();
-    return;
-  }
-
-  const prev = S.ctrl.target.clone();
-  S.ctrl.target.lerp(tgt, 0.20);
-  const delta = S.ctrl.target.clone().sub(prev);
-  S.cam.position.add(delta);
-  S.ctrl.update();
-}
-/* =====[ PART 9 ] ==== 미션 프리셋 + 초기 궤도 배치 ===================== */
-function resetShipToParkingOrbit(){
-  computeBodies(0);
-  const e = S.bodies.earth;
-
-  let alt = parseFloat(($('parkAlt')?.value) || 200);
-  if (!isFinite(alt) || alt < 100) alt = 200;
-  if (alt > 40000) alt = 40000;
-  const r = e.R + alt;
-
-  const rHat = new THREE.Vector3(1,0,0);
-  const vHat = new THREE.Vector3(0,0,1);
-  const vCirc = Math.sqrt(e.mu / r);
-
-  S.ship.pos.copy(e.pos).addScaledVector(rHat, r);
-  S.ship.vel.copy(e.vel).addScaledVector(vHat, vCirc);
-
-  S.ship.fuel = S.ship.fuel0;
-  S.ship.dvUsed = 0;
-  S.ship.landed = false;
-  S.ship.crashed = false;
-  S.ship.throttle = 0;
-  S.ship.refFrame = 'earth';
-  S.trailPos.length = 0;
-  lastTrailPos.copy(S.ship.pos);
-
-  const dAfter = S.ship.pos.distanceTo(e.pos);
-  if (dAfter <= e.R){
-    console.error('INIT FAIL: ship inside Earth. d=', dAfter, 'R=', e.R);
-    setStatus(`INIT ERROR: ship inside Earth (d=${dAfter.toFixed(0)} km)`, 'err');
-  } else {
-    setStatus(`Parking orbit: alt=${alt} km, r=${r.toFixed(0)} km, v_circ=${vCirc.toFixed(3)} km/s`, 'sys');
-  }
-  debugInitialState();
-}
-
-function applyPreset(){
-  const p = ($('mPreset')?.value) || 'leo';
-  resetShipToParkingOrbit();
-
-  const e = S.bodies.earth;
-  const r1 = e.R + 200;
-  const vC = Math.sqrt(e.mu / r1);
-  const vHat = S.ship.vel.clone().sub(e.vel).normalize();
-
-  if (p === 'leo'){ /* nothing */ }
-
-  else if (p === 'hohmann_moon' || p === 'hohmann_mars'){
-    const targetName = (p === 'hohmann_moon') ? 'moon' : 'mars';
-    const tgt = S.bodies[targetName];
-    const r2 = tgt.pos.distanceTo(e.pos);
-    const aT = (r1 + r2) / 2;
-    const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = vPeri - vC;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Hohmann -> ${targetName}: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-  else if (p === 'fast_moon'){
-    const aT = (r1 + 384400) / 2;
-    const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = (vPeri - vC) * 1.35;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Fast transfer -> Moon: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-  else if (p === 'free_return'){
-    const aT = (r1 + 384400) / 2;
-    const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = (vPeri - vC) * 1.10;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Free return: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-  else if (p === 'venus_swing'){
-    const v = S.bodies.venus;
-    const r2 = v.pos.distanceTo(e.pos);
-    const aT = (r1 + r2) / 2;
-    const vPeri = Math.sqrt(e.mu * (2/r1 - 1/aT));
-    const dv = vPeri - vC;
-    S.ship.vel.addScaledVector(vHat, dv);
-    S.ship.dvUsed += Math.abs(dv)*1000;
-    setStatus(`Venus swingby transfer: dV=${(dv*1000).toFixed(1)} m/s`, 'phys');
-  }
-
-  setStatus(`Preset applied: ${p}`, 'ok');
-}
-
-/* =====[ PART 10 ] ==== 엔진 (dV 분사) ===================== */
-function executeBurn(){
-  const dvMs = parseFloat(($('dvInput')?.value) || 100);
-  if (!isFinite(dvMs) || dvMs <= 0) return;
-  const dv = dvMs / 1000;
-  const m0 = S.ship.dry + S.ship.fuel;
-  const ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-Math.abs(dv)*1000/ve));
-  if (fuelNeed > S.ship.fuel){
-    setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'warn');
-    return;
-  }
-
-  const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
-  const rRel = S.ship.pos.clone().sub(ref.pos);
-  const vRel = S.ship.vel.clone().sub(ref.vel);
-
-  let dir;
-  switch (S.ship.burnDir){
-    case 'prograde':   dir = vRel.clone().normalize(); break;
-    case 'retrograde': dir = vRel.clone().normalize().negate(); break;
-    case 'normal':     dir = rRel.clone().cross(vRel).normalize(); break;
-    case 'radial':     dir = rRel.clone().normalize(); break;
-    default:           dir = vRel.clone().normalize();
-  }
-
-  S.ship.vel.addScaledVector(dir, dv);
-  S.ship.fuel -= fuelNeed;
-  S.ship.dvUsed += dvMs;
-
-  setStatus(`BURN OK: ${S.ship.burnDir} dV=${dvMs.toFixed(0)} m/s (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
-}
-
-/* =====[ PART 11 ] ==== GA 기반 자동 착륙 ===================== */
-const NN_IN = 8, NN_H = 6, NN_OUT = 4;
-const DNA_LEN = NN_IN*NN_H + NN_H*NN_OUT;
-
-function nnForward(dna, x){
-  const h = new Array(NN_H);
-  let k = 0;
-  for (let j=0;j<NN_H;j++){
-    let s = 0;
-    for (let i=0;i<NN_IN;i++) s += x[i]*dna[k++];
-    h[j] = Math.tanh(s);
-  }
-  const o = new Array(NN_OUT);
-  for (let j=0;j<NN_OUT;j++){
-    let s = 0;
-    for (let i=0;i<NN_H;i++) s += h[i]*dna[k++];<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CELESTIUM 4.0</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
-
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
-body { background: #000; color: #aaddff; overflow: hidden; height: 100vh; width: 100vw; }
-
-#canvas-container { position: fixed; inset: 0; }
-#canvas-container canvas { display: block; }
-
-.panel {
-  position: fixed;
-  background: rgba(5,10,20,0.92);
-  border: 1px solid #004488;
-  padding: 10px 12px;
-  box-shadow: 0 0 15px rgba(0,100,255,0.2);
-  border-radius: 6px;
-  z-index: 10;
-  font-size: 11px;
-  backdrop-filter: blur(2px);
-}
-
-#panel-top { top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; max-width: 95vw; justify-content: center; }
-#panel-left { top: 90px; left: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; }
-#panel-right { top: 90px; right: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; }
-
-.sc-header { color: #00ffff; font-size: 12px; border-bottom: 1px solid #004488; margin-bottom: 8px; padding-bottom: 5px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
-.sc-header:first-child { margin-top: 0; }
-.version-tag { color: #ffcc00; font-size: 9px; margin-left: 4px; }
-
-button {
-  border: 1px solid #00ffff; color: #00ffff;
-  background: rgba(0,50,100,0.5);
-  padding: 5px 10px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 10px; cursor: pointer;
-  letter-spacing: 1px; border-radius: 3px;
-  transition: all 0.15s;
-}
-button:hover { background: #00ffff; color: #000; }
-button.active { background: #00ffff; color: #000; font-weight: 700; }
-button.danger { border-color: #ff5555; color: #ff5555; }
-button.danger:hover { background: #ff5555; color: #000; }
-
-input[type="range"] { width: 100%; accent-color: #00ffff; }
-input[type="number"], input[type="text"], select, input[type="date"] {
-  background: rgba(0,20,40,0.8);
-  border: 1px solid #003366;
-  color: #aaddff;
-  padding: 3px 6px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 11px;
-  width: 100%;
-  border-radius: 3px;
-}
-input[type="checkbox"] { accent-color: #00ffff; }
-
-.row { display: flex; justify-content: space-between; margin: 3px 0; align-items: center; gap: 6px; }
-.row label { color: #88ccff; font-size: 10px; }
-.row .val { color: #ffcc00; font-size: 11px; font-weight: 700; }
-
-.field { margin: 6px 0; }
-.field > label { display: block; color: #88ccff; font-size: 10px; margin-bottom: 3px; }
-
-.tabs { display: flex; gap: 3px; margin-bottom: 6px; }
-.tabs button { flex: 1; padding: 4px; font-size: 9px; }
-.lang-toggle { display: flex; gap: 2px; }
-.lang-toggle button { padding: 3px 8px; font-size: 10px; }
-
-.metric-box { background: rgba(0,50,100,0.25); border: 1px solid #003366; padding: 6px 8px; border-radius: 3px; margin: 4px 0; }
-
-h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
-
-#chat-log {
-  position: fixed;
-  bottom: 10px; right: 10px;
-  width: 340px;
-  max-height: 280px;
-  background: rgba(5,10,20,0.92);
-  border: 1px solid #004488;
-  border-radius: 6px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  backdrop-filter: blur(2px);
-  box-shadow: 0 0 15px rgba(0,100,255,0.2);
-}
-#chat-log .log-header {
-  padding: 6px 10px;
-  color: #00ffff;
-  font-size: 11px;
-  letter-spacing: 2px;
-  border-bottom: 1px solid #004488;
-  text-transform: uppercase;
-}
-#log-body {
-  padding: 6px 10px;
-  overflow-y: auto;
-  flex: 1;
-  font-size: 10px;
-  line-height: 1.55;
-  min-height: 120px;
-}
-.log-line { margin: 2px 0; word-wrap: break-word; }
-.log-time { color: #445566; font-size: 9px; }
-.log-tag { font-weight: 700; font-size: 9px; margin-right: 3px; }
-.log-sys .log-tag { color: #00ffff; }
-.log-phys .log-tag { color: #ffcc00; }
-.log-ga .log-tag { color: #33ff33; }
-.log-warn .log-tag { color: #ffaa00; }
-.log-err .log-tag { color: #ff5555; }
-.log-ok .log-tag { color: #33ff33; }
-.log-ok { color: #aaffaa; }
-
-#help-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
-  display: none;
-  z-index: 100;
-  align-items: center;
-  justify-content: center;
-}
-#help-overlay.show { display: flex; }
-#help-content {
-  max-width: 700px;
-  max-height: 80vh;
-  overflow-y: auto;
-  background: rgba(5,10,20,0.98);
-  border: 1px solid #00ffff;
-  padding: 20px;
-  border-radius: 6px;
-}
-#help-content h2 { color: #00ffff; margin-bottom: 12px; letter-spacing: 2px; }
-#help-content h3 { color: #ffcc00; margin: 12px 0 6px; font-size: 13px; }
-#help-content p, #help-content li { font-size: 12px; line-height: 1.5; color: #aaddff; margin-bottom: 4px; }
-#help-content ul { margin-left: 16px; }
-#help-content code { background: rgba(0,50,100,0.5); padding: 1px 5px; border-radius: 2px; color: #ffcc00; }
-
-#mobile-console {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 28vh;
-  background: rgba(0,0,0,0.94);
-  color: #00ff88;
-  font-family: monospace;
-  font-size: 11px;
-  padding: 6px 10px;
-  overflow-y: auto;
-  z-index: 9999;
-  border-bottom: 2px solid #00ffff;
-  white-space: pre-wrap;
-  word-break: break-all;
-  display: none;
-}
-#mobile-console.show { display: block; }
-#mobile-console-toggle {
-  position: fixed;
-  top: 6px; right: 6px;
-  z-index: 10000;
-  background: rgba(0,255,255,0.85);
-  color: #000;
-  border: 0;
-  padding: 4px 8px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-family: 'Orbitron', sans-serif;
-}
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: rgba(0,20,40,0.5); }
-::-webkit-scrollbar-thumb { background: #004488; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #00aaff; }
-</style>
-</head>
-<body>
-
-<div id="canvas-container"></div>
-
-<!-- Mobile debug console -->
-<div id="mobile-console"></div>
-<button id="mobile-console-toggle" onclick="toggleMobileConsole()">DBG</button>
-
-<!-- TOP PANEL -->
-<div id="panel-top" class="panel">
-  <h1 class="title">CELESTIUM 4.0 <span class="version-tag">v4.0</span></h1>
-  <div class="lang-toggle">
-    <button id="lang-en" class="active">EN</button>
-    <button id="lang-ko">KO</button>
-  </div>
-  <button id="btn-play">PLAY</button>
-  <button id="btn-reset">RESET</button>
-  <button id="btn-help">?</button>
-  <div style="display:flex; gap:6px; align-items:center;">
-    <label style="font-size:10px;color:#88ccff;" data-i18n="warp">WARP</label>
-    <select id="time-warp" style="width:130px;">
-      <option value="1">1× (real-time)</option>
-      <option value="60">60× (1 min/s)</option>
-      <option value="3600">3,600× (1 h/s)</option>
-      <option value="86400" selected>86,400× (1 day/s)</option>
-      <option value="864000">864,000× (10 d/s)</option>
-      <option value="2592000">2,592,000× (30 d/s)</option>
-    </select>
-  </div>
-  <div style="display:flex; gap:6px; align-items:center;">
-    <label style="font-size:10px;color:#88ccff;" data-i18n="visual">VISUAL</label>
-    <select id="scale-mode" style="width:130px;">
-      <option value="exag" selected data-i18n="scale_exag">Exaggerated</option>
-      <option value="real" data-i18n="scale_real">Realistic 1:1</option>
-    </select>
-  </div>
-  <div style="display:flex; gap:6px; align-items:center;">
-    <label style="font-size:10px;color:#88ccff;" data-i18n="camera">CAMERA</label>
-    <select id="camera-mode" style="width:130px;">
-      <option value="free" selected data-i18n="cam_free">Free Orbit</option>
-      <option value="ship" data-i18n="cam_ship">Ship Follow</option>
-      <option value="earth" data-i18n="cam_earth">Earth Centered</option>
-      <option value="moon" data-i18n="cam_moon">Moon Centered</option>
-      <option value="sun" data-i18n="cam_sun">Sun Centered</option>
-    </select>
-  </div>
-</div>
-
-<!-- LEFT PANEL -->
-<div id="panel-left" class="panel">
-  <div class="sc-header" data-i18n="telemetry">TELEMETRY</div>
-  <div class="metric-box">
-    <div class="row"><label data-i18n="sim_time">SIM TIME</label><span class="val" id="tm-time">0.000 d</span></div>
-    <div class="row"><label data-i18n="sim_date">DATE</label><span class="val" id="tm-date">--</span></div>
-    <div class="row"><label data-i18n="ship_mass">SHIP MASS</label><span class="val" id="tm-mass">-- kg</span></div>
-    <div class="row"><label data-i18n="fuel">FUEL</label><span class="val" id="tm-fuel">-- kg</span></div>
-    <div class="row"><label data-i18n="speed">SPEED</label><span class="val" id="tm-speed">-- km/s</span></div>
-    <div class="row"><label data-i18n="alt_earth">ALT (Earth)</label><span class="val" id="tm-alt-e">-- km</span></div>
-    <div class="row"><label data-i18n="alt_moon">ALT (Moon)</label><span class="val" id="tm-alt-m">-- km</span></div>
-    <div class="row"><label data-i18n="alt_mars">DIST (Mars)</label><span class="val" id="tm-alt-mars">-- km</span></div>
-    <div class="row"><label data-i18n="dv_used">ΔV USED</label><span class="val" id="tm-dv">-- m/s</span></div>
-  </div>
-
-    <div class="sc-header">ORBITAL ELEMENTS</div>
+  <div class="sc-header">ORBITAL ELEMENTS</div>
   <div class="row" style="font-size:10px;color:#88ccff;margin-bottom:4px;">
     <span>Reference</span><span class="val" id="oe-ref">Earth</span>
   </div>
@@ -1554,7 +253,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <div class="row"><label>Spec. energy</label><span class="val" id="oe-ener">-- km²/s²</span></div>
     <div class="row"><label>Spec. ang. mom.</label><span class="val" id="oe-ang">-- km²/s</span></div>
   </div>
-  
+
   <div class="sc-header" data-i18n="mission">MISSION PRESET</div>
   <div class="field">
     <select id="mission-preset">
@@ -1638,7 +337,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <input type="date" id="in-date">
   </div>
   <div class="field">
-    <label data-i18n="dt">Integration Step Δt (s)</label>
+    <label data-i18n="dt">Integration Step (s)</label>
     <select id="in-dt">
       <option value="1">1 s (high accuracy)</option>
       <option value="5" selected>5 s (recommended)</option>
@@ -1676,13 +375,11 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   <button id="export-csv" style="width:100%;" data-i18n="export_csv">EXPORT CSV</button>
 </div>
 
-<!-- CHAT LOG -->
 <div id="chat-log">
   <div class="log-header">MISSION LOG</div>
   <div id="log-body"></div>
 </div>
 
-<!-- HELP OVERLAY -->
 <div id="help-overlay">
   <div id="help-content">
     <h2 data-i18n="help_title">CELESTIUM 4.0 - QUICK GUIDE</h2>
@@ -1699,7 +396,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
       <h3>Physics</h3>
       <ul>
         <li>Sun + Mercury + Venus + Earth + Moon + Mars N-body Newtonian gravity.</li>
-        <li>RK4 or Euler-Cromer (Δt configurable).</li>
+        <li>RK4 or Euler-Cromer (dt configurable).</li>
         <li>Tsiolkovsky mass depletion: m-dot = T/(Isp*g0).</li>
         <li>Spacecraft is a test mass (restricted N-body).</li>
       </ul>
@@ -1723,7 +420,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
       <h3>물리 엔진</h3>
       <ul>
         <li>태양 + 수성 + 금성 + 지구 + 달 + 화성 N체 뉴턴 중력</li>
-        <li>RK4 또는 Euler-Cromer 적분 (Δt 선택 가능)</li>
+        <li>RK4 또는 Euler-Cromer 적분 (dt 선택 가능)</li>
         <li>치올콥스키 질량 변화: m-dot = T/(Isp*g0)</li>
         <li>우주선은 시험질량 (제한 N체)</li>
       </ul>
@@ -1769,7 +466,6 @@ const UI = {
   labDry:'lab-dry', labFuel:'lab-fuel', labIsp:'lab-isp', labThrust:'lab-thrust',
   syncHorizons:'btn-sync-horizons',
   helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
-
   oeRef:'oe-ref', oeA:'oe-a', oeEcc:'oe-ecc', oeInc:'oe-inc',
   oeT:'oe-T', oeRp:'oe-rp', oeRa:'oe-ra', oeEner:'oe-ener', oeAng:'oe-ang',
 };
@@ -1777,18 +473,18 @@ const UI = {
 const $ = (k) => document.getElementById(UI[k] || k);
 const setText = (k, t) => { const el = $(k); if (el) el.textContent = t; };
 
-/* ---- Mobile debug console (태블릿용) ---- */
 function toggleMobileConsole(){
   const el = document.getElementById('mobile-console');
   if (el) el.classList.toggle('show');
 }
+
 (function setupMobileConsole(){
   const origLog   = console.log.bind(console);
   const origWarn  = console.warn.bind(console);
   const origError = console.error.bind(console);
   function append(tag, args){
     const el = document.getElementById('mobile-console');
-    if (!el) { origLog(...args); return; }
+    if (!el) return;
     const text = Array.from(args).map(a => {
       if (a === null) return 'null';
       if (a === undefined) return 'undefined';
@@ -1804,7 +500,6 @@ function toggleMobileConsole(){
   window.addEventListener('error', e => append('ERR', [e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')]));
 })();
 
-/* ---- Mission log (Valkorant style chat log) ---- */
 const LOG_MAX = 5000;
 function logMsg(tag, text){
   const host = document.getElementById('log-body');
@@ -1887,9 +582,9 @@ const S = {
       alt_earth:'ALT (Earth)', alt_moon:'ALT (Moon)', alt_mars:'DIST (Mars)',
       dv_used:'dV USED',
       mission:'MISSION PRESET', apply:'APPLY PRESET',
-      m_leo:'LEO Parking Orbit (200 km)', m_hm:'Hohmann Transfer → Moon',
-      m_fm:'Fast Transfer → Moon (3 days)', m_fr:'Free Return Trajectory',
-      m_hmars:'Hohmann Transfer → Mars', m_vs:'Venus Swingby → Mars', m_custom:'Custom',
+      m_leo:'LEO Parking Orbit (200 km)', m_hm:'Hohmann Transfer -> Moon',
+      m_fm:'Fast Transfer -> Moon (3 days)', m_fr:'Free Return Trajectory',
+      m_hmars:'Hohmann Transfer -> Mars', m_vs:'Venus Swingby -> Mars', m_custom:'Custom',
       modes:'MANEUVER', prograde:'Prograde', retrograde:'Retro', normal:'Normal', radial:'Radial',
       burn_dv:'dV (m/s)', execute:'EXECUTE BURN',
       landing:'LANDING', target:'Target', ga_max_gen:'GA Max Gen',
@@ -1913,9 +608,9 @@ const S = {
       alt_earth:'고도 (지구)', alt_moon:'고도 (달)', alt_mars:'거리 (화성)',
       dv_used:'사용된 dV',
       mission:'미션 프리셋', apply:'프리셋 적용',
-      m_leo:'지구 저궤도 주차 (200 km)', m_hm:'호만 전이 → 달',
-      m_fm:'빠른 전이 → 달 (3일)', m_fr:'자유 귀환 궤도',
-      m_hmars:'호만 전이 → 화성', m_vs:'금성 스윙바이 → 화성', m_custom:'사용자 지정',
+      m_leo:'지구 저궤도 주차 (200 km)', m_hm:'호만 전이 -> 달',
+      m_fm:'빠른 전이 -> 달 (3일)', m_fr:'자유 귀환 궤도',
+      m_hmars:'호만 전이 -> 화성', m_vs:'금성 스윙바이 -> 화성', m_custom:'사용자 지정',
       modes:'기동', prograde:'진행 방향', retrograde:'역행 방향', normal:'법선 방향', radial:'지름 방향',
       burn_dv:'dV (m/s)', execute:'분사 실행',
       landing:'착륙', target:'목표', ga_max_gen:'GA 최대 세대',
@@ -1977,14 +672,15 @@ function initScene(){
   sg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
   S.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 4e7 })));
 
+  /* 천체: 단위 구 + scale로 크기 조정 (동적 스케일 대응) */
   for (const name in BODY){
     const b = BODY[name];
-    const r = (S.vis.scale === 'exag') ? b.R * S.vis.scaleK : b.R;
     const mat = (name === 'sun')
       ? new THREE.MeshBasicMaterial({ color: b.col })
       : new THREE.MeshStandardMaterial({ color: b.col, roughness: 0.85, emissive: b.col, emissiveIntensity: 0.05 });
-    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 36, 24), mat);
-    m.userData.baseR = r;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 24), mat);
+    m.userData.baseR = b.R;
+    m.scale.setScalar(b.R * S.vis.scaleK);
     S.scene.add(m);
     S.meshes[name] = m;
   }
@@ -2011,7 +707,7 @@ function initScene(){
   flame.visible = false;
   flame.name = 'flame';
   ship.add(flame);
-  ship.scale.setScalar(1e4);
+  ship.scale.setScalar(3e3);
   S.scene.add(ship);
   S.meshes.ship = ship;
 
@@ -2212,7 +908,6 @@ function checkCollision(){
   }
 }
 
-/* --- 적응형 dt --- */
 function nearestBodyInfo(pos){
   let minD = Infinity, nearest = null, nearestName = null;
   for (const n in S.bodies){
@@ -2361,19 +1056,27 @@ function updateOrbitalElements(){
   setText('oeAng', oe.hMag.toExponential(4) + ' km²/s');
 }
 
-/* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 ===================== */
+/* =====[ PART 7 ] ==== 렌더링 동기화 + 궤적선 (동적 스케일) ===================== */
 let lastTrailPos = new THREE.Vector3();
+
+function computeEffK(bodyPos, bodyR){
+  if (S.vis.scale === 'real') return 1;
+  const camDist = S.cam.position.distanceTo(bodyPos);
+  const nearDist = bodyR * 6;
+  const farDist  = bodyR * 30;
+  if (camDist <= nearDist) return 1;
+  if (camDist >= farDist)  return S.vis.scaleK;
+  const t = (camDist - nearDist) / (farDist - nearDist);
+  return 1 + (S.vis.scaleK - 1) * t;
+}
+
 function syncMeshes(){
   for (const n in S.bodies){
     const mesh = S.meshes[n];
     if (!mesh) continue;
     mesh.position.copy(S.bodies[n].pos);
-    const target = (S.vis.scale === 'exag') ? S.bodies[n].R * S.vis.scaleK : S.bodies[n].R;
-    if (mesh.userData.baseR !== target){
-      mesh.geometry.dispose();
-      mesh.geometry = new THREE.SphereGeometry(target, 36, 24);
-      mesh.userData.baseR = target;
-    }
+    const effK = computeEffK(S.bodies[n].pos, S.bodies[n].R);
+    mesh.scale.setScalar(S.bodies[n].R * effK);
   }
 
   if (S.meshes.ship){
@@ -2412,8 +1115,7 @@ function syncMeshes(){
   }
 }
 
-/* =====[ PART 8 ] ==== 카메라 모드 ===================== */
-/* =====[ PART 8 ] ==== 카메라 모드 (자동 줌 포함) ===================== */
+/* =====[ PART 8 ] ==== 카메라 모드 (자동 줌) ===================== */
 function updateCamera(){
   if (S.camMode === 'free'){
     S._lastCamMode = 'free';
@@ -2421,38 +1123,31 @@ function updateCamera(){
     return;
   }
 
-  // 시각 스케일 반영: Exaggerated면 30배 확대된 구 기준으로 거리 계산
-  const visK = (S.vis.scale === 'exag') ? S.vis.scaleK : 1;
-
   let tgt = null;
   let viewDist = 50000;
 
   if (S.camMode === 'ship'){
     tgt = S.ship.pos;
-    // 우주선 모델은 scale 1e4로 그려짐 → 화면상 크기 ≈ 25,000 km
-    // 그 크기의 4배 거리에서 보면 우주선이 화면에 적당히 보임
-    viewDist = 100000;
+    viewDist = 30000;
   }
   else if (S.camMode === 'earth' && S.bodies.earth){
     tgt = S.bodies.earth.pos;
-    viewDist = S.bodies.earth.R * visK * 4;   // 확대된 지구 반지름의 4배
+    viewDist = S.bodies.earth.R * 3;
   }
   else if (S.camMode === 'moon' && S.bodies.moon){
     tgt = S.bodies.moon.pos;
-    viewDist = S.bodies.moon.R * visK * 4;
+    viewDist = S.bodies.moon.R * 3;
   }
   else if (S.camMode === 'sun'){
     tgt = S.bodies.sun.pos;
-    viewDist = S.bodies.sun.R * visK * 4;
+    viewDist = S.bodies.sun.R * 3;
   }
 
   if (!tgt){ S.ctrl.update(); return; }
 
-  // 모드 전환 시 1회: 카메라를 그 천체 정면으로 스냅
   if (S._lastCamMode !== S.camMode){
     S._lastCamMode = S.camMode;
 
-    // 현재 카메라 방향(어디서 보는지)은 유지, 거리만 새로 맞춤
     let dir = S.cam.position.clone().sub(S.ctrl.target);
     if (dir.lengthSq() < 1e-9) dir.set(1, 0.5, 1);
     dir.normalize();
@@ -2460,12 +1155,11 @@ function updateCamera(){
     S.ctrl.target.copy(tgt);
     S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
     S.ctrl.minDistance = Math.max(viewDist * 0.1, 100);
-    S.ctrl.maxDistance = viewDist * 50;
+    S.ctrl.maxDistance = viewDist * 30;
     S.ctrl.update();
     return;
   }
 
-  // 이후 프레임: 천체를 부드럽게 따라가기
   const prev = S.ctrl.target.clone();
   S.ctrl.target.lerp(tgt, 0.20);
   const delta = S.ctrl.target.clone().sub(prev);
@@ -3046,14 +1740,3 @@ else boot();
 </script>
 </body>
 </html>
-    o[j] = 1/(1+Math.exp(-s));
-  }
-  return o;
-}
-function makeDNA(){
-  const d = new Float32Array(DNA_LEN);
-  for (let i=0;i<DNA_LEN;i++) d[i] = Math.random()*2 - 1;
-  return d;
-}
-function dnaHash(d){
-  let h
