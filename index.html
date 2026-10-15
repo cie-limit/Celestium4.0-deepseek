@@ -92,7 +92,6 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
       <option value="864000">864,000× (10 d/s)</option>
       <option value="2592000">2,592,000× (30 d/s)</option>
       <option value="5184000">5,184,000× (60 d/s)</option>
-      <option value="25920000">25,920,000× (300 d/s)</option>
     </select>
   </div>
   <div style="display:flex; gap:6px; align-items:center;">
@@ -176,7 +175,7 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <label>Time of Flight (days)</label>
     <input type="number" id="tp-tof" value="5" min="0.1" max="500" step="0.1">
   </div>
-  <button id="btn-tp-plan" style="width:100%;">PLAN HOHMANN TRANSFER</button>
+  <button id="btn-tp-plan" style="width:100%;">PLAN HOHMANN TRANSFER (auto-pause)</button>
   <div class="metric-box" id="tp-result" style="margin-top:6px; display:none;">
     <div class="row"><label>ΔV needed</label><span class="val" id="tp-dv">-- m/s</span></div>
     <div class="row"><label>Direction</label><span class="val" id="tp-dir">--</span></div>
@@ -267,12 +266,6 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
   </div>
   <button id="btn-clear-trail" style="width:100%;" data-i18n="clear_trail">CLEAR TRAIL</button>
 
-  <div class="sc-header" data-i18n="online">ONLINE EPHEMERIS</div>
-  <div class="row" style="font-size:10px;color:#88ccff;">
-    <span data-i18n="online_desc">Offline JS Kepler approx (default)</span>
-  </div>
-  <button id="btn-sync-horizons" style="width:100%; margin-top:4px;" data-i18n="sync">SYNC WITH HORIZONS</button>
-
   <div class="sc-header" data-i18n="export">EXPORT</div>
   <button id="export-csv" style="width:100%;" data-i18n="export_csv">EXPORT CSV</button>
 </div>
@@ -287,20 +280,20 @@ h1.title { color: #00ffff; font-size: 16px; letter-spacing: 3px; }
     <h2 data-i18n="help_title">CELESTIUM 4.0 - QUICK GUIDE</h2>
     <div id="help-body-en">
       <p>Browser-native solar-system simulator with N-body Newtonian physics.</p>
-      <h3>Quick start</h3>
+      <h3>Hohmann transfer</h3>
       <ul>
-        <li>Pick a <code>MISSION PRESET</code> → <code>APPLY PRESET</code> → <code>PLAY</code>.</li>
-        <li>Use <code>TRANSFER PLANNER</code> to compute Hohmann transfer to Moon/Mars/Venus.</li>
-        <li>Auto-align places your parking orbit at the Hohmann launch phase (position reset is automatic).</li>
+        <li>Click <code>PLAN HOHMANN TRANSFER</code> — sim auto-pauses, parking orbit aligns to launch phase.</li>
+        <li>Click <code>EXECUTE TRANSFER BURN</code> — burn is applied at the aligned position.</li>
+        <li>Press <code>PLAY</code> to fly the transfer.</li>
       </ul>
     </div>
     <div id="help-body-ko" style="display:none;">
       <p>브라우저 기반 태양계 시뮬레이터. N체 뉴턴 물리.</p>
-      <h3>빠른 시작</h3>
+      <h3>호만 전이</h3>
       <ul>
-        <li><code>MISSION PRESET</code> 선택 → <code>APPLY PRESET</code> → <code>PLAY</code></li>
-        <li><code>TRANSFER PLANNER</code>로 달/화성/금성 호만 전이 계산</li>
-        <li>위치는 자동으로 호만 발사 위상에 맞춰 리셋됩니다</li>
+        <li><code>PLAN HOHMANN TRANSFER</code> 클릭 — 시뮬 자동 정지, 주차 궤도를 발사 위상에 정렬</li>
+        <li><code>EXECUTE TRANSFER BURN</code> 클릭 — 정렬된 위치에서 분사</li>
+        <li><code>PLAY</code>로 전이 궤도 비행</li>
       </ul>
     </div>
     <div style="text-align:right; margin-top:14px;">
@@ -336,7 +329,6 @@ const UI = {
   vehiclePreset:'vehicle-preset',
   slDry:'sl-dry', slFuel:'sl-fuel', slIsp:'sl-isp', slThrust:'sl-thrust',
   labDry:'lab-dry', labFuel:'lab-fuel', labIsp:'lab-isp', labThrust:'lab-thrust',
-  syncHorizons:'btn-sync-horizons',
   helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
   oeRef:'oe-ref', oeA:'oe-a', oeEcc:'oe-ecc', oeInc:'oe-inc',
   oeT:'oe-T', oeRp:'oe-rp', oeRa:'oe-ra', oeEner:'oe-ener', oeAng:'oe-ang',
@@ -390,15 +382,13 @@ function logMsg(tag, text){
 }
 function setStatus(text, tag='sys'){ logMsg(tag, text); }
 
-/* =====[ PART 1 ] === 상수 + 천체 데이터 + 비히클 ===================== */
+/* =====[ PART 1 ] === 상수 + 천체 데이터 ===================== */
 const G0 = 9.80665;
 const J2000_MS = Date.UTC(2000,0,1,12,0,0);
 const AU = 149597870.7;
 const DAY = 86400;
 const DEG = Math.PI/180;
 
-/* L0 = mean longitude at J2000, om = longitude of ascending node, w = arg of periapsis.
-   Mean anomaly M = L0 - om - w. */
 const BODY = {
   sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
   mercury: { mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun',
@@ -439,8 +429,7 @@ const S = {
   transferPlan: null,
   lang: 'en',
   langs: {
-    en: {
-      warp:'WARP', camera:'CAMERA', cam_free:'Free Orbit', cam_ship:'Ship Follow',
+    en: { warp:'WARP', camera:'CAMERA', cam_free:'Free Orbit', cam_ship:'Ship Follow',
       cam_earth:'Earth Centered', cam_moon:'Moon Centered', cam_sun:'Sun Centered',
       telemetry:'TELEMETRY', sim_time:'SIM TIME', sim_date:'DATE',
       ship_mass:'SHIP MASS', fuel:'FUEL', speed:'SPEED',
@@ -459,12 +448,8 @@ const S = {
       initcond:'INITIAL CONDITIONS', parkorbit:'Parking Orbit Altitude (km)',
       launch_date:'Launch Date (UTC)', dt:'Integration Step (s)', integrator:'Integrator',
       trail:'TRAJECTORY TRAIL', trail_show:'Show Trail', trail_max:'Max Points', clear_trail:'CLEAR TRAIL',
-      online:'ONLINE EPHEMERIS', online_desc:'Offline JS Kepler approx (default)',
-      sync:'SYNC WITH HORIZONS', export:'EXPORT', export_csv:'EXPORT CSV',
-      help_title:'CELESTIUM 4.0 - QUICK GUIDE',
-    },
-    ko: {
-      warp:'시간 가속', camera:'카메라', cam_free:'자유 시점', cam_ship:'우주선 추적',
+      export:'EXPORT', export_csv:'EXPORT CSV', help_title:'CELESTIUM 4.0 - QUICK GUIDE' },
+    ko: { warp:'시간 가속', camera:'카메라', cam_free:'자유 시점', cam_ship:'우주선 추적',
       cam_earth:'지구 중심', cam_moon:'달 중심', cam_sun:'태양 중심',
       telemetry:'원격 측정', sim_time:'시뮬레이션 시간', sim_date:'날짜',
       ship_mass:'선체 질량', fuel:'남은 연료', speed:'속도',
@@ -483,10 +468,7 @@ const S = {
       initcond:'초기 조건', parkorbit:'주차 궤도 고도 (km)',
       launch_date:'발사 날짜 (UTC)', dt:'적분 스텝 (s)', integrator:'적분기',
       trail:'궤적선', trail_show:'궤적선 표시', trail_max:'최대 점 개수', clear_trail:'궤적 지우기',
-      online:'온라인 천체력', online_desc:'오프라인 JS 케플러 근사 (기본)',
-      sync:'HORIZONS와 동기화', export:'내보내기', export_csv:'CSV 내보내기',
-      help_title:'CELESTIUM 4.0 - 빠른 안내',
-    }
+      export:'내보내기', export_csv:'CSV 내보내기', help_title:'CELESTIUM 4.0 - 빠른 안내' }
   }
 };
 
@@ -565,8 +547,7 @@ function initScene(){
 
   const ship = new THREE.Group();
   ship.name = 'ship';
-  const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.5, 12), new THREE.MeshBasicMaterial({ color: 0xdddddd }));
-  ship.add(bodyMesh);
+  ship.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.5, 12), new THREE.MeshBasicMaterial({ color: 0xdddddd })));
   const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.0, 12), new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
   nose.position.y = 1.7; ship.add(nose);
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.5, 10), new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 }));
@@ -616,8 +597,7 @@ function solveKepler(M, e){
 function keplerStateVectors(el, mu_parent, days){
   const a = el.a, e = el.e;
   const n = Math.sqrt(mu_parent/(a*a*a));
-  /* ★ M = L0 - om - w (om 반드시 포함) */
-  const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;
+  const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;   /* M = L0 - Ω - ω */
   const E = solveKepler(M, e);
   const cE = Math.cos(E), sE = Math.sin(E);
   const b  = a*Math.sqrt(1-e*e);
@@ -783,12 +763,9 @@ function debugInitialState(){
   if (!e) return;
   const r = S.ship.pos.clone().sub(e.pos);
   const v = S.ship.vel.clone().sub(e.vel);
-  const rMag = r.length();
-  const vMag = v.length();
-  const vCirc = Math.sqrt(e.mu / rMag);
   console.log('=== Celestium debug ===');
-  console.log('  Earth pos=', e.pos.length().toExponential(3), 'km, vel=', e.vel.length().toFixed(3), 'km/s');
-  console.log('  Ship alt=', (rMag - e.R).toFixed(1), 'km, |v|=', vMag.toFixed(3), 'km/s, v_circ=', vCirc.toFixed(3));
+  console.log('  Earth |pos|=', e.pos.length().toExponential(3), 'km, |vel|=', e.vel.length().toFixed(3), 'km/s');
+  console.log('  Ship alt=', (r.length() - e.R).toFixed(1), 'km, |v_rel|=', v.length().toFixed(3), 'km/s');
   const moon = S.bodies.moon;
   if (moon) console.log('  Moon dist from Earth=', moon.pos.distanceTo(e.pos).toFixed(0), 'km');
 }
@@ -951,7 +928,7 @@ function updateCamera(){
   S.ctrl.update();
 }
 
-/* =====[ PART 9 ] ==== 미션 프리셋 + 초기 궤도 배치 ===================== */
+/* =====[ PART 9 ] ==== 미션 프리셋 + 초기 배치 ===================== */
 function resetShipToParkingOrbit(){
   computeBodies(0);
   const e = S.bodies.earth;
@@ -1010,7 +987,7 @@ function applyPreset(){
   setStatus(`Preset applied: ${p}`, 'ok');
 }
 
-/* =====[ PART 10 ] ==== 엔진 (dV 분사) ===================== */
+/* =====[ PART 10 ] ==== 엔진 ===================== */
 function executeBurn(){
   const dvMs = parseFloat(($('dvInput')?.value) || 100);
   if (!isFinite(dvMs) || dvMs <= 0) return;
@@ -1292,7 +1269,6 @@ function bindUI(){
     if (!isNaN(d)){ S.sim.t0 = d.getTime()/1000; S.sim.t = 0; computeBodies(0); setStatus(`Launch date: ${e.target.value}`, 'sys'); }
   });
   $('exportCsv')?.addEventListener('click', exportCSV);
-  $('syncHorizons')?.addEventListener('click', () => setStatus('Horizons sync not implemented (local Kepler)', 'warn'));
   const helpBtn = $('helpBtn'), helpClose = $('helpClose'), overlay = $('helpOverlay');
   helpBtn?.addEventListener('click', () => overlay?.classList.add('show'));
   helpClose?.addEventListener('click', () => overlay?.classList.remove('show'));
@@ -1304,7 +1280,7 @@ function bindUI(){
   applyLanguage();
 }
 
-/* =====[ PART 15 ] ==== 호만 전이 계산 (Lambert 대신 직접 호만 공식) ===================== */
+/* =====[ PART 15 ] ==== Hohmann 전이 (자동 일시정지 + 정확한 위상) ===================== */
 function getBodyStateAt(name, simT){
   if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
   const b = BODY[name];
@@ -1319,14 +1295,32 @@ function getBodyStateAt(name, simT){
   }
   return st;
 }
-
 function pickCentralBody(targetName){
   if (targetName === 'moon') return 'earth';
   return 'sun';
 }
 
-/* ★ 완전히 새로운 전이 계획: 호만 공식 직접 계산 + 자동 위상 정렬 */
-function planTransferTo(targetName, tofDays){
+/* 전이 각도 θ 계산: TOF 동안 우주선이 근지점에서 진행하는 각도 */
+function computeThetaArrival(a, e, mu, tofSec){
+  const n = Math.sqrt(mu / (a*a*a));
+  const M_target = n * tofSec;
+  let E = M_target;
+  for (let i = 0; i < 30; i++){
+    const f = E - e*Math.sin(E) - M_target;
+    const fp = 1 - e*Math.cos(E);
+    E -= f/fp;
+  }
+  const cosTheta = (Math.cos(E) - e) / (1 - e*Math.cos(E));
+  return Math.acos(Math.max(-1, Math.min(1, cosTheta)));
+}
+
+/* ★ 핵심: 자동 일시정지 → 정렬 → 값 계산. 이후 sim이 멈춰있으므로 burn 지점이 어긋나지 않음 */
+function computeHohmannPlan(targetName, tofDays, applyBurn){
+  /* 1) 자동 일시정지 */
+  S.sim.paused = true;
+  const playBtn = $('play');
+  if (playBtn) playBtn.textContent = 'PLAY';
+
   const centralName = pickCentralBody(targetName);
   const centralNow = getBodyStateAt(centralName, S.sim.t);
   const centralFuture = getBodyStateAt(centralName, S.sim.t + tofDays*DAY);
@@ -1338,100 +1332,100 @@ function planTransferTo(targetName, tofDays){
 
   const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
   const r2_mag = r2_vec.length();
-  if (r2_mag < 100){ setStatus('Target too close', 'err'); return null; }
-
-  /* 목표 도착 각도 (XY 평면 투영) */
   const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
 
-  /* 현재 우주선의 중심으로부터 거리 */
   const currentR = S.ship.pos.distanceTo(centralNow.pos);
   const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
 
-  /* ★ 호만 발사 위상: 우주선을 도착 각도 - 175°에 배치
-     (180°가 아닌 175°를 쓰는 이유: 정확히 180°면 람베르트/기하가 특이점) */
-  const shipAngle = r2_angle - (175 * Math.PI / 180);
-  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
+  /* 2) 전이 타원 */
+  const a_transfer = (currentR + r2_mag) / 2;
+  const e_transfer = Math.abs(r2_mag - currentR) / (r2_mag + currentR);
 
-  /* 우주선 위치 재설정 */
+  /* 3) TOF 동안 진행하는 각도 (Kepler 방정식) */
+  const theta_arrival = computeThetaArrival(a_transfer, e_transfer, mu, tofDays*DAY);
+
+  /* 4) 우주선을 (도착 각도 − θ)에 배치 = 호만 발사 위상 */
+  const shipAngle = r2_angle - theta_arrival;
+  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
   S.ship.pos.copy(centralNow.pos).addScaledVector(r1_dir, currentR);
 
-  /* 우주선 속도를 LEO 원궤도 속도로 재설정 (접선 방향, 반시계) */
   const v_circ = Math.sqrt(mu / currentR);
   const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
   S.ship.vel.copy(centralNow.vel).addScaledVector(vHat, v_circ);
 
-  /* 호만 전이 속도: v_peri = sqrt(mu * (2/r1 - 1/a_transfer)) */
-  const a_transfer = (currentR + r2_mag) / 2;
-  const v_peri = Math.sqrt(mu * (2/currentR - 1/a_transfer));
+  /* 5) 궤적 리셋 */
+  S.trailPos.length = 0;
+  lastTrailPos.copy(S.ship.pos);
 
-  /* ΔV = v_peri - v_circ, 모두 접선 방향 */
+  /* 6) burn 벡터 */
+  const v_peri = Math.sqrt(mu * (2/currentR - 1/a_transfer));
   const dvKm = v_peri - v_circ;
   const dvVec = vHat.clone().multiplyScalar(dvKm);
   const dvMag = Math.abs(dvKm) * 1000;
 
-  /* 궤적선 리셋 */
-  S.trailPos.length = 0;
-  lastTrailPos.copy(S.ship.pos);
+  console.log('[Hohmann] central=' + centralName + ' target=' + targetName +
+              ' tof=' + tofDays + 'd');
+  console.log('  r1=' + currentR.toFixed(1) + ' km  r2=' + r2_mag.toFixed(1) + ' km');
+  console.log('  a=' + a_transfer.toFixed(1) + ' km  e=' + e_transfer.toFixed(4) +
+              '  theta_arrival=' + (theta_arrival*180/Math.PI).toFixed(2) + '°');
+  console.log('  r2_angle=' + (r2_angle*180/Math.PI).toFixed(1) + '°  shipAngle=' +
+              (shipAngle*180/Math.PI).toFixed(1) + '°');
+  console.log('  v_circ=' + v_circ.toFixed(3) + ' km/s  v_peri=' + v_peri.toFixed(3) +
+              ' km/s  dV=' + dvMag.toFixed(0) + ' m/s');
 
-  console.log('[Hohmann] r1=' + currentR.toFixed(1) + ' km, r2=' + r2_mag.toFixed(1) +
-              ' km, v_circ=' + v_circ.toFixed(3) + ' km/s, v_peri=' + v_peri.toFixed(3) +
-              ' km/s, dV=' + dvMag.toFixed(0) + ' m/s, shipAngle=' + (shipAngle*180/Math.PI).toFixed(1) +
-              '°, r2_angle=' + (r2_angle*180/Math.PI).toFixed(1) + '°');
-
-  const plan = {
-    targetName, centralName, tofDays,
-    dvVec, dvMag,
-    angleDeg: 0,     /* 순수 prograde */
-    arrivalPos: targetFuture.pos.clone(),
-    arrivalTime: S.sim.t + tofDays*DAY,
-  };
-  S.transferPlan = plan;
-  return plan;
-}
-
-function executeTransferBurn(){
-  const plan = S.transferPlan;
-  if (!plan){ setStatus('No transfer plan.', 'warn'); return; }
-  const m0 = S.ship.dry + S.ship.fuel;
-  const ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag/ve));
-  if (fuelNeed > S.ship.fuel){
-    setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'err');
-    return;
+  if (applyBurn){
+    const m0 = S.ship.dry + S.ship.fuel;
+    const ve = S.ship.isp * G0;
+    const fuelNeed = m0 * (1 - Math.exp(-dvMag/ve));
+    if (fuelNeed > S.ship.fuel){
+      setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'err');
+      return null;
+    }
+    S.ship.vel.add(dvVec);
+    S.ship.fuel -= fuelNeed;
+    S.ship.dvUsed += dvMag;
+    setStatus(`TRANSFER BURN: dV=${dvMag.toFixed(0)} m/s prograde (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
+    setStatus(`Aim: ${targetName} in ${tofDays} d (sim paused — press PLAY)`, 'phys');
+    S.transferPlan = null;
+  } else {
+    S.transferPlan = { dvVec, dvMag, targetName, tofDays, shipAngle, r2_angle, theta_arrival };
   }
-  S.ship.vel.add(plan.dvVec);
-  S.ship.fuel -= fuelNeed;
-  S.ship.dvUsed += plan.dvMag;
-  setStatus(`TRANSFER BURN: dV=${plan.dvMag.toFixed(0)} m/s prograde (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
-  setStatus(`Aim: ${plan.targetName} in ${plan.tofDays} d`, 'phys');
-  S.transferPlan = null;
-  if ($('tpResult')) $('tpResult').style.display = 'none';
-  if ($('tpExecute')) $('tpExecute').style.display = 'none';
-}
 
-function updateTransferPlanUI(){
-  const plan = S.transferPlan;
-  if (!plan){
-    if ($('tpResult')) $('tpResult').style.display = 'none';
-    if ($('tpExecute')) $('tpExecute').style.display = 'none';
-    return;
-  }
-  if ($('tpResult')) $('tpResult').style.display = 'block';
-  if ($('tpExecute')) $('tpExecute').style.display = 'block';
-  setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
-  setText('tpDir', plan.angleDeg.toFixed(1) + '° (prograde)');
-  const arrivalDate = new Date((S.sim.t0 + plan.arrivalTime)*1000);
-  setText('tpArr', arrivalDate.toISOString().slice(0,10) + ' (' + plan.tofDays + ' d)');
+  return { dvVec, dvMag, a_transfer, e_transfer, theta_arrival, shipAngle, r2_angle };
 }
 
 function handlePlanTransfer(){
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
   setStatus(`Planning Hohmann transfer to ${target} (tof=${tof} d)...`, 'sys');
-  const plan = planTransferTo(target, tof);
-  if (!plan){ setStatus('Transfer plan failed', 'err'); return; }
+  const r = computeHohmannPlan(target, tof, false);
+  if (!r){ setStatus('Transfer plan failed', 'err'); return; }
   updateTransferPlanUI();
-  setStatus(`Plan ready: dV=${plan.dvMag.toFixed(0)} m/s prograde, arrival in ${plan.tofDays} d`, 'ok');
+  setStatus(`Plan ready: dV=${r.dvMag.toFixed(0)} m/s, angle=${(r.theta_arrival*180/Math.PI).toFixed(1)}°. Sim paused.`, 'ok');
+}
+
+function executeTransferBurn(){
+  const target = ($('tpTarget')?.value) || 'moon';
+  const tof = parseFloat($('tpTof')?.value) || 5;
+  /* 재계산 + burn 동시에 (혹시 ship이 움직였으면 재정렬됨) */
+  const r = computeHohmannPlan(target, tof, true);
+  if (!r){ setStatus('Transfer burn failed', 'err'); return; }
+  updateTransferPlanUI();
+}
+
+function updateTransferPlanUI(){
+  const plan = S.transferPlan;
+  if (!plan){
+    if ($('tpResult')) $('tpResult').style.display = 'none';
+    if ($('tpExecute')) $('tpExecute').style.display = 'block';
+    return;
+  }
+  if ($('tpResult')) $('tpResult').style.display = 'block';
+  if ($('tpExecute')) $('tpExecute').style.display = 'block';
+  setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
+  setText('tpDir', '0.0° (pure prograde)');
+  const arrivalDate = new Date((S.sim.t0 + S.sim.t + plan.tofDays*DAY)*1000);
+  setText('tpArr', arrivalDate.toISOString().slice(0,10) + ' (' + plan.tofDays + ' d)');
 }
 
 /* =====[ PART 16 ] ==== 메인 루프 ===================== */
@@ -1488,8 +1482,8 @@ function boot(){
   initScene();
   bindUI();
   logMsg('sys', 'CELESTIUM 4.0 booted');
-  logMsg('sys', 'PLAN HOHMANN TRANSFER auto-aligns parking orbit to launch phase');
-  logMsg('sys', 'Then EXECUTE TRANSFER BURN to depart toward target');
+  logMsg('sys', 'PLAN auto-pauses sim and aligns parking orbit to Hohmann launch phase');
+  logMsg('sys', 'EXECUTE applies burn at the aligned position — then press PLAY');
   setTimeout(() => debugInitialState(), 100);
   animate();
 }
