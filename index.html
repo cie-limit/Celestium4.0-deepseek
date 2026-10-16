@@ -1280,7 +1280,100 @@ function bindUI(){
   applyLanguage();
 }
 
-/* =====[ PART 15 ] ==== Hohmann 전이 (반복 보정 + 그림자 시뮬) ===================== */
+/* =====[ PART 15 ] ==== Lambert 솔버 (Stumpff + Bisection) ===================== */
+
+function stumpffC(z){
+  if (z > 1e-8) return (1 - Math.cos(Math.sqrt(z))) / z;
+  if (z < -1e-8) return (Math.cosh(Math.sqrt(-z)) - 1) / (-z);
+  return 0.5;
+}
+function stumpffS(z){
+  if (z > 1e-8){
+    const sz = Math.sqrt(z);
+    return (sz - Math.sin(sz)) / (z * sz);
+  }
+  if (z < -1e-8){
+    const sz = Math.sqrt(-z);
+    return (Math.sinh(sz) - sz) / ((-z) * sz);
+  }
+  return 1/6;
+}
+
+/* 람베르트: r1 → r2, 시간 dt, 중심 mu. 반환: { v1, v2, z } */
+function lambertSolver(r1, r2, dt, mu, prograde){
+  const r1m = r1.length();
+  const r2m = r2.length();
+  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0) return null;
+
+  let cosDth = r1.dot(r2) / (r1m * r2m);
+  cosDth = Math.max(-1, Math.min(1, cosDth));
+  const crossZ = r1.x * r2.y - r1.y * r2.x;
+  let dth = Math.acos(cosDth);
+  if (prograde){
+    if (crossZ < 0) dth = 2*Math.PI - dth;
+  } else {
+    if (crossZ >= 0) dth = 2*Math.PI - dth;
+  }
+
+  const A = Math.sin(dth) * Math.sqrt(r1m * r2m / (1 - cosDth));
+  if (Math.abs(A) < 1e-9) return null;
+
+  const sqrtMu = Math.sqrt(mu);
+
+  function yOfZ(z){
+    const c = stumpffC(z);
+    if (c <= 1e-14) return -1;
+    return r1m + r2m + A * (z * stumpffS(z) - 1) / Math.sqrt(c);
+  }
+  function FofZ(z){
+    const c = stumpffC(z);
+    if (c <= 1e-14) return NaN;
+    const s = stumpffS(z);
+    const yv = yOfZ(z);
+    if (yv < 0) return NaN;
+    return Math.pow(yv / c, 1.5) * s + A * Math.sqrt(yv) - sqrtMu * dt;
+  }
+
+  let zLo = null, zHi = null, FLo = 0;
+  let prevZ = null, prevF = null;
+  for (let z = -39; z <= 300; z += 0.5){
+    const fz = FofZ(z);
+    if (!isFinite(fz)){ prevZ = z; prevF = null; continue; }
+    if (prevF !== null && prevF * fz <= 0){
+      zLo = prevZ; zHi = z; FLo = prevF;
+      break;
+    }
+    prevZ = z; prevF = fz;
+  }
+  if (zLo === null) return null;
+
+  let z = 0.5 * (zLo + zHi);
+  for (let i = 0; i < 120; i++){
+    const fz = FofZ(z);
+    if (!isFinite(fz)){ z = 0.5 * (z + zHi); continue; }
+    if (Math.abs(fz) < 1e-8) break;
+    if ((fz > 0) === (FLo > 0)){ zLo = z; FLo = fz; }
+    else { zHi = z; }
+    const newZ = 0.5 * (zLo + zHi);
+    if (Math.abs(newZ - z) < 1e-12){ z = newZ; break; }
+    z = newZ;
+  }
+
+  const yv = yOfZ(z);
+  if (yv < 0) return null;
+
+  const f = 1 - yv / r1m;
+  const g = A * Math.sqrt(yv / mu);
+  const gdot = 1 - yv / r2m;
+  if (Math.abs(g) < 1e-12) return null;
+
+  const v1 = r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g);
+  const v2 = r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g);
+  return { v1, v2, z, dth };
+}
+
+/* =====[ PART 16 ] ==== 그림자 시뮬 + Lambert 전이 계획 ===================== */
+
 function getBodyStateAt(name, simT){
   if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
   const b = BODY[name];
@@ -1295,26 +1388,13 @@ function getBodyStateAt(name, simT){
   }
   return st;
 }
+
 function pickCentralBody(targetName){
   if (targetName === 'moon') return 'earth';
   return 'sun';
 }
 
-/* 전이 각도 θ: TOF 동안 근지점에서 진행하는 각도 */
-function computeThetaArrival(a, e, mu, tofSec){
-  const n = Math.sqrt(mu / (a*a*a));
-  const M_target = n * tofSec;
-  let E = M_target;
-  for (let i = 0; i < 30; i++){
-    const f = E - e*Math.sin(E) - M_target;
-    const fp = 1 - e*Math.cos(E);
-    E -= f/fp;
-  }
-  const cosTheta = (Math.cos(E) - e) / (1 - e*Math.cos(E));
-  return Math.acos(Math.max(-1, Math.min(1, cosTheta)));
-}
-
-/* ★ 그림자 시뮬: S.bodies, S.ship 을 건드리지 않고 순수 계산만 */
+/* 그림자용 천체 상태 (S.bodies 건드리지 않음) */
 function computeBodiesAt(simSec){
   const epochMs = S.sim.t0*1000 + simSec*1000;
   const days = (epochMs - J2000_MS)/(1000*DAY);
@@ -1330,6 +1410,7 @@ function computeBodiesAt(simSec){
   }
   return out;
 }
+
 function gravityWithBodies(pos, bodies){
   const a = new THREE.Vector3();
   for (const n in bodies){
@@ -1343,6 +1424,7 @@ function gravityWithBodies(pos, bodies){
   }
   return a;
 }
+
 function rk4StepShadow(pos, vel, bodies, dt){
   const v0 = vel.clone();
   const a0 = gravityWithBodies(pos, bodies);
@@ -1363,15 +1445,32 @@ function rk4StepShadow(pos, vel, bodies, dt){
     .addScaledVector(a2, dt/3).addScaledVector(a3, dt/6);
   return { pos: newPos, vel: newVel };
 }
-function shadowPropagate(startPos, startVel, tStart, tofSec, dtStep){
+
+/* 그림자 전파 (적응 dt + 천체 20스텝마다 갱신) */
+function shadowPropagate(startPos, startVel, tStart, tofSec){
   let pos = startPos.clone();
   let vel = startVel.clone();
   let t = 0;
   let bodies = computeBodiesAt(tStart);
   let counter = 0;
-  while (t < tofSec - 1e-6){
+  let safety = 500000;
+
+  while (t < tofSec - 1e-6 && safety-- > 0){
     if (counter++ % 20 === 0) bodies = computeBodiesAt(tStart + t);
-    const dt = Math.min(dtStep, tofSec - t);
+
+    // 적응 dt: 가장 가까운 천체 기준
+    let dtCandidate = 120;
+    for (const n in bodies){
+      if (n === 'sun') continue;
+      const b = bodies[n];
+      const d = pos.distanceTo(b.pos);
+      const vRel = vel.clone().sub(b.vel).length();
+      const dtSafe = (d / Math.max(vRel, 1e-3)) / 50;
+      if (dtSafe < dtCandidate) dtCandidate = dtSafe;
+    }
+    let dt = Math.max(1, Math.min(120, dtCandidate));
+    dt = Math.min(dt, tofSec - t);
+
     const r = rk4StepShadow(pos, vel, bodies, dt);
     pos = r.pos; vel = r.vel;
     t += dt;
@@ -1379,147 +1478,205 @@ function shadowPropagate(startPos, startVel, tStart, tofSec, dtStep){
   return { pos, vel };
 }
 
-/* ★ 반복 보정: 조준각을 조정해서 실제 최종 위치가 목표에 수렴하도록 */
-function refineAim(targetName, centralName, currentR, tStart, tofSec){
-  const centralNow = getBodyStateAt(centralName, tStart);
-  const centralFuture = getBodyStateAt(centralName, tStart + tofSec);
-  const targetFuture = getBodyStateAt(targetName, tStart + tofSec);
-  if (!centralNow || !centralFuture || !targetFuture) return null;
-
-  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
-  const r2_mag = r2_vec.length();
-  const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
-  const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
-
-  const a_transfer = (currentR + r2_mag) / 2;
-  const e_transfer = Math.abs(r2_mag - currentR) / (r2_mag + currentR);
-  const theta_arrival = computeThetaArrival(a_transfer, e_transfer, mu, tofSec);
-
-  let shipAngle = r2_angle - theta_arrival;   /* 초기 추정 */
-  const v_circ = Math.sqrt(mu / currentR);
-  const v_peri = Math.sqrt(mu * (2/currentR - 1/a_transfer));
-
-  const shadowDt = 60;   /* 그림자 시뮬 스텝 (성능 vs 정확도) */
-  let bestErr = Infinity;
-  let bestShipAngle = shipAngle;
-
-  for (let iter = 0; iter < 8; iter++){
-    const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
-    const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-    const initPos = centralNow.pos.clone().addScaledVector(r1_dir, currentR);
-    const initVel = centralNow.vel.clone().addScaledVector(vHat, v_peri);
-
-    const shadow = shadowPropagate(initPos, initVel, tStart, tofSec, shadowDt);
-
-    /* 그림자 최종 위치의 중심천체 기준 각도 */
-    const shadowRel = shadow.pos.clone().sub(centralFuture.pos);
-    const shadowAngle = Math.atan2(shadowRel.y, shadowRel.x);
-    const shadowR = shadowRel.length();
-
-    /* 오차 */
-    const errAng = r2_angle - shadowAngle;
-    /* 각도는 [-π, π] 정규화 */
-    const errAngN = Math.atan2(Math.sin(errAng), Math.cos(errAng));
-    const errR = r2_mag - shadowR;
-    const errPos = targetFuture.pos.distanceTo(shadow.pos);
-
-    console.log(`[refine ${iter}] aim=${(shipAngle*180/Math.PI).toFixed(2)}° → shadow r=${shadowR.toFixed(0)} km, angle=${(shadowAngle*180/Math.PI).toFixed(2)}°  err=${errPos.toFixed(0)} km`);
-
-    if (errPos < bestErr){
-      bestErr = errPos;
-      bestShipAngle = shipAngle;
-    }
-    if (errPos < 3000) break;
-
-    /* 조준각 보정 (감쇠) */
-    shipAngle += errAngN * 0.85;
-  }
-
-  /* 최종 결과 계산 */
-  const r1_dir = new THREE.Vector3(Math.cos(bestShipAngle), Math.sin(bestShipAngle), 0);
-  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-  const initPos = centralNow.pos.clone().addScaledVector(r1_dir, currentR);
-  const initVel = centralNow.vel.clone().addScaledVector(vHat, v_circ);
-  const burnVel = centralNow.vel.clone().addScaledVector(vHat, v_peri);
-  const dvVec = burnVel.clone().sub(initVel);
-  const dvMag = dvVec.length() * 1000;
-
-  return {
-    initPos, initVel, burnVel, dvVec, dvMag,
-    finalErr: bestErr,
-    shipAngle: bestShipAngle,
-    r2_angle, theta_arrival,
-  };
-}
-
-/* ★ PLAN: 시뮬 자동 일시정지 → 반복 보정 → 결과 저장 */
-function computeHohmannPlan(targetName, tofDays, applyBurn){
+/* ★ 메인: Lambert 전이 계획 (스캔 + 반복 보정) */
+function planLambertTransfer(targetName, tofDays, applyBurn){
   S.sim.paused = true;
   const playBtn = $('play');
   if (playBtn) playBtn.textContent = 'PLAY';
 
   const centralName = pickCentralBody(targetName);
-  const tStart = S.sim.t;
   const tofSec = tofDays * DAY;
+  const tStart = S.sim.t;
 
-  /* 현재 우주선의 지구중심 반지름 (before reset) */
   const centralNow = getBodyStateAt(centralName, tStart);
-  const currentR = S.ship.pos.distanceTo(centralNow.pos);
+  const centralFuture = getBodyStateAt(centralName, tStart + tofSec);
+  const targetFuture = getBodyStateAt(targetName, tStart + tofSec);
+  if (!centralNow || !centralFuture || !targetFuture){
+    setStatus('Cannot compute states', 'err');
+    return null;
+  }
 
-  setStatus(`Refining aim (iterative, ${tofDays} d)...`, 'sys');
-  const refined = refineAim(targetName, centralName, currentR, tStart, tofSec);
-  if (!refined){ setStatus('Refine failed', 'err'); return null; }
+  const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
+  const r2_target = targetFuture.pos.clone().sub(centralFuture.pos);
+  const r2_mag = r2_target.length();
+  const r2_angle = Math.atan2(r2_target.y, r2_target.x);
 
-  /* 우주선 위치/속도 재설정 */
-  S.ship.pos.copy(refined.initPos);
-  S.ship.vel.copy(refined.initVel);
-  S.trailPos.length = 0;
-  lastTrailPos.copy(S.ship.pos);
+  let bestDv = Infinity;
+  let bestAngle = 0;
+  let bestSol = null;
+  let bestStartPos = null;
+  let bestStartVel = null;
+  let startR, v_circ;
 
-  console.log(`[Hohmann refined] dV=${refined.dvMag.toFixed(0)} m/s, err=${refined.finalErr.toFixed(0)} km, shipAngle=${(refined.shipAngle*180/Math.PI).toFixed(2)}°, targetAngle=${(refined.r2_angle*180/Math.PI).toFixed(2)}°`);
+  if (centralName === 'earth'){
+    /* 달: LEO 원 위의 출발 각도를 스캔 */
+    startR = BODY.earth.R + 200;
+    v_circ = Math.sqrt(mu / startR);
+
+    // 후보 각도: 목표 도착 각도 기준 −180°± 범위
+    const candidates = [0];
+    for (let d = -60; d <= 60; d += 10){
+      if (d !== 0) candidates.push(d);
+    }
+
+    for (const dOffset of candidates){
+      const angle = r2_angle - Math.PI + dOffset * DEG;
+      const r1_dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0);
+      const r1_rel = r1_dir.clone().multiplyScalar(startR);
+
+      const sol = lambertSolver(r1_rel, r2_target, tofSec, mu, true);
+      if (!sol) continue;
+
+      const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
+      const shipV = centralNow.vel.clone().addScaledVector(vHat, v_circ);
+      const v1_inertial = sol.v1.clone().add(centralNow.vel);
+      const dvMag = v1_inertial.clone().sub(shipV).length() * 1000;
+
+      if (dvMag < bestDv){
+        bestDv = dvMag;
+        bestAngle = angle;
+        bestSol = sol;
+        bestStartPos = centralNow.pos.clone().add(r1_rel);
+        bestStartVel = shipV;
+      }
+    }
+
+    console.log(`[Lambert scan] r1=${startR} r2=${r2_mag.toFixed(0)}km dth_target=${(r2_angle*180/Math.PI).toFixed(1)}°`);
+    console.log(`[Lambert scan] best: angle=${(bestAngle*180/Math.PI).toFixed(1)}° dv=${bestDv.toFixed(0)} m/s`);
+  } else {
+    /* 화성/금성: 현재 위치 고정 */
+    const r1_rel = S.ship.pos.clone().sub(centralNow.pos);
+    startR = r1_rel.length();
+    v_circ = S.ship.vel.clone().sub(centralNow.vel).length();
+
+    const sol = lambertSolver(r1_rel, r2_target, tofSec, mu, true);
+    if (sol){
+      const v1_inertial = sol.v1.clone().add(centralNow.vel);
+      bestDv = v1_inertial.clone().sub(S.ship.vel).length() * 1000;
+      bestAngle = Math.atan2(r1_rel.y, r1_rel.x);
+      bestSol = sol;
+      bestStartPos = S.ship.pos.clone();
+      bestStartVel = S.ship.vel.clone();
+    }
+    console.log(`[Lambert sun] dv=${bestDv.toFixed(0)} m/s`);
+  }
+
+  if (!bestSol){
+    setStatus('No Lambert solution found', 'err');
+    return null;
+  }
+
+  /* 그림자 검증 + 반복 보정 */
+  let v1_best = bestSol.v1.clone().add(centralNow.vel);
+  let targetAdjusted = r2_target.clone();
+  let bestErr = Infinity;
+  let converged = false;
+
+  for (let iter = 0; iter < 6; iter++){
+    const r1_rel = bestStartPos.clone().sub(centralNow.pos);
+    const sol = lambertSolver(r1_rel, targetAdjusted, tofSec, mu, true);
+    if (!sol){ console.warn(`[Lambert refine ${iter}] no solution`); break; }
+
+    const v1i = sol.v1.clone().add(centralNow.vel);
+    const shadow = shadowPropagate(bestStartPos.clone(), v1i.clone(), tStart, tofSec);
+    const actualRel = shadow.pos.clone().sub(centralFuture.pos);
+    const errVec = targetAdjusted.clone().sub(actualRel);
+    const errMag = errVec.length();
+
+    console.log(`[Lambert refine ${iter}] err=${errMag.toFixed(0)} km, r_shadow=${actualRel.length().toFixed(0)} km`);
+
+    if (errMag < bestErr){
+      bestErr = errMag;
+      v1_best = v1i;
+    }
+    if (errMag < 500){ converged = true; break; }
+
+    targetAdjusted.add(errVec);
+  }
+
+  /* 최종 dv */
+  const dvVec = v1_best.clone().sub(bestStartVel);
+  const dvMag = dvVec.length() * 1000;
+
+  console.log(`[Lambert final] dv=${dvMag.toFixed(0)} m/s, err=${bestErr.toFixed(0)} km, converged=${converged}`);
 
   if (applyBurn){
     const m0 = S.ship.dry + S.ship.fuel;
     const ve = S.ship.isp * G0;
-    const fuelNeed = m0 * (1 - Math.exp(-refined.dvMag/ve));
+    const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
     if (fuelNeed > S.ship.fuel){
-      setStatus(`Not enough fuel. Need ${fuelNeed.toFixed(0)} kg, have ${S.ship.fuel.toFixed(0)} kg`, 'err');
+      setStatus(`Not enough fuel (need ${fuelNeed.toFixed(0)}, have ${S.ship.fuel.toFixed(0)})`, 'err');
       return null;
     }
-    /* Burn: 초기 원궤도 속도 → 전이 속도 */
-    S.ship.vel.copy(refined.burnVel);
+    /* 우주선 상태 강제 설정 */
+    S.ship.pos.copy(bestStartPos);
+    S.ship.vel.copy(v1_best);
     S.ship.fuel -= fuelNeed;
-    S.ship.dvUsed += refined.dvMag;
-    setStatus(`TRANSFER BURN: dV=${refined.dvMag.toFixed(0)} m/s, aim err=${refined.finalErr.toFixed(0)} km (fuel -${fuelNeed.toFixed(0)} kg)`, 'ok');
+    S.ship.dvUsed += dvMag;
+    S.trailPos.length = 0;
+    lastTrailPos.copy(S.ship.pos);
+
+    setStatus(`LAMBERT BURN: dV=${dvMag.toFixed(0)} m/s, aim err=${bestErr.toFixed(0)} km`, 'ok');
     setStatus(`Aim: ${targetName} in ${tofDays} d — press PLAY`, 'phys');
     S.transferPlan = null;
   } else {
+    /* 계획만 저장 (실제 우주선은 건드리지 않음) */
     S.transferPlan = {
-      dvVec: refined.dvVec, dvMag: refined.dvMag,
-      targetName, tofDays,
-      shipAngle: refined.shipAngle, r2_angle: refined.r2_angle,
-      finalErr: refined.finalErr,
+      dvMag, targetName, tofDays,
+      finalErr: bestErr,
+      startAngle: bestAngle,
+      startPos: bestStartPos.clone(),
+      endVel: v1_best.clone(),
+      startVel: bestStartVel.clone(),
+      converged,
     };
   }
 
-  return refined;
+  return { dvMag, err: bestErr, converged };
 }
 
 function handlePlanTransfer(){
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
-  setStatus(`Planning Hohmann transfer to ${target} (tof=${tof} d)...`, 'sys');
-  const r = computeHohmannPlan(target, tof, false);
+  setStatus(`Planning Lambert transfer to ${target} (tof=${tof} d)...`, 'sys');
+  const r = planLambertTransfer(target, tof, false);
   if (!r){ setStatus('Transfer plan failed', 'err'); return; }
   updateTransferPlanUI();
-  setStatus(`Plan ready: dV=${r.dvMag.toFixed(0)} m/s, aim err=${r.finalErr.toFixed(0)} km. Sim paused.`, 'ok');
+  setStatus(`Plan: dV=${r.dvMag.toFixed(0)} m/s, err=${r.err.toFixed(0)} km${r.converged ? ' (converged)' : ''}. Sim PAUSED.`, 'ok');
 }
 
 function executeTransferBurn(){
+  const plan = S.transferPlan;
   const target = ($('tpTarget')?.value) || 'moon';
   const tof = parseFloat($('tpTof')?.value) || 5;
-  const r = computeHohmannPlan(target, tof, true);
-  if (!r){ setStatus('Transfer burn failed', 'err'); return; }
+
+  if (!plan){
+    /* 계획 없으면 즉시 계산 + burn */
+    const r = planLambertTransfer(target, tof, true);
+    if (!r){ setStatus('Transfer burn failed', 'err'); return; }
+    updateTransferPlanUI();
+    return;
+  }
+
+  /* 저장된 계획을 즉시 적용 */
+  const m0 = S.ship.dry + S.ship.fuel;
+  const ve = S.ship.isp * G0;
+  const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag / ve));
+  if (fuelNeed > S.ship.fuel){
+    setStatus(`Not enough fuel (need ${fuelNeed.toFixed(0)}, have ${S.ship.fuel.toFixed(0)})`, 'err');
+    return;
+  }
+
+  S.ship.pos.copy(plan.startPos);
+  S.ship.vel.copy(plan.endVel);
+  S.ship.fuel -= fuelNeed;
+  S.ship.dvUsed += plan.dvMag;
+  S.trailPos.length = 0;
+  lastTrailPos.copy(S.ship.pos);
+
+  setStatus(`LAMBERT BURN: dV=${plan.dvMag.toFixed(0)} m/s, err=${plan.finalErr.toFixed(0)} km`, 'ok');
+  setStatus(`Aim: ${plan.targetName} in ${plan.tofDays} d — press PLAY`, 'phys');
+  S.transferPlan = null;
   updateTransferPlanUI();
 }
 
@@ -1533,12 +1690,12 @@ function updateTransferPlanUI(){
   if ($('tpResult')) $('tpResult').style.display = 'block';
   if ($('tpExecute')) $('tpExecute').style.display = 'block';
   setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
-  setText('tpDir', 'prograde, aim err ' + plan.finalErr.toFixed(0) + ' km');
+  setText('tpDir', 'err ' + plan.finalErr.toFixed(0) + ' km' + (plan.converged ? ' ✓' : ''));
   const arrivalDate = new Date((S.sim.t0 + S.sim.t + plan.tofDays*DAY)*1000);
   setText('tpArr', arrivalDate.toISOString().slice(0,10) + ' (' + plan.tofDays + ' d)');
 }
 
-/* =====[ PART 16 ] ==== 메인 루프 ===================== */
+/* =====[ PART 17 ] ==== 메인 루프 ===================== */
 let lastFrame = performance.now();
 let lastLogTime = 0;
 
@@ -1550,11 +1707,11 @@ function animate(){
 
   if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
     let remaining = realDt * S.sim.warp;
-    let safety = 200000;
+    let safety = 400000;
     let bodyCounter = 0;
     computeBodies(S.sim.t);
     while (remaining > 0 && safety-- > 0){
-      if (bodyCounter++ % 10 === 0) computeBodies(S.sim.t);
+      if (bodyCounter++ % 20 === 0) computeBodies(S.sim.t);
       const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
       applyAutoLandControl();
       if (S.sim.method === 'euler') stepEuler(dtNow);
@@ -1577,7 +1734,7 @@ function animate(){
   if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
 }
 
-/* =====[ PART 17 ] ==== Boot ===================== */
+/* =====[ PART 18 ] ==== Boot ===================== */
 function boot(){
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -1592,13 +1749,16 @@ function boot(){
   initScene();
   bindUI();
   logMsg('sys', 'CELESTIUM 4.0 booted');
-  logMsg('sys', 'PLAN auto-pauses sim and aligns parking orbit to Hohmann launch phase');
-  logMsg('sys', 'EXECUTE applies burn at the aligned position — then press PLAY');
+  logMsg('sys', 'PLAN: Lambert solver scans aim angles and picks min-dV');
+  logMsg('sys', 'EXECUTE applies the burn at the computed position');
   setTimeout(() => debugInitialState(), 100);
   animate();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
