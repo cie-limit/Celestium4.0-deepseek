@@ -1796,13 +1796,14 @@ function executeMCC(){
   }
 }
 
-/* ★ SOI 진입 + 자동 LOI */
+/* ★ 개선된 SOI 진입 + 자동 LOI (궤도 안착 목표) */
 function checkLunarApproach(){
   const moon = S.bodies.moon;
   if (!moon || S.ship.landed || S.ship.crashed) return;
+  
   const d = S.ship.pos.distanceTo(moon.pos);
   const SOI = 66100;
-  const TARGET_ALT = 500;
+  const TARGET_ALT = 200;           // 목표 원궤도 고도 (200 km)
   const R_TARGET = moon.R + TARGET_ALT;
 
   if (!S.missionState.soiEntered && d < SOI){
@@ -1816,37 +1817,41 @@ function checkLunarApproach(){
     S.missionState.minMoonDist = d;
   }
 
-  /* 자동 LOI: perilune 근처에서 감속 */
+  /* ★ LOI: 근월점 전, 거리가 10,000 km 이내일 때 감속 시작 */
   if (S.missionState.autoLOI && S.missionState.soiEntered && !S.missionState.loiDone){
     const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
     const vRel = S.ship.vel.clone().sub(moon.vel);
-    const vRad = vRel.dot(rHat);
-    const vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
-
-    /* 조건: 반경 방향 접근 중 + 거리 5,000km 이내 + 원궤도 반경보다 훨씬 멀지 않음 */
-    if (vRad < 0 && d < 5000 && d > R_TARGET){
+    const vRad = vRel.dot(rHat);   // 반경 방향 속도 (음수면 접근 중)
+    
+    // 접근 중이고, 10,000 km 이내이며, 목표 고도보다 훨씬 밖일 때
+    if (vRad < 0 && d < 10000 && d > R_TARGET * 2){
+      
+      // 목표 원궤도 속도
+      const vCirc = Math.sqrt(moon.mu / R_TARGET);
       const vPeri = vRel.length();
-      const vCirc = Math.sqrt(moon.mu / d);
-      const dvNeeded = vPeri - vCirc;
+      const dvNeeded = vPeri - vCirc;   // 필요한 감속량
 
       if (dvNeeded > 0){
         const m0 = S.ship.dry + S.ship.fuel;
         const ve = S.ship.isp * G0;
         const fuelNeed = m0 * (1 - Math.exp(-dvNeeded * 1000 / ve));
+        
         if (fuelNeed > S.ship.fuel){
           setStatus(`AUTO-LOI: not enough fuel (need ${fuelNeed.toFixed(0)} kg)`, 'err');
           S.missionState.autoLOI = false;
           return;
         }
+        
+        // 속도 벡터 방향으로 감속 (역방향 분사)
         const dvVec = vRel.clone().normalize().multiplyScalar(-dvNeeded);
         S.ship.vel.add(dvVec);
         S.ship.fuel -= fuelNeed;
         S.ship.dvUsed += dvNeeded * 1000;
+        
         setStatus(`AUTO-LOI: dV=${(dvNeeded*1000).toFixed(0)} m/s at ${d.toFixed(0)} km`, 'ok');
         S.missionState.loiDone = true;
         S.missionState.autoLOI = false;
       } else {
-        /* 이미 느림, 그냥 capture */
         S.missionState.loiDone = true;
         S.missionState.autoLOI = false;
         setStatus(`AUTO-LOI: already captured at ${d.toFixed(0)} km`, 'ok');
