@@ -821,13 +821,13 @@ function computeOrbitalElements(){
     ra_alt = a*(1+ecc) - ref.R;
     period = 2*Math.PI * Math.sqrt(a*a*a/mu);
   }
-  return { refName, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
+  return { refName, mu, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
 }
 
 function updateOrbitalElements(){
   const oe = computeOrbitalElements();
   if (!oe.valid){ setText('oeRef', oe.refName); return; }
-  setText('oeRef', oe.refName);
+  setText('oeRef', oe.refName + ' (μ=' + fmt(oe.mu || 0, 0) + ')');
   if (isFinite(oe.a) && oe.a > 0) setText('oeA', fmt(oe.a, 1) + ' km');
   else if (oe.a < 0) setText('oeA', 'hyperbolic');
   else setText('oeA', 'parabolic');
@@ -1626,7 +1626,7 @@ function planLambertScan(targetName, tofDays, applyBurn){
       startPos: startPos.clone(), endVel: best.v1i.clone(), mode: 'lambert'
     };
   }
-  return { dvMag: best.dv, err, converged: err < 10000, mode: 'lambert' };
+  return { dvMag: best.dv, err, converged: err < 10000, mode: 'lambert', tofDays };
 }
 
 /* ★ 스마트 선택: TOF가 호만 ±10% 이내면 호만, 아니면 Lambert */
@@ -1668,27 +1668,50 @@ function handlePlanTransfer(){
 
 function executeTransferBurn(){
   const plan = S.transferPlan;
-  if (plan){
-    const m0 = S.ship.dry + S.ship.fuel;
-    const ve = S.ship.isp * G0;
-    const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag / ve));
-    if (fuelNeed > S.ship.fuel){ setStatus('Not enough fuel', 'err'); return; }
-    S.ship.pos.copy(plan.startPos);
-    S.ship.vel.copy(plan.endVel);
-    S.ship.fuel -= fuelNeed;
-    S.ship.dvUsed += plan.dvMag;
-    S.trailPos.length = 0;
-    lastTrailPos.copy(S.ship.pos);
-    setStatus(`BURN: dV=${plan.dvMag.toFixed(0)} m/s (${plan.mode})`, 'ok');
-    setStatus(`Aim: ${plan.targetName} in ${plan.tofDays.toFixed(2)} d — press PLAY`, 'phys');
-    S.transferPlan = null;
+  if (!plan){
+    /* 계획 없으면 즉시 계산 + burn */
+    const target = ($('tpTarget')?.value) || 'moon';
+    const tof = parseFloat($('tpTof')?.value) || 5;
+    const r = planTransferSmart(target, tof, true);
+    if (!r){ setStatus('Burn failed', 'err'); return; }
     updateTransferPlanUI();
+    /* MCC 스케줄 (재계획 후) */
+    if (r.tofDays){
+      S.mccSchedule = {
+        atSimTime: S.sim.t + 2 * DAY,
+        targetName: target,
+        arrivalSimTime: S.sim.t + r.tofDays * DAY,
+        executed: false,
+      };
+      setStatus(`MCC scheduled at T+2.0 d`, 'sys');
+    }
     return;
   }
-  const target = ($('tpTarget')?.value) || 'moon';
-  const tof = parseFloat($('tpTof')?.value) || 5;
-  const r = planTransferSmart(target, tof, true);
-  if (!r){ setStatus('Burn failed', 'err'); return; }
+
+  const m0 = S.ship.dry + S.ship.fuel;
+  const ve = S.ship.isp * G0;
+  const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag / ve));
+  if (fuelNeed > S.ship.fuel){ setStatus('Not enough fuel', 'err'); return; }
+
+  S.ship.pos.copy(plan.startPos);
+  S.ship.vel.copy(plan.endVel);
+  S.ship.fuel -= fuelNeed;
+  S.ship.dvUsed += plan.dvMag;
+  S.trailPos.length = 0;
+  lastTrailPos.copy(S.ship.pos);
+  setStatus(`BURN: dV=${plan.dvMag.toFixed(0)} m/s (${plan.mode})`, 'ok');
+  setStatus(`Aim: ${plan.targetName} in ${plan.tofDays.toFixed(2)} d — press PLAY`, 'phys');
+
+  /* ★ MCC 스케줄 */
+  S.mccSchedule = {
+    atSimTime: S.sim.t + 2 * DAY,
+    targetName: plan.targetName,
+    arrivalSimTime: S.sim.t + plan.tofDays * DAY,
+    executed: false,
+  };
+  setStatus(`MCC scheduled at T+2.0 d (arrival at T+${plan.tofDays.toFixed(2)} d)`, 'sys');
+
+  S.transferPlan = null;
   updateTransferPlanUI();
 }
 
@@ -1708,9 +1731,129 @@ function updateTransferPlanUI(){
 }
 
   
-/* =====[ PART 17 ] ==== 메인 루프 ===================== */
+/* =====[ PART 17 ] ==== 메인 루프 + MCC + SOI + LOI ===================== */
 let lastFrame = performance.now();
 let lastLogTime = 0;
+let lastDiagTime = 0;
+
+/* ★ 미션 이벤트 상태 */
+S.missionState = {
+  soiEntered: false,
+  soiAt: 0,
+  minMoonDist: Infinity,
+  loiDone: false,
+  autoLOI: true,   /* 기본 ON */
+};
+
+/* ★ MCC 실행: T+2일 시점 재계산 + 재조준 */
+function executeMCC(){
+  const mcc = S.mccSchedule;
+  if (!mcc || mcc.executed) return;
+  mcc.executed = true;
+
+  const centralName = pickCentralBody(mcc.targetName);
+  const remaining = mcc.arrivalSimTime - S.sim.t;
+  if (remaining <= 0){ setStatus('MCC window passed, skip', 'warn'); return; }
+
+  const centralNow = getBodyStateAt(centralName, S.sim.t);
+  const centralFuture = getBodyStateAt(centralName, mcc.arrivalSimTime);
+  const targetFuture = getBodyStateAt(mcc.targetName, mcc.arrivalSimTime);
+  const mu = BODY[centralName].mu;
+
+  /* 달 중심 + 500km 옆 지점을 조준 (충돌 회피) */
+  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
+  const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
+  const perp = new THREE.Vector3(-Math.sin(r2_angle), Math.cos(r2_angle), 0);
+  const safeAim = r2_vec.clone().addScaledVector(perp, 500);
+
+  const r1_vec = S.ship.pos.clone().sub(centralNow.pos);
+  const sol = lambertSolver(r1_vec, safeAim, remaining, mu, true);
+  if (!sol){
+    setStatus('MCC: no Lambert solution', 'warn');
+    return;
+  }
+
+  const v1i = sol.v1.clone().add(centralNow.vel);
+  const dvVec = v1i.clone().sub(S.ship.vel);
+  const dvMag = dvVec.length() * 1000;
+
+  const m0 = S.ship.dry + S.ship.fuel;
+  const ve = S.ship.isp * G0;
+  const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
+  if (fuelNeed > S.ship.fuel){
+    setStatus(`MCC: not enough fuel (need ${fuelNeed.toFixed(0)} kg)`, 'err');
+    return;
+  }
+
+  S.ship.vel.copy(v1i);
+  S.ship.fuel -= fuelNeed;
+  S.ship.dvUsed += dvMag;
+
+  if (dvMag > 800){
+    setStatus(`MCC: dV=${dvMag.toFixed(0)} m/s (LARGE — trajectory off)`, 'warn');
+  } else {
+    setStatus(`MCC: dV=${dvMag.toFixed(0)} m/s, aim 500 km perilune`, 'phys');
+  }
+}
+
+/* ★ SOI 진입 + 자동 LOI */
+function checkLunarApproach(){
+  const moon = S.bodies.moon;
+  if (!moon || S.ship.landed || S.ship.crashed) return;
+  const d = S.ship.pos.distanceTo(moon.pos);
+  const SOI = 66100;
+  const TARGET_ALT = 500;
+  const R_TARGET = moon.R + TARGET_ALT;
+
+  if (!S.missionState.soiEntered && d < SOI){
+    S.missionState.soiEntered = true;
+    S.missionState.soiAt = S.sim.t;
+    const vRel = S.ship.vel.clone().sub(moon.vel).length();
+    setStatus(`MOON SOI ENTRY at ${d.toFixed(0)} km, v_rel=${vRel.toFixed(3)} km/s`, 'phys');
+  }
+
+  if (S.missionState.soiEntered && d < S.missionState.minMoonDist){
+    S.missionState.minMoonDist = d;
+  }
+
+  /* 자동 LOI: perilune 근처에서 감속 */
+  if (S.missionState.autoLOI && S.missionState.soiEntered && !S.missionState.loiDone){
+    const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
+    const vRel = S.ship.vel.clone().sub(moon.vel);
+    const vRad = vRel.dot(rHat);
+    const vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
+
+    /* 조건: 반경 방향 접근 중 + 거리 5,000km 이내 + 원궤도 반경보다 훨씬 멀지 않음 */
+    if (vRad < 0 && d < 5000 && d > R_TARGET){
+      const vPeri = vRel.length();
+      const vCirc = Math.sqrt(moon.mu / d);
+      const dvNeeded = vPeri - vCirc;
+
+      if (dvNeeded > 0){
+        const m0 = S.ship.dry + S.ship.fuel;
+        const ve = S.ship.isp * G0;
+        const fuelNeed = m0 * (1 - Math.exp(-dvNeeded * 1000 / ve));
+        if (fuelNeed > S.ship.fuel){
+          setStatus(`AUTO-LOI: not enough fuel (need ${fuelNeed.toFixed(0)} kg)`, 'err');
+          S.missionState.autoLOI = false;
+          return;
+        }
+        const dvVec = vRel.clone().normalize().multiplyScalar(-dvNeeded);
+        S.ship.vel.add(dvVec);
+        S.ship.fuel -= fuelNeed;
+        S.ship.dvUsed += dvNeeded * 1000;
+        setStatus(`AUTO-LOI: dV=${(dvNeeded*1000).toFixed(0)} m/s at ${d.toFixed(0)} km`, 'ok');
+        S.missionState.loiDone = true;
+        S.missionState.autoLOI = false;
+      } else {
+        /* 이미 느림, 그냥 capture */
+        S.missionState.loiDone = true;
+        S.missionState.autoLOI = false;
+        setStatus(`AUTO-LOI: already captured at ${d.toFixed(0)} km`, 'ok');
+      }
+    }
+  }
+}
 
 function animate(){
   requestAnimationFrame(animate);
@@ -1720,11 +1863,10 @@ function animate(){
 
   if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
     let remaining = realDt * S.sim.warp;
-    let safety = 400000;
-    let bodyCounter = 0;
-    computeBodies(S.sim.t);
+    let safety = 800000;
+
     while (remaining > 0 && safety-- > 0){
-      if (bodyCounter++ % 20 === 0) computeBodies(S.sim.t);
+      computeBodies(S.sim.t);
       const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
       applyAutoLandControl();
       if (S.sim.method === 'euler') stepEuler(dtNow);
@@ -1732,10 +1874,33 @@ function animate(){
       checkCollision();
       S.sim.t += dtNow;
       remaining -= dtNow;
+
+      /* ★ 매 스텝 후 MCC + SOI/LOI 검사 */
+      if (S.mccSchedule && !S.mccSchedule.executed && S.sim.t >= S.mccSchedule.atSimTime){
+        executeMCC();
+      }
+      checkLunarApproach();
+
       if (S.ship.landed || S.ship.crashed) break;
     }
-    computeBodies(S.sim.t);
+
     if (now - lastLogTime > 1000){ lastLogTime = now; logRow(); }
+
+    /* ★ 3초마다 지구중심 상태 진단 */
+    if (now - lastDiagTime > 3000){
+      lastDiagTime = now;
+      const e = S.bodies.earth;
+      const m = S.bodies.moon;
+      if (e){
+        const r = S.ship.pos.clone().sub(e.pos);
+        const v = S.ship.vel.clone().sub(e.vel);
+        const rMag = r.length();
+        const energy = 0.5*v.lengthSq() - e.mu/rMag;
+        const a = Math.abs(energy) > 1e-12 ? -e.mu/(2*energy) : Infinity;
+        const dMoon = m ? S.ship.pos.distanceTo(m.pos) : 0;
+        console.log(`[diag] alt_E=${(rMag-e.R).toFixed(0)}km |v_rel|=${v.length().toFixed(3)}km/s E=${energy.toFixed(4)} a=${a.toFixed(0)}km distMoon=${dMoon.toFixed(0)}km`);
+      }
+    }
   } else {
     computeBodies(S.sim.t);
   }
