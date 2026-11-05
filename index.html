@@ -907,7 +907,7 @@ function executeBurn(){
   setStatus(`BURN: ${S.ship.burnDir} dV=${dvMs.toFixed(0)} m/s`, 'ok');
 }
 
-/* =====[ PART 11 ] DOI + 착륙 (Suicide Burn 정확 공식) ===================== */
+/* =====[ PART 11 ] DOI + 착륙 (P-제어기) ===================== */
 function startDOI(){
   const moon = S.bodies.moon;
   if (!moon){ setStatus('No Moon', 'err'); return; }
@@ -963,8 +963,6 @@ function startLanding(){
   const alt = d - moon.R;
   if (alt > 5000){ setStatus(`Too high (alt=${alt.toFixed(0)}km)`, 'warn'); setOpsStatus(`Too high`); return; }
   S.ship.refFrame = 'moon';
-  
-  /* 접선 + 상승 속도 제거 (하강은 유지) */
   const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
   const vRel = S.ship.vel.clone().sub(moon.vel);
   const vRad = vRel.dot(rHat);
@@ -981,15 +979,14 @@ function startLanding(){
   const fuelNeed = mass * (1 - Math.exp(-dvMag / ve));
   if (fuelNeed > S.ship.fuel){ setStatus(`BRAKE no fuel`, 'err'); setOpsStatus('Not enough fuel'); return; }
   S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-  
   S.landingActive = true;
-  S.landingPhase = 'falling';
+  S.landingPhase = 'descending';
   S._lastLandLog = 0;
-  setStatus(`BRAKE: dV=${dvMag.toFixed(0)} m/s at ${alt.toFixed(0)}km. Falling.`, 'phys');
-  setOpsStatus(`Falling from ${alt.toFixed(0)} km. Suicide burn ready.`);
+  setStatus(`BRAKE: dV=${dvMag.toFixed(0)} m/s at ${alt.toFixed(0)}km. P-Ctrl engaged.`, 'phys');
+  setOpsStatus(`Descending from ${alt.toFixed(0)} km.`);
 }
 
-/* ★ Suicide burn 정확 공식: a_cmd = v²/(2h) + g */
+/* ★ P-제어기: 연속 스로틀. 진동 없이 안정적 */
 function applyLandingControl(){
   if (!S.landingActive || S.ship.landed || S.ship.crashed) return;
   const moon = S.bodies.moon; if (!moon) return;
@@ -1004,41 +1001,37 @@ function applyLandingControl(){
   const thrustN = S.ship.thrustKN * 1000;
   const aThrust = (thrustN / mass) * 1e-3;      /* km/s² */
   const gLocal = moon.mu / (d * d);              /* km/s² */
-  const aNet = Math.max(0.0001, aThrust - gLocal);
   
   const rHat = r.clone().normalize();
   const vRad = vRel.dot(rHat);
   const vDown = Math.max(0, -vRad);
   const vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
-  const vTotal = vRel.length();
   
-  /* ★ 정확한 필요 감속도: a_cmd = vDown²/(2·alt) + g */
-  const requiredDecel = (vDown * vDown) / (2 * Math.max(alt, 1e-9));  /* km/s² */
+  /* ★ P-제어: 필요한 감속도 = g + vDown²/(2·alt) */
+  const aRequired = gLocal + (vDown * vDown) / (2 * Math.max(alt, 0.001));
+  let throttleCmd = (aRequired / aThrust) * 100;
   
-  /* ★ 필요 감속도가 최대 추감속도의 50% 넘으면 즉시 burn */
-  const burnThreshold = aNet * 0.5;
+  /* ★ 안전 상한: 표면 근처에서 최대 100% */
+  throttleCmd = Math.max(0, Math.min(100, throttleCmd));
   
-  if (vDown > 0.001 && requiredDecel > burnThreshold){
-    S.ship.burnDir = 'retrograde';
-    S.ship.throttle = 100;
-    S.landingPhase = 'burning';
-  } else if (alt < 0.5 && vTotal < 0.05){
+  /* 착륙 직전: 수직 유지 */
+  if (alt < 0.5 && vDown < 0.03){
     S.ship.burnDir = 'radial';
-    S.ship.throttle = 50;
+    S.ship.throttle = Math.max(0, Math.min(100, throttleCmd * 0.8));
     S.landingPhase = 'final';
   } else {
-    S.ship.throttle = 0;
     S.ship.burnDir = 'retrograde';
-    S.landingPhase = 'falling';
+    S.ship.throttle = throttleCmd;
+    S.landingPhase = throttleCmd > 30 ? 'burning' : 'descending';
   }
   
   if (!S._lastLandLog || performance.now() - S._lastLandLog > 1500){
     S._lastLandLog = performance.now();
-    const phase = S.landingPhase;
-    console.log(`[landing] ${phase} alt=${alt.toFixed(1)}km vDown=${(vDown*1000).toFixed(0)} reqDecel=${(requiredDecel*1000).toFixed(1)} maxNet=${(aNet*1000).toFixed(1)} thr=${S.ship.throttle.toFixed(0)}%`);
-    setOpsStatus(`ALT ${alt.toFixed(1)}km | V ${(vTotal*1000).toFixed(0)} | ${phase}`);
+    console.log(`[landing] alt=${alt.toFixed(1)}km vDown=${(vDown*1000).toFixed(0)} aReq=${(aRequired*1000).toFixed(1)} aThr=${(aThrust*1000).toFixed(1)} thr=${S.ship.throttle.toFixed(0)}%`);
+    setOpsStatus(`ALT ${alt.toFixed(1)}km | V ${(vDown*1000).toFixed(0)} | thr ${S.ship.throttle.toFixed(0)}%`);
   }
 }
+
 
 /* =====[ PART 12 ] CSV ===================== */
 function logRow(){
@@ -1442,13 +1435,14 @@ function checkLunarApproach(){
   }
 }
 
-/* =====[ PART 16 ] AI AUTOPILOT (커리큘럼 + 진단 로그) ===================== */
+/* =====[ PART 16 ] AI AUTOPILOT (진단 로그 강화) ===================== */
 const AI = {
   NN_IN: 6, NN_HID: 12, NN_OUT: 1, DNA_LEN: 6*12 + 12*1,
   population: [], generation: 0,
   bestDNA: null, bestScore: -Infinity,
   training: false, live: false,
   POP_SIZE: 40, GENERATIONS: 35, ELITISM: 4,
+  _debugged: false, _lastStats: null,
 };
 function aiRandomDNA(){ const d = new Float32Array(AI.DNA_LEN); for (let i = 0; i < AI.DNA_LEN; i++) d[i] = (Math.random()*2 - 1) * 0.5; return d; }
 function aiForward(dna, inputs){
@@ -1458,11 +1452,11 @@ function aiForward(dna, inputs){
   return 1 / (1 + Math.exp(-s));
 }
 
-/* ★ 커리큘럼: 세대가 진행될수록 난이도 상승 */
 function aiTrainingStates(gen){
   const R = 1737.4, dry = S.ship.dry;
-  const fuel0 = (S.ship.fuel0 > 0) ? S.ship.fuel0 : 110000;  /* ★ 안전장치 */
-  const thrustN = S.ship.thrustKN * 1000, isp = S.ship.isp;
+  const fuel0 = (S.ship.fuel0 > 0) ? S.ship.fuel0 : 110000;
+  const thrustN = (S.ship.thrustKN > 0) ? S.ship.thrustKN * 1000 : 1000000;
+  const isp = (S.ship.isp > 0) ? S.ship.isp : 421;
   const progress = Math.min(1, gen / 20);
   const scale = 0.3 + 0.7 * progress;
   return [
@@ -1477,21 +1471,37 @@ function aiShadowSim(dna, init){
   const moonR = 1737.4, mu = 4902.8, g0 = 9.80665;
   let r = init.r, vr = init.vr, vt = init.vt, fuel = init.fuel;
   const dryMass = init.dryMass, thrustN = init.thrustN, isp = init.isp;
-  const fuel0 = (fuel > 0) ? fuel : 1;  /* ★ 0 나누기 방지 */
+  const fuel0 = (fuel > 0) ? fuel : 1;
   let t = 0; const dt = 0.5, tMax = 5000;
   let minAlt = r - moonR;
-  let safety = 20000;  /* ★ 무한 루프 방지 */
+  let safety = 20000;
+  let iterCount = 0;
+  
+  /* 첫 호출 디버그 */
+  if (!AI._debugged){
+    AI._debugged = true;
+    console.log(`[AI debug] sim start: alt=${(r - moonR).toFixed(1)}km vr=${vr} vt=${vt} fuel=${fuel} dry=${dryMass} thrustN=${thrustN} isp=${isp}`);
+  }
   
   while (t < tMax && safety-- > 0){
+    iterCount++;
     const alt = r - moonR;
     if (alt < minAlt) minAlt = alt;
+    
     if (alt <= 0){
       const vTotal = Math.sqrt(vr*vr + vt*vt) * 1000;
+      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: ${vTotal < 5 ? 'LANDED' : 'CRASHED'} v=${vTotal.toFixed(0)}m/s iter=${iterCount}`); }
       return { landed: vTotal < 5, crashed: vTotal >= 5, vTouch: vTotal, fuelUsed: fuel0 - fuel, time: t, minAlt: 0 };
     }
-    if (fuel <= 0) return { landed: false, crashed: false, outOfFuel: true, fuelUsed: fuel0, time: t, minAlt };
+    if (fuel <= 0){
+      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: OUT_OF_FUEL at alt=${alt.toFixed(1)}km iter=${iterCount}`); }
+      return { landed: false, crashed: false, outOfFuel: true, fuelUsed: fuel0, time: t, minAlt };
+    }
     const mass = dryMass + fuel;
-    if (mass <= 0) return { landed: false, crashed: true, vTouch: 999, fuelUsed: fuel0, time: t, minAlt };
+    if (mass <= 0 || !isFinite(mass)){
+      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: BAD_MASS iter=${iterCount}`); }
+      return { landed: false, crashed: true, vTouch: 999, fuelUsed: fuel0, time: t, minAlt };
+    }
     
     const gLocal = mu / (r*r), gSurf = mu / (moonR*moonR);
     const inputs = [
@@ -1507,12 +1517,11 @@ function aiShadowSim(dna, init){
     
     function deriv(r_, vr_, vt_, f_){
       const m_ = dryMass + f_;
+      if (m_ <= 0) return { dr: vr_, dvr: -mu/(r_*r_), dvt: 0, df: 0 };
       const gR_ = -mu / (r_*r_), cent = (vt_*vt_) / r_;
       let thR = 0, thT = 0;
-      if (f_ > 0 && m_ > 0){
-        const vM_ = Math.sqrt(vr_*vr_ + vt_*vt_);
-        if (vM_ > 1e-9){ const thr = (thrustN * throttle / m_) / 1000; thR = -vr_/vM_ * thr; thT = -vt_/vM_ * thr; }
-      }
+      const vM_ = Math.sqrt(vr_*vr_ + vt_*vt_);
+      if (vM_ > 1e-9){ const thr = (thrustN * throttle / m_) / 1000; thR = -vr_/vM_ * thr; thT = -vt_/vM_ * thr; }
       return { dr: vr_, dvr: gR_ + cent + thR, dvt: -(vr_*vt_)/r_ + thT, df: -fuelBurn };
     }
     const k1 = deriv(r, vr, vt, fuel);
@@ -1525,28 +1534,25 @@ function aiShadowSim(dna, init){
     fuel = Math.max(0, fuel + (k1.df + 2*k2.df + 2*k3.df + k4.df) * dt / 6);
     t += dt;
   }
+  if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: TIMEOUT iter=${iterCount} alt=${minAlt.toFixed(1)}km`); }
   return { landed: false, crashed: false, timeout: true, fuelUsed: fuel0 - fuel, time: t, minAlt };
 }
 
-/* ★ 진행률 기반 보상 */
 function aiEvaluate(dna, gen){
   const states = aiTrainingStates(gen); let total = 0;
+  const stats = { landed: 0, crashed: 0, outOfFuel: 0, timeout: 0 };
   for (const st of states){
     const res = aiShadowSim(dna, st);
     const initAlt = st.r - 1737.4;
     const progress = Math.max(0, Math.min(1, 1 - res.minAlt / Math.max(1, initAlt)));
     let score;
-    if (res.landed){
-      score = 1000 + (1 - res.fuelUsed / st.fuel) * 500;
-    } else if (res.crashed){
-      score = -Math.min(500, res.vTouch * 5) + progress * 300;
-    } else if (res.outOfFuel){
-      score = -200 + progress * 400;
-    } else {
-      score = -300 + progress * 200;
-    }
+    if (res.landed){ score = 1000 + (1 - res.fuelUsed / st.fuel) * 500; stats.landed++; }
+    else if (res.crashed){ score = -Math.min(500, res.vTouch * 5) + progress * 300; stats.crashed++; }
+    else if (res.outOfFuel){ score = -200 + progress * 400; stats.outOfFuel++; }
+    else { score = -300 + progress * 200; stats.timeout++; }
     total += score;
   }
+  AI._lastStats = stats;
   return total / states.length;
 }
 
@@ -1578,6 +1584,11 @@ function aiInitPopulation(){
 async function aiTrain(){
   if (AI.training) return;
   AI.training = true; aiInitPopulation();
+  AI._debugged = false; AI._debugged2 = false;
+  
+  /* ★ 설정 진단 */
+  logMsg('data', `[AI] config: fuel0=${S.ship.fuel0} dry=${S.ship.dry} thrustKN=${S.ship.thrustKN} isp=${S.ship.isp}`);
+  
   const trainBtn = $('aiTrain'), stopBtn = $('aiStop'), landBtn = $('aiLand');
   if (trainBtn) trainBtn.disabled = true;
   if (stopBtn) stopBtn.style.display = 'block';
@@ -1585,19 +1596,23 @@ async function aiTrain(){
   setStatus('[AI] Training started', 'ga');
   setText('aiText', 'Training...');
   const tStart = performance.now();
+  
   for (let gen = 0; gen < AI.GENERATIONS; gen++){
     if (!AI.training) break;
     const scores = AI.population.map(d => aiEvaluate(d, gen));
     let bi = 0; for (let i = 1; i < scores.length; i++) if (scores[i] > scores[bi]) bi = i;
     if (scores[bi] > AI.bestScore){ AI.bestScore = scores[bi]; AI.bestDNA = AI.population[bi].slice(); }
+    
+    /* ★ 매 세대 로그 (logMsg로 표시) */
+    const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+    const stats = AI._lastStats || {};
+    logMsg('ga', `[AI] Gen ${gen+1}/${AI.GENERATIONS}: best=${scores[bi].toFixed(0)} avg=${avg.toFixed(0)} | L:${stats.landed||0} C:${stats.crashed||0} F:${stats.outOfFuel||0} T:${stats.timeout||0}`);
+    
     const progress = ((gen+1) / AI.GENERATIONS * 100);
     const bar = $('aiBar'); if (bar) bar.style.width = progress.toFixed(0) + '%';
     setText('aiScore', AI.bestScore.toFixed(0));
     setText('aiText', `Gen ${gen+1}/${AI.GENERATIONS}`);
-    /* ★ 세대별 로그 (5세대마다) */
-    if (gen % 5 === 0 || gen === AI.GENERATIONS - 1){
-      console.log(`[AI] Gen ${gen+1}: best=${scores[bi].toFixed(0)}, avg=${(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(0)}`);
-    }
+    
     await new Promise(r => setTimeout(r, 0));
     if (gen === AI.GENERATIONS - 1) break;
     const nextPop = [];
