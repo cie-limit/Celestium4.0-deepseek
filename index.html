@@ -907,7 +907,7 @@ function executeBurn(){
   setStatus(`BURN: ${S.ship.burnDir} dV=${dvMs.toFixed(0)} m/s`, 'ok');
 }
 
-/* =====[ PART 11 ] DOI + 착륙 (Suicide Burn) ===================== */
+/* =====[ PART 11 ] DOI + 착륙 (Suicide Burn 개선) ===================== */
 function startDOI(){
   const moon = S.bodies.moon;
   if (!moon){ setStatus('No Moon', 'err'); return; }
@@ -932,7 +932,7 @@ function startDOI(){
   S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
   const T_transfer = 2 * Math.PI * Math.sqrt(a_transfer*a_transfer*a_transfer / moon.mu);
   S.doiSchedule = { atSimTime: S.sim.t + T_transfer/2, dTarget: d_target, dvDone: false };
-  setStatus(`DOI-1: dV=${dvMag.toFixed(0)} m/s, ${(d-moon.R).toFixed(0)}km→peri 200km, ${(T_transfer/7200).toFixed(2)}h`, 'ok');
+  setStatus(`DOI-1: dV=${dvMag.toFixed(0)} m/s, ${(d-moon.R).toFixed(0)}km→peri 200km`, 'ok');
   setOpsStatus('DOI-1 done. Coasting...');
 }
 function executeDOICirc(){
@@ -957,7 +957,6 @@ function executeDOICirc(){
   S.doiSchedule = null;
 }
 
-/* ★ Suicide Burn: 목표 고도까지 남은 거리 기반 역추진 */
 function startLanding(){
   const moon = S.bodies.moon; if (!moon) return;
   const d = S.ship.pos.distanceTo(moon.pos);
@@ -965,7 +964,7 @@ function startLanding(){
   if (alt > 5000){ setStatus(`Too high (alt=${alt.toFixed(0)}km)`, 'warn'); setOpsStatus(`Too high`); return; }
   S.ship.refFrame = 'moon';
   
-  /* 초기 접선 속도 제거 (수직 낙하 유도) */
+  /* 접선 + 상승 속도 제거 (하강은 유지) */
   const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
   const vRel = S.ship.vel.clone().sub(moon.vel);
   const vRad = vRel.dot(rHat);
@@ -990,7 +989,7 @@ function startLanding(){
   setOpsStatus(`Falling from ${alt.toFixed(0)} km. Suicide burn ready.`);
 }
 
-/* ★ Bang-bang suicide burn: 남은 거리로 필요 감속 계산 */
+/* ★ 개선: 감속 소요 거리 vs 남은 고도로 조기 점화 */
 function applyLandingControl(){
   if (!S.landingActive || S.ship.landed || S.ship.crashed) return;
   const moon = S.bodies.moon; if (!moon) return;
@@ -1004,30 +1003,30 @@ function applyLandingControl(){
   if (mass <= 0){ S.ship.throttle = 0; return; }
   
   const thrustN = S.ship.thrustKN * 1000;
-  const aThrust = (thrustN / mass) * 1e-3;  /* km/s² */
-  const gLocal = moon.mu / (d * d);          /* km/s² */
+  const aThrust = (thrustN / mass) * 1e-3;      /* km/s² */
+  const gLocal = moon.mu / (d * d);              /* km/s² */
   const aNet = Math.max(0.0001, aThrust - gLocal);
   
-  /* 남은 거리로 감속 가능한 최대 속도 */
-  const vMaxSafe = Math.sqrt(2 * aNet * alt * 0.9);  /* 10% 안전 마진 */
-  
-  /* 현재 수직 속도 (하강) */
   const rHat = r.clone().normalize();
   const vRad = vRel.dot(rHat);
-  const vDown = -vRad;  /* 양수면 하강 */
+  const vDown = Math.max(0, -vRad);
   
-  if (vDown > 0.001 && vDown > vMaxSafe * 0.8){
-    /* 감속 필요: bang-bang 100% 스로틀 */
+  /* ★ 감속 필요 거리 vs 여유 비율 */
+  const stoppingDist = (vDown * vDown) / (2 * aNet);   /* km */
+  const margin = alt - stoppingDist;
+  const marginRatio = margin / Math.max(alt, 0.001);
+  
+  if (vDown > 0.001 && marginRatio < 0.5){
+    /* 여유 50% 미만 → 즉시 suicide burn */
     S.ship.burnDir = 'retrograde';
     S.ship.throttle = 100;
     S.landingPhase = 'burning';
-  } else if (vTotal < 0.02 && alt < 0.5){
-    /* 착륙 임박 */
-    S.ship.throttle = 30;
-    S.ship.burnDir = 'retrograde';
+  } else if (alt < 0.3 && vTotal < 0.05){
+    /* 착륙 직전: 미세 상방 분사 */
+    S.ship.burnDir = 'radial';
+    S.ship.throttle = 50;
     S.landingPhase = 'final';
   } else {
-    /* 자유낙하 */
     S.ship.throttle = 0;
     S.ship.burnDir = 'retrograde';
     S.landingPhase = 'falling';
@@ -1036,7 +1035,7 @@ function applyLandingControl(){
   if (!S._lastLandLog || performance.now() - S._lastLandLog > 1500){
     S._lastLandLog = performance.now();
     const phase = S.landingPhase;
-    console.log(`[landing] phase=${phase} alt=${alt.toFixed(1)}km vDown=${(vDown*1000).toFixed(0)}m/s vMaxSafe=${(vMaxSafe*1000).toFixed(0)} thr=${S.ship.throttle.toFixed(0)}%`);
+    console.log(`[landing] ${phase} alt=${alt.toFixed(1)}km vDown=${(vDown*1000).toFixed(0)}m/s stopDist=${stoppingDist.toFixed(1)}km margin=${(marginRatio*100).toFixed(0)}% thr=${S.ship.throttle.toFixed(0)}%`);
     setOpsStatus(`ALT ${alt.toFixed(1)}km | V ${(vTotal*1000).toFixed(0)} | ${phase}`);
   }
 }
@@ -1443,13 +1442,13 @@ function checkLunarApproach(){
   }
 }
 
-/* =====[ PART 16 ] AI AUTOPILOT (보상 재설계) ===================== */
+/* =====[ PART 16 ] AI AUTOPILOT (커리큘럼 + 진행률 보상) ===================== */
 const AI = {
   NN_IN: 6, NN_HID: 12, NN_OUT: 1, DNA_LEN: 6*12 + 12*1,
   population: [], generation: 0,
   bestDNA: null, bestScore: -Infinity,
   training: false, live: false,
-  POP_SIZE: 40, GENERATIONS: 30, ELITISM: 4,
+  POP_SIZE: 40, GENERATIONS: 35, ELITISM: 4,
 };
 function aiRandomDNA(){ const d = new Float32Array(AI.DNA_LEN); for (let i = 0; i < AI.DNA_LEN; i++) d[i] = (Math.random()*2 - 1) * 0.5; return d; }
 function aiForward(dna, inputs){
@@ -1458,11 +1457,26 @@ function aiForward(dna, inputs){
   let s = 0; for (let i = 0; i < AI.NN_HID; i++) s += h[i] * dna[k++];
   return 1 / (1 + Math.exp(-s));
 }
+
+/* ★ 커리큘럼: 세대가 진행될수록 난이도 상승 */
+function aiTrainingStates(gen){
+  const R = 1737.4, dry = S.ship.dry, fuel0 = S.ship.fuel0;
+  const thrustN = S.ship.thrustKN * 1000, isp = S.ship.isp;
+  const progress = Math.min(1, gen / 20);
+  const scale = 0.3 + 0.7 * progress;
+  return [
+    { r: R + 20 + 30*scale, vr: -5 - 5*scale,  vt: 10 + 20*scale, fuel: fuel0,         dryMass: dry, thrustN, isp },
+    { r: R + 30 + 40*scale, vr: -8 - 7*scale,  vt: 15 + 25*scale, fuel: fuel0 * 0.9,   dryMass: dry, thrustN, isp },
+    { r: R + 40 + 50*scale, vr: -10 - 10*scale, vt: 20 + 30*scale, fuel: fuel0 * 0.8,   dryMass: dry, thrustN, isp },
+    { r: R + 50 + 50*scale, vr: -12 - 13*scale, vt: 25 + 35*scale, fuel: fuel0 * 0.7,   dryMass: dry, thrustN, isp },
+  ];
+}
+
 function aiShadowSim(dna, init){
   const moonR = 1737.4, mu = 4902.8, g0 = 9.80665;
   let r = init.r, vr = init.vr, vt = init.vt, fuel = init.fuel;
   const dryMass = init.dryMass, thrustN = init.thrustN, isp = init.isp, fuel0 = fuel;
-  let t = 0; const dt = 0.5, tMax = 2000;
+  let t = 0; const dt = 0.5, tMax = 3000;
   let minAlt = r - moonR;
   
   while (t < tMax){
@@ -1472,17 +1486,16 @@ function aiShadowSim(dna, init){
       const vTotal = Math.sqrt(vr*vr + vt*vt) * 1000;
       return { landed: vTotal < 5, crashed: vTotal >= 5, vTouch: vTotal, fuelUsed: fuel0 - fuel, time: t, minAlt: 0 };
     }
-    if (fuel <= 0){
-      return { landed: false, crashed: false, outOfFuel: true, fuelUsed: fuel0, time: t, minAlt };
-    }
+    if (fuel <= 0) return { landed: false, crashed: false, outOfFuel: true, fuelUsed: fuel0, time: t, minAlt };
     const mass = dryMass + fuel;
     if (mass <= 0) return { landed: false, crashed: true, vTouch: 999, fuelUsed: fuel0, time: t, minAlt };
     
     const gLocal = mu / (r*r), gSurf = mu / (moonR*moonR);
+    /* ★ 정규화 범위 축소: 실제 착륙 속도 스케일에 맞춤 */
     const inputs = [
-      Math.min(1, alt / 500),
-      Math.max(-1, Math.min(1, vr / 200)),
-      Math.min(1, Math.abs(vt) / 500),
+      Math.min(1, alt / 100),                          // 0~100 km
+      Math.max(-1, Math.min(1, vr / 100)),             // -100~+100 m/s
+      Math.min(1, Math.abs(vt) / 100),                 // 0~100 m/s
       fuel / fuel0,
       (mass - dryMass) / fuel0,
       Math.min(1, gLocal / gSurf),
@@ -1512,35 +1525,29 @@ function aiShadowSim(dna, init){
   }
   return { landed: false, crashed: false, timeout: true, fuelUsed: fuel0 - fuel, time: t, minAlt };
 }
-function aiTrainingStates(){
-  const R = 1737.4, dry = S.ship.dry, fuel0 = S.ship.fuel0;
-  const thrustN = S.ship.thrustKN * 1000, isp = S.ship.isp;
-  return [
-    { r: R + 200, vr: -10, vt: 100, fuel: fuel0, dryMass: dry, thrustN, isp },
-    { r: R + 150, vr: 0, vt: 150, fuel: fuel0, dryMass: dry, thrustN, isp },
-    { r: R + 100, vr: -20, vt: 80, fuel: fuel0 * 0.8, dryMass: dry, thrustN, isp },
-    { r: R + 50, vr: -30, vt: 50, fuel: fuel0 * 0.6, dryMass: dry, thrustN, isp },
-  ];
-}
-function aiEvaluate(dna){
-  const states = aiTrainingStates(); let total = 0;
+
+/* ★ 진행률 기반 보상 */
+function aiEvaluate(dna, gen){
+  const states = aiTrainingStates(gen); let total = 0;
   for (const st of states){
     const res = aiShadowSim(dna, st);
+    const initAlt = st.r - 1737.4;
+    const progress = Math.max(0, Math.min(1, 1 - res.minAlt / Math.max(1, initAlt)));
     let score;
     if (res.landed){
-      score = 1000 + (1 - res.fuelUsed / st.fuel) * 500;  /* 착륙 + 연료 효율 */
+      score = 1000 + (1 - res.fuelUsed / st.fuel) * 500;
     } else if (res.crashed){
-      /* 충돌: 충돌 속도에 비례 페널티, 하지만 최소 고도가 낮을수록 약간 보상 */
-      score = -Math.min(1500, res.vTouch * 20) + (res.minAlt < 5 ? 100 : 0);
+      score = -Math.min(500, res.vTouch * 5) + progress * 300;
     } else if (res.outOfFuel){
-      score = -300 + (res.minAlt < 10 ? 200 : 0);
+      score = -200 + progress * 400;
     } else {
-      score = -500 + (res.minAlt < 10 ? 100 : 0);
+      score = -300 + progress * 200;
     }
     total += score;
   }
   return total / states.length;
 }
+
 function aiCrossover(a, b){
   const c = new Float32Array(AI.DNA_LEN); const cut = Math.floor(Math.random() * AI.DNA_LEN);
   for (let i = 0; i < AI.DNA_LEN; i++) c[i] = i < cut ? a[i] : b[i];
@@ -1578,7 +1585,8 @@ async function aiTrain(){
   const tStart = performance.now();
   for (let gen = 0; gen < AI.GENERATIONS; gen++){
     if (!AI.training) break;
-    const scores = AI.population.map(d => aiEvaluate(d));
+    /* ★ gen 전달로 커리큘럼 적용 */
+    const scores = AI.population.map(d => aiEvaluate(d, gen));
     let bi = 0; for (let i = 1; i < scores.length; i++) if (scores[i] > scores[bi]) bi = i;
     if (scores[bi] > AI.bestScore){ AI.bestScore = scores[bi]; AI.bestDNA = AI.population[bi].slice(); }
     const progress = ((gen+1) / AI.GENERATIONS * 100);
@@ -1618,17 +1626,18 @@ function aiLiveControl(){
   const moon = S.bodies.moon; if (!moon) return;
   const r = S.ship.pos.clone().sub(moon.pos); const rMag = r.length(); const alt = rMag - moon.R;
   if (alt <= 0) return;
-  if (alt > 1000) { S.ship.throttle = 0; return; }
+  if (alt > 100) { S.ship.throttle = 0; return; }
   const rHat = r.clone().normalize();
   const vRel = S.ship.vel.clone().sub(moon.vel);
   const vRad = vRel.dot(rHat);
   const vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
   const mass = S.ship.dry + S.ship.fuel;
   const gLocal = moon.mu / (rMag*rMag), gSurf = moon.mu / (moon.R*moon.R);
+  /* ★ 학습과 동일한 정규화 */
   const inputs = [
-    Math.min(1, alt / 500),
-    Math.max(-1, Math.min(1, vRad / 200)),
-    Math.min(1, vTan / 500),
+    Math.min(1, alt / 100),
+    Math.max(-1, Math.min(1, vRad / 100)),
+    Math.min(1, vTan / 100),
     S.ship.fuel / S.ship.fuel0,
     (mass - S.ship.dry) / S.ship.fuel0,
     Math.min(1, gLocal / gSurf),
