@@ -111,7 +111,7 @@ h1.title { color: #00ffff; font-size: 15px; letter-spacing: 2px; }
 <button id="mobile-console-toggle" onclick="toggleMobileConsole()">DBG</button>
 
 <div id="panel-top" class="panel">
-  <h1 class="title">CELESTIUM 4.0 <span class="version-tag">v4.6</span></h1>
+  <h1 class="title">CELESTIUM 4.0 <span class="version-tag">v4.7</span></h1>
   <div class="lang-toggle"><button id="lang-en" class="active">EN</button><button id="lang-ko">KO</button></div>
   <button id="btn-play">PLAY</button>
   <button id="btn-reset">RESET</button>
@@ -157,7 +157,7 @@ h1.title { color: #00ffff; font-size: 15px; letter-spacing: 2px; }
   <div class="sc-header" data-collapse="lunarops">LUNAR OPS</div>
   <div class="collapsible-body">
     <button id="btn-doi" class="primary" style="width:100%;" data-i18n="doi">DOI: 200km으로 강하</button>
-    <button id="btn-land" class="danger" style="width:100%; margin-top:6px;" data-i18n="land">달 착륙 (P-제어)</button>
+    <button id="btn-land" class="danger" style="width:100%; margin-top:6px;" data-i18n="land">달 착륙 (자동제어)</button>
     <div class="metric-box" id="ops-status" style="margin-top:6px; display:none;">
       <div class="row"><label>Status</label><span class="val" id="ops-text">--</span></div>
     </div>
@@ -167,9 +167,9 @@ h1.title { color: #00ffff; font-size: 15px; letter-spacing: 2px; }
   <div class="collapsible-body">
     <div class="field"><label data-i18n="ai_size">학습 규모</label>
       <select id="ai-size">
-        <option value="quick">빠름 (~5초)</option>
-        <option value="standard" selected>표준 (~15초)</option>
-        <option value="thorough">정밀 (~45초)</option>
+        <option value="quick">빠름 (~2초)</option>
+        <option value="standard" selected>표준 (~8초)</option>
+        <option value="thorough">정밀 (~25초)</option>
       </select>
     </div>
     <button id="btn-ai-train" class="primary" style="width:100%;" data-i18n="ai_train">AI 학습 시작</button>
@@ -306,12 +306,10 @@ h1.title { color: #00ffff; font-size: 15px; letter-spacing: 2px; }
 
 <div id="help-overlay">
   <div id="help-content">
-    <h2 data-i18n="help_title">CELESTIUM 4.0 — v4.6 안내</h2>
-    <p data-i18n="help_1">차량: Apollo/Starship/SLS 안전, Custom은 ΔV 부족 경고.</p>
-    <p data-i18n="help_2">발사 창: 30일 스캔, 최적 발사일 자동.</p>
-    <p data-i18n="help_3">착륙: P-제어기 연속 스로틀 (aReq = g + v²/2h).</p>
-    <p data-i18n="help_4">AI: 커리큘럼 학습 + 진행률 보상. 매 세대 L/C/F/T 통계 출력.</p>
-    <p data-i18n="help_5">스윙바이: v4.7에서 재구현 예정.</p>
+    <h2 data-i18n="help_title">CELESTIUM 4.0 — v4.7 안내</h2>
+    <p data-i18n="help_1">착륙: stopping-dist × 1.5 마진. WARP 자동 60×.</p>
+    <p data-i18n="help_2">AI: 커리큘럼 500m → 20km. gradient 보상.</p>
+    <p data-i18n="help_3">스윙바이: v4.8에서 재구현.</p>
     <div style="text-align:right; margin-top:14px;"><button id="btn-close-help">CLOSE</button></div>
   </div>
 </div>
@@ -321,49 +319,39 @@ h1.title { color: #00ffff; font-size: 15px; letter-spacing: 2px; }
 <script>
 'use strict';
 
-/* =====[ PART 0 ] i18n + UI ===================== */
+/* =====[ PART 0 ] i18n ===================== */
 const I18N = {
   en: {
     warp:'WARP', camera:'CAM', sim_time:'SIM TIME', date:'DATE', ship_mass:'SHIP MASS',
     fuel:'FUEL', speed:'SPEED', alt_earth:'ALT (Earth)', alt_moon:'ALT (Moon)',
     dist_mars:'DIST (Mars)', dv_used:'ΔV USED',
-    doi:'DOI: Lower to 200km', land:'Land (P-Controller)',
-    ai_size:'Training Size', ai_train:'Train AI', ai_stop:'Stop', ai_land:'Auto-Land (AI)',
+    doi:'DOI: Lower to 200km', land:'Land (Auto)',
+    ai_size:'Size', ai_train:'Train AI', ai_stop:'Stop', ai_land:'Auto-Land',
     ai_off:'Disengage', ai_save:'Save DNA',
-    dm_max:'Max per category', dm_cleanup:'Auto Cleanup', dm_backup:'Backup JSON', dm_clear:'Clear All',
-    target:'Target', tof:'TOF (days)', plan_transfer:'PLAN TRANSFER', lw_opt:'Launch Window (30d)',
-    execute_burn:'EXECUTE BURN', prograde:'Pro', retrograde:'Retro', normal:'Normal', radial:'Radial',
-    burn_dv:'ΔV (m/s)', vehicle_preset:'Preset', dv_max:'ΔV Capacity', dv_rem:'ΔV Remaining',
-    dv_need:'Mission Need', verdict:'Verdict',
-    parking_alt:'Parking Alt (km)', launch_date:'Launch Date', dt:'dt (s)', integrator:'Integrator',
-    trail_show:'Show Trail', trail_max:'Max Points', clear_trail:'Clear Trail', export_csv:'Export CSV',
-    help_title:'CELESTIUM 4.0 — v4.6 Guide',
-    help_1:'Vehicle: Apollo/Starship/SLS safe. Custom: ΔV warning.',
-    help_2:'Launch Window: 30-day scan.',
-    help_3:'Landing: P-controller continuous throttle.',
-    help_4:'AI: Curriculum + progress reward. Per-gen L/C/F/T stats.',
-    help_5:'Swingby: Reimplementing in v4.7.',
+    dm_max:'Max per cat', dm_cleanup:'Cleanup', dm_backup:'Backup', dm_clear:'Clear',
+    target:'Target', tof:'TOF (days)', plan_transfer:'PLAN', lw_opt:'Launch Window',
+    execute_burn:'EXECUTE', prograde:'Pro', retrograde:'Retro', normal:'Normal', radial:'Radial',
+    burn_dv:'ΔV (m/s)', vehicle_preset:'Preset', dv_max:'ΔV Cap', dv_rem:'ΔV Rem',
+    dv_need:'Need', verdict:'Verdict',
+    parking_alt:'Parking Alt', launch_date:'Launch', dt:'dt', integrator:'Integ',
+    trail_show:'Show', trail_max:'Max', clear_trail:'Clear', export_csv:'Export CSV',
+    help_title:'v4.7', help_1:'Land: 1.5x safety. WARP→60x.', help_2:'AI: 500m→20km curriculum.', help_3:'Swingby: v4.8.',
   },
   ko: {
     warp:'시간가속', camera:'카메라', sim_time:'시뮬시간', date:'날짜', ship_mass:'선체질량',
     fuel:'연료', speed:'속도', alt_earth:'고도(지구)', alt_moon:'고도(달)',
     dist_mars:'거리(화성)', dv_used:'ΔV 사용',
-    doi:'DOI: 200km으로 강하', land:'달 착륙 (P-제어)',
+    doi:'DOI: 200km으로 강하', land:'달 착륙 (자동제어)',
     ai_size:'학습 규모', ai_train:'AI 학습 시작', ai_stop:'학습 중단', ai_land:'AI 자동 착륙',
     ai_off:'AI 해제', ai_save:'현재 DNA 저장',
-    dm_max:'카테고리당 최대', dm_cleanup:'자동 정리 실행', dm_backup:'전체 백업 (JSON)', dm_clear:'전체 삭제',
-    target:'목표', tof:'TOF (일)', plan_transfer:'전이 계획', lw_opt:'발사 창 최적화 (30일)',
+    dm_max:'카테고리당 최대', dm_cleanup:'자동 정리', dm_backup:'전체 백업', dm_clear:'전체 삭제',
+    target:'목표', tof:'TOF (일)', plan_transfer:'전이 계획', lw_opt:'발사 창 최적화',
     execute_burn:'분사 실행', prograde:'순행', retrograde:'역행', normal:'법선', radial:'지름',
     burn_dv:'ΔV (m/s)', vehicle_preset:'프리셋', dv_max:'ΔV 능력', dv_rem:'ΔV 잔여',
     dv_need:'미션 필요', verdict:'판정',
-    parking_alt:'주차 고도 (km)', launch_date:'발사 날짜', dt:'적분 간격 (s)', integrator:'적분기',
-    trail_show:'궤적선 표시', trail_max:'최대 점 수', clear_trail:'궤적 지우기', export_csv:'CSV 내보내기',
-    help_title:'CELESTIUM 4.0 — v4.6 안내',
-    help_1:'차량: Apollo/Starship/SLS 안전, Custom은 ΔV 부족 경고.',
-    help_2:'발사 창: 30일 스캔, 최적 발사일 자동.',
-    help_3:'착륙: P-제어기 연속 스로틀 (aReq = g + v²/2h).',
-    help_4:'AI: 커리큘럼 학습 + 진행률 보상. 매 세대 L/C/F/T 통계.',
-    help_5:'스윙바이: v4.7에서 재구현 예정.',
+    parking_alt:'주차 고도', launch_date:'발사 날짜', dt:'적분', integrator:'적분기',
+    trail_show:'표시', trail_max:'최대', clear_trail:'지우기', export_csv:'CSV 내보내기',
+    help_title:'v4.7 안내', help_1:'착륙: 1.5배 안전 마진. WARP→60×.', help_2:'AI: 500m→20km 커리큘럼.', help_3:'스윙바이: v4.8.',
   }
 };
 
@@ -398,45 +386,35 @@ const UI = {
 };
 const $ = (k) => document.getElementById(UI[k] || k);
 const setText = (k, t) => { const el = $(k); if (el) el.textContent = t; };
-
 function toggleMobileConsole(){ document.getElementById('mobile-console')?.classList.toggle('show'); }
 function toggleChatLog(){
-  const el = document.getElementById('chat-log');
-  if (!el) return;
+  const el = document.getElementById('chat-log'); if (!el) return;
   el.classList.toggle('collapsed');
   const t = document.getElementById('chat-toggle');
   if (t) t.textContent = el.classList.contains('collapsed') ? '▲' : '▼';
 }
-
 (function setupMobileConsole(){
   const oL = console.log.bind(console), oW = console.warn.bind(console), oE = console.error.bind(console);
   function append(tag, args){
-    const el = document.getElementById('mobile-console');
-    if (!el) return;
+    const el = document.getElementById('mobile-console'); if (!el) return;
     const text = Array.from(args).map(a => {
       if (a === null) return 'null'; if (a === undefined) return 'undefined';
       if (typeof a === 'object'){ try { return JSON.stringify(a); } catch(e){ return String(a); } }
       return String(a);
     }).join(' ');
-    el.textContent += `[${tag}] ${text}\n`;
-    el.scrollTop = el.scrollHeight;
+    el.textContent += `[${tag}] ${text}\n`; el.scrollTop = el.scrollHeight;
   }
   console.log = (...a) => { oL(...a); append('LOG', a); };
   console.warn = (...a) => { oW(...a); append('WRN', a); };
   console.error = (...a) => { oE(...a); append('ERR', a); };
   window.addEventListener('error', e => append('ERR', [e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')]));
 })();
-
 const LOG_MAX = 3000;
 function logMsg(tag, text){
-  const host = document.getElementById('log-body');
-  if (!host){ console.log(`[${tag}] ${text}`); return; }
+  const host = document.getElementById('log-body'); if (!host){ console.log(`[${tag}] ${text}`); return; }
   const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  const ss = String(now.getSeconds()).padStart(2,'0');
-  const line = document.createElement('div');
-  line.className = 'log-line log-' + tag;
+  const hh = String(now.getHours()).padStart(2,'0'), mm = String(now.getMinutes()).padStart(2,'0'), ss = String(now.getSeconds()).padStart(2,'0');
+  const line = document.createElement('div'); line.className = 'log-line log-' + tag;
   line.innerHTML = `<span class="log-time">[${hh}:${mm}:${ss}]</span> <span class="log-tag">${tag.toUpperCase()}</span> ${text}`;
   host.appendChild(line);
   while (host.childElementCount > LOG_MAX) host.removeChild(host.firstChild);
@@ -446,11 +424,7 @@ function setStatus(text, tag='sys'){ logMsg(tag, text); }
 function setOpsStatus(text){ const el = $('opsStatus'); if (el) el.style.display = 'block'; setText('opsText', text); }
 
 /* =====[ PART 1 ] 상수 ===================== */
-const G0 = 9.80665;
-const J2000_MS = Date.UTC(2000,0,1,12,0,0);
-const AU = 149597870.7;
-const DAY = 86400;
-const DEG = Math.PI/180;
+const G0 = 9.80665, J2000_MS = Date.UTC(2000,0,1,12,0,0), AU = 149597870.7, DAY = 86400, DEG = Math.PI/180;
 const BODY = {
   sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
   mercury: { mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun', el: { a: 0.387098*AU, e: 0.205630, i: 7.005, om: 48.331, w: 29.124, L0: 252.250 } },
@@ -466,7 +440,7 @@ const VEHICLES = {
   'custom':   { dry: 50000,  fuel: 200000,  isp: 350, thrust: 5000 },
 };
 
-/* =====[ PART 2 ] 전역 상태 ===================== */
+/* =====[ PART 2 ] 상태 ===================== */
 const S = {
   scene: null, cam: null, rdr: null, ctrl: null,
   meshes: {}, markers: {}, trail: null, trailPos: [], trailMax: 5000, trailMinKm: 10,
@@ -482,7 +456,7 @@ const S = {
   camMode: 'free', _lastCamMode: 'free',
   csvLog: [],
   transferPlan: null, mccSchedule: null, doiSchedule: null,
-  landingActive: false, landingPhase: 'none',
+  landingActive: false, landingPhase: 'none', _savedWarp: 86400,
   missionState: { soiEntered: false, soiAt: 0, minMoonDist: Infinity, loiDone: false, autoLOI: true },
   lang: 'ko', _lastLandLog: 0,
 };
@@ -496,97 +470,73 @@ function createGlowTexture(hexColor){
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext('2d'); const cx = size/2, cy = size/2;
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size/2);
-  grad.addColorStop(0, 'rgba(255,255,255,1)');
-  grad.addColorStop(0.15, hexColor);
-  grad.addColorStop(0.5, hexColor + '55');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.15, hexColor);
+  grad.addColorStop(0.5, hexColor + '55'); grad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
   return new THREE.CanvasTexture(canvas);
 }
 function createMarker(hexColor){
-  const tex = createGlowTexture(hexColor);
-  return new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  return new THREE.Sprite(new THREE.SpriteMaterial({ map: createGlowTexture(hexColor), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
 }
 function initScene(){
-  const host = document.getElementById(UI.canvas);
-  if (!host){ console.error('canvas host missing'); return; }
-  S.scene = new THREE.Scene();
-  S.scene.background = new THREE.Color(0x000005);
+  const host = document.getElementById(UI.canvas); if (!host){ console.error('canvas host missing'); return; }
+  S.scene = new THREE.Scene(); S.scene.background = new THREE.Color(0x000005);
   S.cam = new THREE.PerspectiveCamera(50, host.clientWidth/host.clientHeight, 10, 1e12);
   S.cam.position.set(2*AU, 0.6*AU, 2*AU);
   S.rdr = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  S.rdr.setSize(host.clientWidth, host.clientHeight);
-  S.rdr.setPixelRatio(Math.min(2, devicePixelRatio));
+  S.rdr.setSize(host.clientWidth, host.clientHeight); S.rdr.setPixelRatio(Math.min(2, devicePixelRatio));
   host.appendChild(S.rdr.domElement);
   S.ctrl = new THREE.OrbitControls(S.cam, S.rdr.domElement);
-  S.ctrl.enableDamping = true; S.ctrl.dampingFactor = 0.08;
-  S.ctrl.minDistance = 100; S.ctrl.maxDistance = 1e12;
-  S.scene.add(new THREE.AmbientLight(0x666688, 0.6));
-  S.scene.add(new THREE.PointLight(0xffffff, 2, 0, 0));
+  S.ctrl.enableDamping = true; S.ctrl.dampingFactor = 0.08; S.ctrl.minDistance = 100; S.ctrl.maxDistance = 1e12;
+  S.scene.add(new THREE.AmbientLight(0x666688, 0.6)); S.scene.add(new THREE.PointLight(0xffffff, 2, 0, 0));
   const sg = new THREE.BufferGeometry(); const pts = [];
-  for (let i=0;i<3000;i++){
-    const r = 1e10; const th = Math.acos(2*Math.random()-1); const ph = 2*Math.PI*Math.random();
-    pts.push(r*Math.sin(th)*Math.cos(ph), r*Math.cos(th), r*Math.sin(th)*Math.sin(ph));
-  }
+  for (let i=0;i<3000;i++){ const r = 1e10, th = Math.acos(2*Math.random()-1), ph = 2*Math.PI*Math.random();
+    pts.push(r*Math.sin(th)*Math.cos(ph), r*Math.cos(th), r*Math.sin(th)*Math.sin(ph)); }
   sg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
   S.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 4e7 })));
   for (const name in BODY){
     const b = BODY[name];
-    const mat = new THREE.MeshBasicMaterial({ color: b.col, wireframe: true, transparent: true, opacity: 0.35 });
-    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), mat);
-    m.scale.setScalar(b.R); m.userData.baseR = b.R;
-    S.scene.add(m); S.meshes[name] = m;
-    const hexStr = '#' + b.col.toString(16).padStart(6, '0');
-    const marker = createMarker(hexStr); S.scene.add(marker); S.markers[name] = marker;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), new THREE.MeshBasicMaterial({ color: b.col, wireframe: true, transparent: true, opacity: 0.35 }));
+    m.scale.setScalar(b.R); m.userData.baseR = b.R; S.scene.add(m); S.meshes[name] = m;
+    const marker = createMarker('#' + b.col.toString(16).padStart(6, '0')); S.scene.add(marker); S.markers[name] = marker;
   }
   const ship = new THREE.Group(); ship.name = 'ship';
   ship.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.5, 8), new THREE.MeshBasicMaterial({ color: 0xdddddd })));
   const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.0, 8), new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
   nose.position.y = 1.7; ship.add(nose);
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.5, 8), new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 }));
-  flame.position.y = -2.0; flame.rotation.x = Math.PI; flame.visible = false; flame.name = 'flame';
-  ship.add(flame); ship.scale.setScalar(500);
-  S.scene.add(ship); S.meshes.ship = ship;
-  const shipMarker = createMarker('#ffffff'); S.scene.add(shipMarker); S.markers.ship = shipMarker;
-  const tg = new THREE.BufferGeometry();
-  tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
+  flame.position.y = -2.0; flame.rotation.x = Math.PI; flame.visible = false; flame.name = 'flame'; ship.add(flame);
+  ship.scale.setScalar(500); S.scene.add(ship); S.meshes.ship = ship;
+  S.markers.ship = createMarker('#ffffff'); S.scene.add(S.markers.ship);
+  const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
   tg.setDrawRange(0, 0);
   S.trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.9 }));
   S.trail.frustumCulled = false; S.scene.add(S.trail);
   addEventListener('resize', () => {
-    S.cam.aspect = host.clientWidth / host.clientHeight;
-    S.cam.updateProjectionMatrix();
+    S.cam.aspect = host.clientWidth / host.clientHeight; S.cam.updateProjectionMatrix();
     S.rdr.setSize(host.clientWidth, host.clientHeight);
   });
-  computeBodies(0); resetShipToParkingOrbit(); syncMeshes();
-  S.rdr.render(S.scene, S.cam);
+  computeBodies(0); resetShipToParkingOrbit(); syncMeshes(); S.rdr.render(S.scene, S.cam);
 }
 
 /* =====[ PART 5 ] 물리 엔진 ===================== */
 function solveKepler(M, e){
   M = ((M % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
   let E = M + e*Math.sin(M);
-  for (let k=0;k<15;k++){ const f = E - e*Math.sin(E) - M; const fp = 1 - e*Math.cos(E); const dE = f/fp; E -= dE; if (Math.abs(dE) < 1e-12) break; }
+  for (let k=0;k<15;k++){ const f = E - e*Math.sin(E) - M, fp = 1 - e*Math.cos(E), dE = f/fp; E -= dE; if (Math.abs(dE) < 1e-12) break; }
   return E;
 }
 function keplerStateVectors(el, mu_parent, days){
-  const a = el.a, e = el.e;
-  const n = Math.sqrt(mu_parent/(a*a*a));
+  const a = el.a, e = el.e, n = Math.sqrt(mu_parent/(a*a*a));
   const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;
   const E = solveKepler(M, e);
-  const cE = Math.cos(E), sE = Math.sin(E);
-  const b  = a*Math.sqrt(1-e*e); const denom = 1 - e*cE;
-  const xP = a*(cE - e); const yP = b*sE;
-  const vxP = -a*n*sE / denom; const vyP =  b*n*cE / denom;
-  const cO=Math.cos(el.om*DEG), sO=Math.sin(el.om*DEG);
-  const cW=Math.cos(el.w *DEG), sW=Math.sin(el.w *DEG);
-  const cI=Math.cos(el.i *DEG), sI=Math.sin(el.i *DEG);
-  const R11 =  cO*cW - sO*sW*cI; const R12 = -cO*sW - sO*cW*cI;
-  const R21 =  sO*cW + cO*sW*cI; const R22 = -sO*sW + cO*cW*cI;
-  const R31 =  sW*sI; const R32 =  cW*sI;
+  const cE = Math.cos(E), sE = Math.sin(E), b = a*Math.sqrt(1-e*e), denom = 1 - e*cE;
+  const xP = a*(cE - e), yP = b*sE, vxP = -a*n*sE/denom, vyP = b*n*cE/denom;
+  const cO=Math.cos(el.om*DEG), sO=Math.sin(el.om*DEG), cW=Math.cos(el.w*DEG), sW=Math.sin(el.w*DEG);
+  const cI=Math.cos(el.i*DEG), sI=Math.sin(el.i*DEG);
   return {
-    pos: new THREE.Vector3(R11*xP + R12*yP, R21*xP + R22*yP, R31*xP + R32*yP),
-    vel: new THREE.Vector3(R11*vxP + R12*vyP, R21*vxP + R22*vyP, R31*vxP + R32*vyP),
+    pos: new THREE.Vector3((cO*cW - sO*sW*cI)*xP + (-cO*sW - sO*cW*cI)*yP, (sO*cW + cO*sW*cI)*xP + (-sO*sW + cO*cW*cI)*yP, (sW*sI)*xP + (cW*sI)*yP),
+    vel: new THREE.Vector3((cO*cW - sO*sW*cI)*vxP + (-cO*sW - sO*cW*cI)*vyP, (sO*cW + cO*sW*cI)*vxP + (-sO*sW + cO*cW*cI)*vyP, (sW*sI)*vxP + (cW*sI)*vyP),
   };
 }
 function computeBodies(simSec){
@@ -607,7 +557,7 @@ function gravityAt(pos){
   const a = new THREE.Vector3();
   for (const n in S.bodies){
     const b = S.bodies[n];
-    const r = b.pos.clone().sub(pos); const d2 = r.lengthSq(); const d = Math.sqrt(d2);
+    const r = b.pos.clone().sub(pos), d2 = r.lengthSq(), d = Math.sqrt(d2);
     if (d < 1e-6) continue;
     if (d < b.R) a.addScaledVector(r.normalize(), b.mu * d / (b.R*b.R*b.R));
     else a.addScaledVector(r.normalize(), b.mu / d2);
@@ -622,14 +572,13 @@ function thrustAccel(pos, vel){
   if (mass <= 0) return out;
   const a_km_s2 = (thrustN / mass) * 1e-3;
   const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
-  const rRel = pos.clone().sub(ref.pos);
-  const vRel = vel.clone().sub(ref.vel);
+  const rRel = pos.clone().sub(ref.pos), vRel = vel.clone().sub(ref.vel);
   let dir;
   switch (S.ship.burnDir){
-    case 'prograde':   dir = vRel.clone().normalize(); break;
+    case 'prograde': dir = vRel.clone().normalize(); break;
     case 'retrograde': dir = vRel.clone().normalize().negate(); break;
-    case 'normal':     dir = rRel.clone().cross(vRel).normalize(); break;
-    default:           dir = rRel.clone().normalize(); break;
+    case 'normal': dir = rRel.clone().cross(vRel).normalize(); break;
+    default: dir = rRel.clone().normalize(); break;
   }
   if (!isFinite(dir.x) || dir.lengthSq() < 1e-12) return out;
   return dir.multiplyScalar(a_km_s2);
@@ -640,12 +589,11 @@ function stepRK4(dt){
   const k1 = deriv(p0, v0);
   const k2 = deriv(p0.clone().addScaledVector(k1.dp, dt/2), v0.clone().addScaledVector(k1.dv, dt/2));
   const k3 = deriv(p0.clone().addScaledVector(k2.dp, dt/2), v0.clone().addScaledVector(k2.dv, dt/2));
-  const k4 = deriv(p0.clone().addScaledVector(k3.dp, dt),   v0.clone().addScaledVector(k3.dv, dt));
+  const k4 = deriv(p0.clone().addScaledVector(k3.dp, dt), v0.clone().addScaledVector(k3.dv, dt));
   S.ship.pos.copy(p0).addScaledVector(k1.dp, dt/6).addScaledVector(k2.dp, dt/3).addScaledVector(k3.dp, dt/3).addScaledVector(k4.dp, dt/6);
   S.ship.vel.copy(v0).addScaledVector(k1.dv, dt/6).addScaledVector(k2.dv, dt/3).addScaledVector(k3.dv, dt/3).addScaledVector(k4.dv, dt/6);
   if (S.ship.throttle > 0 && S.ship.fuel > 0){
-    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-    const ve = S.ship.isp * G0;
+    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100), ve = S.ship.isp * G0;
     const dm = Math.min(thrustN/ve * dt, S.ship.fuel);
     S.ship.fuel -= dm;
     S.ship.dvUsed += (thrustN/(S.ship.dry + S.ship.fuel + dm/2)) * dt;
@@ -653,11 +601,9 @@ function stepRK4(dt){
 }
 function stepEuler(dt){
   const a = gravityAt(S.ship.pos).add(thrustAccel(S.ship.pos, S.ship.vel));
-  S.ship.vel.addScaledVector(a, dt);
-  S.ship.pos.addScaledVector(S.ship.vel, dt);
+  S.ship.vel.addScaledVector(a, dt); S.ship.pos.addScaledVector(S.ship.vel, dt);
   if (S.ship.throttle > 0 && S.ship.fuel > 0){
-    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-    const ve = S.ship.isp * G0;
+    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100), ve = S.ship.isp * G0;
     const dm = Math.min(thrustN/ve * dt, S.ship.fuel);
     S.ship.fuel -= dm;
     S.ship.dvUsed += (thrustN/(S.ship.dry + S.ship.fuel + dm/2)) * dt;
@@ -666,16 +612,13 @@ function stepEuler(dt){
 function checkCollision(){
   for (const n in S.bodies){
     if (n === 'sun') continue;
-    const b = S.bodies[n];
-    const d = S.ship.pos.distanceTo(b.pos);
+    const b = S.bodies[n], d = S.ship.pos.distanceTo(b.pos);
     if (d < b.R){
-      const relV = S.ship.vel.clone().sub(b.vel);
-      const speed = relV.length() * 1000;
+      const relV = S.ship.vel.clone().sub(b.vel), speed = relV.length() * 1000;
       if (speed < 10){
         S.ship.landed = true; S.ship.throttle = 0;
         const rHat = S.ship.pos.clone().sub(b.pos).normalize();
-        S.ship.pos.copy(b.pos).addScaledVector(rHat, b.R);
-        S.ship.vel.copy(b.vel);
+        S.ship.pos.copy(b.pos).addScaledVector(rHat, b.R); S.ship.vel.copy(b.vel);
         setStatus(`SOFT LANDING @ ${n.toUpperCase()} v_rel=${speed.toFixed(1)} m/s`, 'ok');
         setOpsStatus(`LANDED @ ${n.toUpperCase()}`);
       } else {
@@ -691,30 +634,26 @@ function nearestBodyInfo(pos){
   let minD = Infinity, nearest = null, nearestName = null;
   for (const n in S.bodies){
     if (n === 'sun') continue;
-    const b = S.bodies[n]; const d = pos.distanceTo(b.pos);
+    const b = S.bodies[n], d = pos.distanceTo(b.pos);
     if (d < minD){ minD = d; nearest = b; nearestName = n; }
   }
   return { body: nearest, name: nearestName, dist: minD };
 }
 function pickAdaptiveDt(maxDt){
-  const info = nearestBodyInfo(S.ship.pos);
-  if (!info.body) return maxDt;
+  const info = nearestBodyInfo(S.ship.pos); if (!info.body) return maxDt;
   const vRel = S.ship.vel.clone().sub(info.body.vel).length();
-  const dtOrbit = (info.dist / Math.max(0.001, vRel)) / 50;
-  return Math.max(0.05, Math.min(maxDt, dtOrbit));
+  return Math.max(0.05, Math.min(maxDt, (info.dist / Math.max(0.001, vRel)) / 50));
 }
 function debugInitialState(){
   const e = S.bodies.earth; if (!e) return;
-  const r = S.ship.pos.clone().sub(e.pos);
-  const v = S.ship.vel.clone().sub(e.vel);
+  const r = S.ship.pos.clone().sub(e.pos), v = S.ship.vel.clone().sub(e.vel);
   console.log(`[debug] Earth pos=${e.pos.length().toExponential(3)}km vel=${e.vel.length().toFixed(3)}km/s ship alt=${(r.length()-e.R).toFixed(1)}km vRel=${v.length().toFixed(3)}km/s`);
 }
 
 /* =====[ PART 6 ] 텔레메트리 ===================== */
 function updateTelemetry(){
   setText('simTime', fmt(S.sim.t/DAY, 3) + ' d');
-  const date = new Date((S.sim.t0 + S.sim.t)*1000);
-  setText('date', date.toISOString().slice(0,10));
+  setText('date', new Date((S.sim.t0 + S.sim.t)*1000).toISOString().slice(0,10));
   setText('shipMass', fmt(S.ship.dry + S.ship.fuel, 0) + ' kg');
   setText('fuel', fmt(S.ship.fuel, 0) + ' kg');
   setText('speed', fmt(S.ship.vel.length(), 3) + ' km/s');
@@ -726,57 +665,48 @@ function updateTelemetry(){
   if (e && mo){
     const dE = S.ship.pos.distanceTo(e.pos), dM = S.ship.pos.distanceTo(mo.pos), dS = S.ship.pos.length();
     setText('grEarth', (e.mu/(dE*dE)).toExponential(2));
-    setText('grMoon',  (mo.mu/(dM*dM)).toExponential(2));
-    setText('grSun',   (BODY.sun.mu/(dS*dS)).toExponential(2));
+    setText('grMoon', (mo.mu/(dM*dM)).toExponential(2));
+    setText('grSun', (BODY.sun.mu/(dS*dS)).toExponential(2));
   }
-  updateCapability();
-  updateOrbitalElements();
+  updateCapability(); updateOrbitalElements();
 }
 function updateCapability(){
-  const ve = S.ship.isp * G0;
-  const m0 = S.ship.dry + S.ship.fuel0;
+  const ve = S.ship.isp * G0, m0 = S.ship.dry + S.ship.fuel0, mCur = S.ship.dry + S.ship.fuel;
   const dvMax = ve * Math.log(m0 / S.ship.dry) / 1000;
-  const mCur = S.ship.dry + S.ship.fuel;
   const dvUsed = ve * Math.log(m0 / mCur) / 1000;
-  const dvRem = dvMax - dvUsed;
-  const needed = 6.4;
   setText('vehDvMax', dvMax.toFixed(0) + ' m/s');
   setText('vehDvUsed', (dvUsed*1000).toFixed(0) + ' m/s');
-  setText('vehDvRem', (dvRem*1000).toFixed(0) + ' m/s');
-  const verdictEl = $('vehVerdict');
-  if (verdictEl){
-    if (dvMax >= needed * 1.15){ verdictEl.textContent = '여유'; verdictEl.className = 'val'; }
-    else if (dvMax >= needed){ verdictEl.textContent = '아슬'; verdictEl.className = 'val warn'; }
-    else { verdictEl.textContent = '부족'; verdictEl.className = 'val bad'; }
+  setText('vehDvRem', ((dvMax - dvUsed)*1000).toFixed(0) + ' m/s');
+  const v = $('vehVerdict');
+  if (v){
+    if (dvMax >= 7.36){ v.textContent = '여유'; v.className = 'val'; }
+    else if (dvMax >= 6.4){ v.textContent = '아슬'; v.className = 'val warn'; }
+    else { v.textContent = '부족'; v.className = 'val bad'; }
   }
 }
 function pickReferenceBody(){
   let ref = S.bodies.earth, name = 'earth', minD = Infinity;
   for (const n in S.bodies){
     if (n === 'sun') continue;
-    const b = S.bodies[n]; const d = S.ship.pos.distanceTo(b.pos);
-    const norm = d / b.R;
+    const b = S.bodies[n], d = S.ship.pos.distanceTo(b.pos), norm = d / b.R;
     if (norm < minD){ minD = norm; ref = b; name = n; }
   }
   return { body: ref, name };
 }
 function computeOrbitalElements(){
-  const pick = pickReferenceBody();
-  const ref = pick.body; const refName = pick.name.charAt(0).toUpperCase() + pick.name.slice(1);
-  const r = S.ship.pos.clone().sub(ref.pos); const v = S.ship.vel.clone().sub(ref.vel);
-  const mu = ref.mu; const rMag = r.length(); const vMag = v.length();
+  const pick = pickReferenceBody(), ref = pick.body;
+  const refName = pick.name.charAt(0).toUpperCase() + pick.name.slice(1);
+  const r = S.ship.pos.clone().sub(ref.pos), v = S.ship.vel.clone().sub(ref.vel);
+  const mu = ref.mu, rMag = r.length(), vMag = v.length();
   if (rMag < 1e-6 || mu <= 0) return { refName, valid: false };
   const energy = 0.5*vMag*vMag - mu/rMag;
-  const h = r.clone().cross(v); const hMag = h.length();
+  const h = r.clone().cross(v), hMag = h.length();
   const eVec = v.clone().cross(h).divideScalar(mu).sub(r.clone().divideScalar(rMag));
   const ecc = eVec.length();
   const a = (Math.abs(energy) > 1e-12) ? -mu/(2*energy) : Infinity;
   const inc = (hMag > 1e-12) ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI : 0;
   let rp_alt = null, ra_alt = null, period = null;
-  if (ecc < 1 && isFinite(a) && a > 0){
-    rp_alt = a*(1-ecc) - ref.R; ra_alt = a*(1+ecc) - ref.R;
-    period = 2*Math.PI * Math.sqrt(a*a*a/mu);
-  }
+  if (ecc < 1 && isFinite(a) && a > 0){ rp_alt = a*(1-ecc) - ref.R; ra_alt = a*(1+ecc) - ref.R; period = 2*Math.PI * Math.sqrt(a*a*a/mu); }
   return { refName, mu, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
 }
 function updateOrbitalElements(){
@@ -801,10 +731,10 @@ let lastTrailPos = new THREE.Vector3();
 const MARKER_SCREEN_FRACTION = 0.025;
 function syncMeshes(){
   for (const n in S.bodies){
-    const b = S.bodies[n]; const mesh = S.meshes[n];
+    const b = S.bodies[n], mesh = S.meshes[n];
     if (mesh){ mesh.position.copy(b.pos); mesh.scale.setScalar(b.R); }
     const marker = S.markers[n];
-    if (marker){ marker.position.copy(b.pos); const camDist = S.cam.position.distanceTo(b.pos); marker.scale.setScalar(camDist * MARKER_SCREEN_FRACTION); }
+    if (marker){ marker.position.copy(b.pos); marker.scale.setScalar(S.cam.position.distanceTo(b.pos) * MARKER_SCREEN_FRACTION); }
   }
   if (S.meshes.ship){
     S.meshes.ship.position.copy(S.ship.pos);
@@ -815,11 +745,7 @@ function syncMeshes(){
     const flame = S.meshes.ship.getObjectByName('flame');
     if (flame){ flame.visible = S.ship.throttle > 0 && S.ship.fuel > 0; if (flame.visible) flame.scale.y = 0.5 + S.ship.throttle/100; }
   }
-  if (S.markers.ship){
-    S.markers.ship.position.copy(S.ship.pos);
-    const camDist = S.cam.position.distanceTo(S.ship.pos);
-    S.markers.ship.scale.setScalar(camDist * MARKER_SCREEN_FRACTION);
-  }
+  if (S.markers.ship){ S.markers.ship.position.copy(S.ship.pos); S.markers.ship.scale.setScalar(S.cam.position.distanceTo(S.ship.pos) * MARKER_SCREEN_FRACTION); }
   if (S.vis.trail){
     const minD = Math.max(S.trailMinKm, S.ship.pos.length() * 1e-5);
     if (S.trailPos.length === 0 || S.ship.pos.distanceTo(lastTrailPos) > minD){
@@ -832,7 +758,7 @@ function syncMeshes(){
       S.trail.geometry.setDrawRange(0, S.trailPos.length);
     }
     S.trail.visible = true;
-  } else { S.trail.visible = false; }
+  } else S.trail.visible = false;
 }
 
 /* =====[ PART 8 ] 카메라 ===================== */
@@ -853,11 +779,9 @@ function updateCamera(){
     S.ctrl.minDistance = Math.max(viewDist * 0.05, 100); S.ctrl.maxDistance = viewDist * 100;
     S.ctrl.update(); return;
   }
-  const lerpFactor = (S.sim.warp > 100000) ? 1.0 : 0.20;
   const prev = S.ctrl.target.clone();
-  S.ctrl.target.lerp(tgt, lerpFactor);
-  const delta = S.ctrl.target.clone().sub(prev);
-  S.cam.position.add(delta); S.ctrl.update();
+  S.ctrl.target.lerp(tgt, (S.sim.warp > 100000) ? 1.0 : 0.20);
+  S.cam.position.add(S.ctrl.target.clone().sub(prev)); S.ctrl.update();
 }
 
 /* =====[ PART 9 ] 초기 배치 ===================== */
@@ -867,18 +791,15 @@ function resetShipToParkingOrbit(){
   let alt = parseFloat(($('parkAlt')?.value) || 200);
   if (!isFinite(alt) || alt < 100) alt = 200; if (alt > 40000) alt = 40000;
   const r = e.R + alt;
-  const rHat = new THREE.Vector3(1,0,0); const vHat = new THREE.Vector3(0,1,0);
-  const vCirc = Math.sqrt(e.mu / r);
-  S.ship.pos.copy(e.pos).addScaledVector(rHat, r);
-  S.ship.vel.copy(e.vel).addScaledVector(vHat, vCirc);
+  S.ship.pos.copy(e.pos).addScaledVector(new THREE.Vector3(1,0,0), r);
+  S.ship.vel.copy(e.vel).addScaledVector(new THREE.Vector3(0,1,0), Math.sqrt(e.mu / r));
   S.ship.fuel = S.ship.fuel0; S.ship.dvUsed = 0;
-  S.ship.landed = false; S.ship.crashed = false;
-  S.ship.throttle = 0; S.ship.refFrame = 'earth';
+  S.ship.landed = false; S.ship.crashed = false; S.ship.throttle = 0; S.ship.refFrame = 'earth';
   S.trailPos.length = 0; lastTrailPos.copy(S.ship.pos);
   S.transferPlan = null; S.mccSchedule = null; S.doiSchedule = null;
   S.landingActive = false; S.landingPhase = 'none';
   S.missionState = { soiEntered: false, soiAt: 0, minMoonDist: Infinity, loiDone: false, autoLOI: true };
-  setStatus(`Parking orbit: alt=${alt} km, v_circ=${vCirc.toFixed(3)} km/s`, 'sys');
+  setStatus(`Parking orbit: alt=${alt} km, v_circ=${Math.sqrt(e.mu/r).toFixed(3)} km/s`, 'sys');
   debugInitialState();
 }
 function applyPreset(){ resetShipToParkingOrbit(); setStatus('Preset applied', 'ok'); }
@@ -887,46 +808,36 @@ function applyPreset(){ resetShipToParkingOrbit(); setStatus('Preset applied', '
 function executeBurn(){
   const dvMs = parseFloat(($('dvInput')?.value) || 100);
   if (!isFinite(dvMs) || dvMs <= 0) return;
-  const dv = dvMs / 1000;
-  const m0 = S.ship.dry + S.ship.fuel;
-  const ve = S.ship.isp * G0;
+  const dv = dvMs / 1000, m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-Math.abs(dv)*1000/ve));
   if (fuelNeed > S.ship.fuel){ setStatus('Not enough fuel', 'warn'); return; }
   const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
-  const rRel = S.ship.pos.clone().sub(ref.pos);
-  const vRel = S.ship.vel.clone().sub(ref.vel);
+  const rRel = S.ship.pos.clone().sub(ref.pos), vRel = S.ship.vel.clone().sub(ref.vel);
   let dir;
   switch (S.ship.burnDir){
-    case 'prograde':   dir = vRel.clone().normalize(); break;
+    case 'prograde': dir = vRel.clone().normalize(); break;
     case 'retrograde': dir = vRel.clone().normalize().negate(); break;
-    case 'normal':     dir = rRel.clone().cross(vRel).normalize(); break;
-    default:           dir = rRel.clone().normalize(); break;
+    case 'normal': dir = rRel.clone().cross(vRel).normalize(); break;
+    default: dir = rRel.clone().normalize(); break;
   }
-  S.ship.vel.addScaledVector(dir, dv);
-  S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMs;
+  S.ship.vel.addScaledVector(dir, dv); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMs;
   setStatus(`BURN: ${S.ship.burnDir} dV=${dvMs.toFixed(0)} m/s`, 'ok');
 }
 
-/* =====[ PART 11 ] DOI + 착륙 (P-제어기) ===================== */
+/* =====[ PART 11 ] DOI + 착륙 (Margin-based suicide burn) ===================== */
 function startDOI(){
   const moon = S.bodies.moon;
   if (!moon){ setStatus('No Moon', 'err'); return; }
-  const d = S.ship.pos.distanceTo(moon.pos);
-  const d_target = moon.R + 200;
+  const d = S.ship.pos.distanceTo(moon.pos), d_target = moon.R + 200;
   if (d < d_target * 1.5){ setStatus(`Already low (alt=${(d-moon.R).toFixed(0)}km)`, 'warn'); return; }
   S.doiSchedule = null; S.landingActive = false; S.ship.refFrame = 'moon';
-  const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
-  const vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat);
-  const vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad));
-  const vTanMag = vTanVec.length();
-  const a_transfer = (d + d_target) / 2;
-  const v_apo_transfer = Math.sqrt(moon.mu * (2/d - 1/a_transfer));
+  const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
+  const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
+  const a_transfer = (d + d_target) / 2, v_apo_transfer = Math.sqrt(moon.mu * (2/d - 1/a_transfer));
   const dvTan = vTanMag - v_apo_transfer;
   if (dvTan <= 0){ setStatus('DOI-1: no burn', 'warn'); return; }
   const dvVec = vTanVec.clone().normalize().multiplyScalar(-dvTan).add(rHat.clone().multiplyScalar(-vRad));
-  const dvMag = dvVec.length() * 1000;
-  const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+  const dvMag = dvVec.length() * 1000, m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
   if (fuelNeed > S.ship.fuel){ setStatus('DOI-1: no fuel', 'err'); return; }
   S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
@@ -937,18 +848,12 @@ function startDOI(){
 }
 function executeDOICirc(){
   const sched = S.doiSchedule; if (!sched || sched.dvDone) return; sched.dvDone = true;
-  const moon = S.bodies.moon;
-  const d = S.ship.pos.distanceTo(moon.pos);
-  const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
-  const vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat);
-  const vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad));
-  const vTanMag = vTanVec.length();
-  const vCirc = Math.sqrt(moon.mu / d);
-  const dvTan = vTanMag - vCirc;
+  const moon = S.bodies.moon, d = S.ship.pos.distanceTo(moon.pos);
+  const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
+  const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
+  const dvTan = vTanMag - Math.sqrt(moon.mu / d);
   const dvVec = vTanVec.clone().normalize().multiplyScalar(-dvTan).add(rHat.clone().multiplyScalar(-vRad));
-  const dvMag = dvVec.length() * 1000;
-  const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+  const dvMag = dvVec.length() * 1000, m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
   if (fuelNeed > S.ship.fuel){ setStatus('DOI-2: no fuel', 'err'); S.doiSchedule = null; return; }
   S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
@@ -959,95 +864,93 @@ function executeDOICirc(){
 
 function startLanding(){
   const moon = S.bodies.moon; if (!moon) return;
-  const d = S.ship.pos.distanceTo(moon.pos);
-  const alt = d - moon.R;
-  if (alt > 5000){ setStatus(`Too high (alt=${alt.toFixed(0)}km)`, 'warn'); setOpsStatus(`Too high`); return; }
+  const alt = S.ship.pos.distanceTo(moon.pos) - moon.R;
+  if (alt > 5000){ setStatus(`Too high (alt=${alt.toFixed(0)}km)`, 'warn'); setOpsStatus('Too high'); return; }
   S.ship.refFrame = 'moon';
-  const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
-  const vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat);
-  const vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad));
-  const vTanMag = vTanVec.length();
-  const dvTan = Math.max(0, vTanMag - 0.01);
-  const dvRad = Math.max(0, vRad);
+
+  /* 접선 성분 제거 (수직 낙하 유도) */
+  const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
+  const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
+  const dvTan = Math.max(0, vTanMag - 0.01), dvRad = Math.max(0, vRad);
   const dvVec = new THREE.Vector3();
   if (dvTan > 0 && vTanMag > 0) dvVec.addScaledVector(vTanVec.clone().normalize(), -dvTan);
   if (dvRad > 0) dvVec.addScaledVector(rHat, -dvRad);
-  const dvMag = dvVec.length() * 1000;
-  const mass = S.ship.dry + S.ship.fuel;
-  const ve = S.ship.isp * G0;
+  const dvMag = dvVec.length() * 1000, mass = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
   const fuelNeed = mass * (1 - Math.exp(-dvMag / ve));
-  if (fuelNeed > S.ship.fuel){ setStatus(`BRAKE no fuel`, 'err'); setOpsStatus('Not enough fuel'); return; }
+  if (fuelNeed > S.ship.fuel){ setStatus('BRAKE no fuel', 'err'); setOpsStatus('Not enough fuel'); return; }
   S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-  S.landingActive = true;
-  S.landingPhase = 'descending';
-  S._lastLandLog = 0;
-  setStatus(`BRAKE: dV=${dvMag.toFixed(0)} m/s at ${alt.toFixed(0)}km. P-Ctrl engaged.`, 'phys');
+
+  /* ★ WARP 자동 감속 */
+  S._savedWarp = S.sim.warp;
+  if (S.sim.warp > 60){
+    S.sim.warp = 60;
+    const wSel = $('warp'); if (wSel) wSel.value = '60';
+    setStatus('WARP → 60× (착륙 정밀 제어)', 'sys');
+  }
+
+  S.landingActive = true; S.landingPhase = 'descending'; S._lastLandLog = 0;
+  setStatus(`BRAKE: dV=${dvMag.toFixed(0)} m/s at ${alt.toFixed(0)}km. Margin ctrl engaged.`, 'phys');
   setOpsStatus(`Descending from ${alt.toFixed(0)} km.`);
 }
 
-/* ★ P-제어기: 연속 스로틀 */
+/* ★ Margin-based suicide burn: stopping distance × 1.5 안전 마진 */
 function applyLandingControl(){
   if (!S.landingActive || S.ship.landed || S.ship.crashed) return;
   const moon = S.bodies.moon; if (!moon) return;
   const r = S.ship.pos.clone().sub(moon.pos);
   const d = r.length(); const alt = d - moon.R;
   if (alt < 0.001){ S.ship.throttle = 0; return; }
-  
   const vRel = S.ship.vel.clone().sub(moon.vel);
   const mass = S.ship.dry + S.ship.fuel;
   if (mass <= 0){ S.ship.throttle = 0; return; }
-  
+
   const thrustN = S.ship.thrustKN * 1000;
   const aThrust = (thrustN / mass) * 1e-3;
   const gLocal = moon.mu / (d * d);
-  
+  const aNet = Math.max(0.0001, aThrust - gLocal);
+
   const rHat = r.clone().normalize();
   const vRad = vRel.dot(rHat);
   const vDown = Math.max(0, -vRad);
-  
-  /* P-제어: 필요한 감속도 = g + vDown²/(2·alt) */
-  const aRequired = gLocal + (vDown * vDown) / (2 * Math.max(alt, 0.001));
-  let throttleCmd = (aRequired / aThrust) * 100;
-  throttleCmd = Math.max(0, Math.min(100, throttleCmd));
-  
-  if (alt < 0.5 && vDown < 0.03){
-    S.ship.burnDir = 'radial';
-    S.ship.throttle = Math.max(0, Math.min(100, throttleCmd * 0.8));
-    S.landingPhase = 'final';
-  } else {
+
+  /* 감속 필요 거리 × 1.5 (50% 안전 마진) */
+  const stoppingDist = (vDown * vDown) / (2 * aNet);
+  const requiredAlt = stoppingDist * 1.5;
+  const marginRatio = alt / Math.max(0.001, requiredAlt);
+
+  if (marginRatio <= 1.0 && vDown > 0.001){
+    /* 안전 마진 이내 → 브레이크 */
+    if (marginRatio < 0.5) S.ship.throttle = 100;
+    else S.ship.throttle = Math.min(100, (1 - marginRatio) * 200);
     S.ship.burnDir = 'retrograde';
-    S.ship.throttle = throttleCmd;
-    S.landingPhase = throttleCmd > 30 ? 'burning' : 'descending';
+    S.landingPhase = 'burning';
+  } else if (alt < 0.5 && vDown < 0.03){
+    S.ship.burnDir = 'radial'; S.ship.throttle = 40; S.landingPhase = 'final';
+  } else {
+    S.ship.throttle = 0; S.ship.burnDir = 'retrograde'; S.landingPhase = 'falling';
   }
-  
-  if (!S._lastLandLog || performance.now() - S._lastLandLog > 1500){
+
+  if (!S._lastLandLog || performance.now() - S._lastLandLog > 1000){
     S._lastLandLog = performance.now();
-    console.log(`[landing] alt=${alt.toFixed(1)}km vDown=${(vDown*1000).toFixed(0)} aReq=${(aRequired*1000).toFixed(1)} aThr=${(aThrust*1000).toFixed(1)} thr=${S.ship.throttle.toFixed(0)}%`);
-    setOpsStatus(`ALT ${alt.toFixed(1)}km | V ${(vDown*1000).toFixed(0)} | thr ${S.ship.throttle.toFixed(0)}%`);
+    console.log(`[landing] ${S.landingPhase} alt=${alt.toFixed(2)}km vDown=${(vDown*1000).toFixed(0)} stopReq=${(requiredAlt).toFixed(2)}km margin=${(marginRatio*100).toFixed(0)}% thr=${S.ship.throttle.toFixed(0)}%`);
+    setOpsStatus(`ALT ${alt.toFixed(1)}km | V ${(vDown*1000).toFixed(0)} | ${S.landingPhase} ${S.ship.throttle.toFixed(0)}%`);
   }
 }
 
 /* =====[ PART 12 ] CSV ===================== */
 function logRow(){
-  S.csvLog.push({
-    t: S.sim.t, date: new Date((S.sim.t0 + S.sim.t)*1000).toISOString(),
-    x: S.ship.pos.x, y: S.ship.pos.y, z: S.ship.pos.z,
-    vx: S.ship.vel.x, vy: S.ship.vel.y, vz: S.ship.vel.z,
-    mass: S.ship.dry + S.ship.fuel, fuel: S.ship.fuel, dv: S.ship.dvUsed,
-  });
+  S.csvLog.push({ t: S.sim.t, date: new Date((S.sim.t0 + S.sim.t)*1000).toISOString(),
+    x: S.ship.pos.x, y: S.ship.pos.y, z: S.ship.pos.z, vx: S.ship.vel.x, vy: S.ship.vel.y, vz: S.ship.vel.z,
+    mass: S.ship.dry + S.ship.fuel, fuel: S.ship.fuel, dv: S.ship.dvUsed });
   if (S.csvLog.length > 50000) S.csvLog.shift();
 }
 function exportCSV(){
   if (S.csvLog.length === 0){ setStatus('No CSV', 'warn'); return; }
   const header = 'sim_t,date,x,y,z,vx,vy,vz,mass,fuel,dv\n';
-  const body = S.csvLog.map(r =>
-    `${r.t.toFixed(2)},${r.date},${r.x.toFixed(2)},${r.y.toFixed(2)},${r.z.toFixed(2)},${r.vx.toFixed(5)},${r.vy.toFixed(5)},${r.vz.toFixed(5)},${r.mass.toFixed(0)},${r.fuel.toFixed(0)},${r.dv.toFixed(1)}`
-  ).join('\n');
+  const body = S.csvLog.map(r => `${r.t.toFixed(2)},${r.date},${r.x.toFixed(2)},${r.y.toFixed(2)},${r.z.toFixed(2)},${r.vx.toFixed(5)},${r.vy.toFixed(5)},${r.vz.toFixed(5)},${r.mass.toFixed(0)},${r.fuel.toFixed(0)},${r.dv.toFixed(1)}`).join('\n');
   const blob = new Blob([header + body], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'celestium_' + Date.now() + '.csv';
-  a.click(); setStatus(`CSV: ${S.csvLog.length} rows`, 'ok');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'celestium_' + Date.now() + '.csv'; a.click();
+  setStatus(`CSV: ${S.csvLog.length} rows`, 'ok');
 }
 
 /* =====[ PART 13 ] 람베르트 ===================== */
@@ -1064,18 +967,16 @@ function stumpffS(z){
 function lambertSolver(r1, r2, dt, mu, prograde){
   const r1m = r1.length(), r2m = r2.length();
   if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0) return null;
-  let cosDth = r1.dot(r2) / (r1m * r2m);
-  cosDth = Math.max(-1, Math.min(1, cosDth));
+  let cosDth = Math.max(-1, Math.min(1, r1.dot(r2) / (r1m * r2m)));
   const h = r1.clone().cross(r2);
   let dth = Math.acos(cosDth);
-  if (prograde){ if (h.z < 0) dth = 2*Math.PI - dth; }
-  else { if (h.z >= 0) dth = 2*Math.PI - dth; }
+  if (prograde){ if (h.z < 0) dth = 2*Math.PI - dth; } else { if (h.z >= 0) dth = 2*Math.PI - dth; }
   const A = Math.sin(dth) * Math.sqrt(r1m * r2m / (1 - cosDth));
   if (Math.abs(A) < 1e-6) return null;
   const sqrtMu = Math.sqrt(mu);
   function yOfZ(z){ const c = stumpffC(z); if (c <= 1e-14) return -1; return r1m + r2m + A * (z * stumpffS(z) - 1) / Math.sqrt(c); }
-  function FofZ(z){ const c = stumpffC(z); if (c <= 1e-14) return NaN; const s = stumpffS(z); const yv = yOfZ(z); if (yv < 0) return NaN; return Math.pow(yv / c, 1.5) * s + A * Math.sqrt(yv) - sqrtMu * dt; }
-  let zLo = null, zHi = null, FLo = 0; let prevZ = null, prevF = null;
+  function FofZ(z){ const c = stumpffC(z); if (c <= 1e-14) return NaN; const s = stumpffS(z), yv = yOfZ(z); if (yv < 0) return NaN; return Math.pow(yv / c, 1.5) * s + A * Math.sqrt(yv) - sqrtMu * dt; }
+  let zLo = null, zHi = null, FLo = 0, prevZ = null, prevF = null;
   for (let z = -60; z <= 400; z += 0.25){
     const fz = FofZ(z);
     if (!isFinite(fz)){ prevZ = z; prevF = null; continue; }
@@ -1089,43 +990,34 @@ function lambertSolver(r1, r2, dt, mu, prograde){
     if (!isFinite(fz)){ z = 0.5 * (z + zHi); continue; }
     if (Math.abs(fz) < 1e-9) break;
     if ((fz > 0) === (FLo > 0)){ zLo = z; FLo = fz; } else { zHi = z; }
-    const nz = 0.5 * (zLo + zHi);
-    if (Math.abs(nz - z) < 1e-13){ z = nz; break; } z = nz;
+    const nz = 0.5 * (zLo + zHi); if (Math.abs(nz - z) < 1e-13){ z = nz; break; } z = nz;
   }
   const yv = yOfZ(z); if (yv < 0) return null;
-  const f = 1 - yv / r1m; const g = A * Math.sqrt(yv / mu); const gdot = 1 - yv / r2m;
+  const f = 1 - yv / r1m, g = A * Math.sqrt(yv / mu), gdot = 1 - yv / r2m;
   if (Math.abs(g) < 1e-12) return null;
-  const v1 = r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g);
-  const v2 = r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g);
-  return { v1, v2, z, dth };
+  return { v1: r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g), v2: r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g), z, dth };
 }
 
 /* =====[ PART 14 ] 전이 계획 ===================== */
 function getBodyStateAt(name, simT){
   if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
   const b = BODY[name]; if (!b) return null;
-  const epochMs = S.sim.t0*1000 + simT*1000;
-  const days = (epochMs - J2000_MS)/(1000*DAY);
+  const days = (S.sim.t0*1000 + simT*1000 - J2000_MS)/(1000*DAY);
   const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
   const st = keplerStateVectors(b.el, muParent, days);
-  if (b.parent !== 'sun'){
-    const parentSt = getBodyStateAt(b.parent, simT);
-    if (parentSt){ st.pos.add(parentSt.pos); st.vel.add(parentSt.vel); }
-  }
+  if (b.parent !== 'sun'){ const ps = getBodyStateAt(b.parent, simT); if (ps){ st.pos.add(ps.pos); st.vel.add(ps.vel); } }
   return st;
 }
 function pickCentralBody(targetName){ return targetName === 'moon' ? 'earth' : 'sun'; }
 function computeBodiesAt(simSec){
-  const epochMs = S.sim.t0*1000 + simSec*1000;
-  const days = (epochMs - J2000_MS)/(1000*DAY);
+  const days = (S.sim.t0*1000 + simSec*1000 - J2000_MS)/(1000*DAY);
   const out = { sun: { pos: new THREE.Vector3(), vel: new THREE.Vector3(), mu: BODY.sun.mu, R: BODY.sun.R } };
   for (const name in BODY){
     if (name === 'sun') continue;
     const b = BODY[name];
     const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
     const st = keplerStateVectors(b.el, muParent, days);
-    const parent = out[b.parent];
-    if (parent){ st.pos.add(parent.pos); st.vel.add(parent.vel); }
+    const parent = out[b.parent]; if (parent){ st.pos.add(parent.pos); st.vel.add(parent.vel); }
     out[name] = { pos: st.pos, vel: st.vel, mu: b.mu, R: b.R };
   }
   return out;
@@ -1133,8 +1025,7 @@ function computeBodiesAt(simSec){
 function gravityWithBodies(pos, bodies){
   const a = new THREE.Vector3();
   for (const n in bodies){
-    const b = bodies[n];
-    const r = b.pos.clone().sub(pos); const d2 = r.lengthSq(); const d = Math.sqrt(d2);
+    const b = bodies[n], r = b.pos.clone().sub(pos), d2 = r.lengthSq(), d = Math.sqrt(d2);
     if (d < 1e-6) continue;
     if (d < b.R) a.addScaledVector(r.normalize(), b.mu * d / (b.R*b.R*b.R));
     else a.addScaledVector(r.normalize(), b.mu / d2);
@@ -1142,17 +1033,17 @@ function gravityWithBodies(pos, bodies){
   return a;
 }
 function rk4StepShadow(pos, vel, bodies, dt){
-  const v0 = vel.clone();
-  const a0 = gravityWithBodies(pos, bodies);
-  const p2 = pos.clone().addScaledVector(v0, dt/2); const v2 = vel.clone().addScaledVector(a0, dt/2);
+  const v0 = vel.clone(), a0 = gravityWithBodies(pos, bodies);
+  const p2 = pos.clone().addScaledVector(v0, dt/2), v2 = vel.clone().addScaledVector(a0, dt/2);
   const a1 = gravityWithBodies(p2, bodies);
-  const p3 = pos.clone().addScaledVector(v2, dt/2); const v3 = vel.clone().addScaledVector(a1, dt/2);
+  const p3 = pos.clone().addScaledVector(v2, dt/2), v3 = vel.clone().addScaledVector(a1, dt/2);
   const a2 = gravityWithBodies(p3, bodies);
-  const p4 = pos.clone().addScaledVector(v3, dt); const v4 = vel.clone().addScaledVector(a2, dt);
+  const p4 = pos.clone().addScaledVector(v3, dt), v4 = vel.clone().addScaledVector(a2, dt);
   const a3 = gravityWithBodies(p4, bodies);
-  const newPos = pos.clone().addScaledVector(v0, dt/6).addScaledVector(v2, dt/3).addScaledVector(v3, dt/3).addScaledVector(v4, dt/6);
-  const newVel = vel.clone().addScaledVector(a0, dt/6).addScaledVector(a1, dt/3).addScaledVector(a2, dt/3).addScaledVector(a3, dt/6);
-  return { pos: newPos, vel: newVel };
+  return {
+    pos: pos.clone().addScaledVector(v0, dt/6).addScaledVector(v2, dt/3).addScaledVector(v3, dt/3).addScaledVector(v4, dt/6),
+    vel: vel.clone().addScaledVector(a0, dt/6).addScaledVector(a1, dt/3).addScaledVector(a2, dt/3).addScaledVector(a3, dt/6),
+  };
 }
 function shadowPropagateTrackMin(startPos, startVel, tStart, tofSec, trackName){
   let pos = startPos.clone(), vel = startVel.clone(), t = 0;
@@ -1164,46 +1055,39 @@ function shadowPropagateTrackMin(startPos, startVel, tStart, tofSec, trackName){
     let dtC = 120;
     for (const n in bodies){
       if (n === 'sun') continue;
-      const b = bodies[n]; const d = pos.distanceTo(b.pos);
-      const vR = vel.clone().sub(b.vel).length();
-      const dtS = (d / Math.max(vR, 1e-3)) / 60;
-      if (dtS < dtC) dtC = dtS;
+      const b = bodies[n], d = pos.distanceTo(b.pos), vR = vel.clone().sub(b.vel).length();
+      const dtS = (d / Math.max(vR, 1e-3)) / 60; if (dtS < dtC) dtC = dtS;
     }
     let dt = Math.max(1, Math.min(120, dtC)); dt = Math.min(dt, tofSec - t);
-    const r = rk4StepShadow(pos, vel, bodies, dt);
-    pos = r.pos; vel = r.vel; t += dt;
+    const r = rk4StepShadow(pos, vel, bodies, dt); pos = r.pos; vel = r.vel; t += dt;
   }
   return { pos, vel, minDist, minDistTime };
 }
 function planHohmannExact(targetName, applyBurn){
-  const centralName = pickCentralBody(targetName);
-  const centralNow = getBodyStateAt(centralName, S.sim.t);
-  const mu = BODY[centralName].mu;
-  const r1 = S.ship.pos.distanceTo(centralNow.pos);
+  const centralName = pickCentralBody(targetName), centralNow = getBodyStateAt(centralName, S.sim.t);
+  const mu = BODY[centralName].mu, r1 = S.ship.pos.distanceTo(centralNow.pos);
   let tofSec = 0, r2_mag = 0, targetFuture = null, centralFuture = null;
   for (let iter = 0; iter < 10; iter++){
     targetFuture = getBodyStateAt(targetName, S.sim.t + tofSec);
     centralFuture = getBodyStateAt(centralName, S.sim.t + tofSec);
     const r2v = targetFuture.pos.clone().sub(centralFuture.pos); r2_mag = r2v.length();
-    const a = (r1 + r2_mag) / 2;
-    const newTof = Math.PI * Math.sqrt(a*a*a / mu);
+    const newTof = Math.PI * Math.sqrt(((r1 + r2_mag) / 2)**3 / mu);
     if (Math.abs(newTof - tofSec) < 1) break; tofSec = newTof;
   }
   targetFuture = getBodyStateAt(targetName, S.sim.t + tofSec);
   centralFuture = getBodyStateAt(centralName, S.sim.t + tofSec);
   const r2v = targetFuture.pos.clone().sub(centralFuture.pos); r2_mag = r2v.length();
-  const r2_angle = Math.atan2(r2v.y, r2v.x);
-  const a_transfer = (r1 + r2_mag) / 2;
+  const r2_angle = Math.atan2(r2v.y, r2v.x), a_transfer = (r1 + r2_mag) / 2;
   const shipAngle = r2_angle - Math.PI;
   const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
   const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-  const v_circ = Math.sqrt(mu / r1); const v_peri = Math.sqrt(mu * (2/r1 - 1/a_transfer));
+  const v_circ = Math.sqrt(mu / r1), v_peri = Math.sqrt(mu * (2/r1 - 1/a_transfer));
   const dvMag = (v_peri - v_circ) * 1000;
   const startPos = centralNow.pos.clone().addScaledVector(r1_dir, r1);
   const burnV = centralNow.vel.clone().addScaledVector(vHat, v_peri);
-  const vz_z = r2v.z / tofSec; burnV.z += vz_z;
+  burnV.z += r2v.z / tofSec;
   if (applyBurn){
-    const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+    const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
     const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
     if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return null; }
     S.ship.pos.copy(startPos); S.ship.vel.copy(burnV);
@@ -1212,44 +1096,38 @@ function planHohmannExact(targetName, applyBurn){
     setStatus(`TLI: dV=${dvMag.toFixed(0)} m/s TOF=${(tofSec/DAY).toFixed(2)}d`, 'ok');
     S.transferPlan = null;
   } else {
-    S.transferPlan = { dvMag, targetName, tofDays: tofSec/DAY, err: 0, converged: true,
-      startPos: startPos.clone(), endVel: burnV.clone(), mode: 'hohmann3D' };
+    S.transferPlan = { dvMag, targetName, tofDays: tofSec/DAY, err: 0, converged: true, startPos: startPos.clone(), endVel: burnV.clone(), mode: 'hohmann3D' };
   }
   return { dvMag, err: 0, converged: true, tofDays: tofSec/DAY, mode: 'hohmann3D' };
 }
 function planLambertScan(targetName, tofDays, applyBurn){
-  const centralName = pickCentralBody(targetName);
-  const tofSec = tofDays * DAY; const tStart = S.sim.t;
+  const centralName = pickCentralBody(targetName), tofSec = tofDays * DAY, tStart = S.sim.t;
   const centralNow = getBodyStateAt(centralName, tStart);
   const centralFuture = getBodyStateAt(centralName, tStart + tofSec);
   const targetFuture = getBodyStateAt(targetName, tStart + tofSec);
   if (!centralNow || !centralFuture || !targetFuture){ setStatus('No states', 'err'); return null; }
-  const mu = (centralName === 'sun') ? BODY.sun.mu : BODY[centralName].mu;
-  const r2_target = targetFuture.pos.clone().sub(centralFuture.pos);
+  const mu = BODY[centralName].mu, r2_target = targetFuture.pos.clone().sub(centralFuture.pos);
   const r2_angle = Math.atan2(r2_target.y, r2_target.x);
   if (centralName !== 'earth'){
     const r1_rel = S.ship.pos.clone().sub(centralNow.pos);
     const sol = lambertSolver(r1_rel, r2_target, tofSec, mu, true);
     if (!sol){ setStatus('No Lambert', 'err'); return null; }
-    const v1i = sol.v1.clone().add(centralNow.vel);
-    const dvMag = v1i.clone().sub(S.ship.vel).length() * 1000;
+    const v1i = sol.v1.clone().add(centralNow.vel), dvMag = v1i.clone().sub(S.ship.vel).length() * 1000;
     if (applyBurn){
-      const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+      const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
       const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
       if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return null; }
       S.ship.vel.copy(v1i); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
       setStatus(`LAMBERT: dV=${dvMag.toFixed(0)} m/s`, 'ok'); S.transferPlan = null;
     } else {
-      S.transferPlan = { dvMag, targetName, tofDays, err: 0, converged: true,
-        startPos: S.ship.pos.clone(), endVel: v1i.clone(), mode: 'lambert' };
+      S.transferPlan = { dvMag, targetName, tofDays, err: 0, converged: true, startPos: S.ship.pos.clone(), endVel: v1i.clone(), mode: 'lambert' };
     }
     return { dvMag, err: 0, converged: true, mode: 'lambert', tofDays };
   }
-  const startR = S.ship.pos.distanceTo(centralNow.pos);
-  const v_circ = Math.sqrt(mu / startR);
+  const startR = S.ship.pos.distanceTo(centralNow.pos), v_circ = Math.sqrt(mu / startR);
   const offsets = [];
-  for (let d = 0.3; d <= 3; d += 0.3) { offsets.push(d); offsets.push(-d); }
-  for (let d = 4; d <= 10; d += 1) { offsets.push(d); offsets.push(-d); }
+  for (let d = 0.3; d <= 3; d += 0.3){ offsets.push(d); offsets.push(-d); }
+  for (let d = 4; d <= 10; d += 1){ offsets.push(d); offsets.push(-d); }
   let best = null;
   for (const d of offsets){
     const angle = r2_angle - Math.PI + d * DEG;
@@ -1261,12 +1139,12 @@ function planLambertScan(targetName, tofDays, applyBurn){
     const shipV = centralNow.vel.clone().addScaledVector(vHat, v_circ);
     const v1i = sol.v1.clone().add(centralNow.vel);
     const dv = v1i.clone().sub(shipV).length() * 1000;
-    if (!best || dv < best.dv) best = { dv, angle, r1_rel: r1_rel.clone(), v1i: v1i.clone(), shipV: shipV.clone() };
+    if (!best || dv < best.dv) best = { dv, angle, r1_rel: r1_rel.clone(), v1i: v1i.clone() };
   }
   if (!best){ setStatus('No Lambert', 'err'); return null; }
   const startPos = centralNow.pos.clone().add(best.r1_rel);
   if (applyBurn){
-    const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+    const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
     const fuelNeed = m0 * (1 - Math.exp(-best.dv / ve));
     if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return null; }
     S.ship.pos.copy(startPos); S.ship.vel.copy(best.v1i);
@@ -1274,29 +1152,23 @@ function planLambertScan(targetName, tofDays, applyBurn){
     S.trailPos.length = 0; lastTrailPos.copy(S.ship.pos);
     setStatus(`LAMBERT: dV=${best.dv.toFixed(0)} m/s`, 'ok'); S.transferPlan = null;
   } else {
-    S.transferPlan = { dvMag: best.dv, targetName, tofDays, err: 0, converged: true,
-      startPos: startPos.clone(), endVel: best.v1i.clone(), mode: 'lambert' };
+    S.transferPlan = { dvMag: best.dv, targetName, tofDays, err: 0, converged: true, startPos: startPos.clone(), endVel: best.v1i.clone(), mode: 'lambert' };
   }
   return { dvMag: best.dv, err: 0, converged: true, mode: 'lambert', tofDays };
 }
 function planTransferSmart(targetName, tofDays, applyBurn){
   S.sim.paused = true;
   const playBtn = $('play'); if (playBtn) playBtn.textContent = 'PLAY';
-  const centralName = pickCentralBody(targetName);
-  const centralNow = getBodyStateAt(centralName, S.sim.t);
-  const tgtNow = getBodyStateAt(targetName, S.sim.t);
-  const mu = BODY[centralName].mu;
-  const r1 = S.ship.pos.distanceTo(centralNow.pos);
-  const r2 = tgtNow.pos.distanceTo(centralNow.pos);
-  const a_h = (r1 + r2) / 2;
-  const hohmannTofDays = Math.PI * Math.sqrt(a_h*a_h*a_h / mu) / DAY;
+  const centralName = pickCentralBody(targetName), centralNow = getBodyStateAt(centralName, S.sim.t);
+  const tgtNow = getBodyStateAt(targetName, S.sim.t), mu = BODY[centralName].mu;
+  const r1 = S.ship.pos.distanceTo(centralNow.pos), r2 = tgtNow.pos.distanceTo(centralNow.pos);
+  const hohmannTofDays = Math.PI * Math.sqrt(((r1+r2)/2)**3 / mu) / DAY;
   const ratio = tofDays / hohmannTofDays;
   if (ratio > 0.9 && ratio < 1.1) return planHohmannExact(targetName, applyBurn);
   else return planLambertScan(targetName, tofDays, applyBurn);
 }
 function handlePlanTransfer(){
-  const target = ($('tpTarget')?.value) || 'moon';
-  const tof = parseFloat($('tpTof')?.value) || 5;
+  const target = ($('tpTarget')?.value) || 'moon', tof = parseFloat($('tpTof')?.value) || 5;
   const r = planTransferSmart(target, tof, false);
   if (!r){ setStatus('Plan failed', 'err'); return; }
   updateTransferPlanUI();
@@ -1307,17 +1179,15 @@ function executeTransferBurn(){
   const scheduleMCC = (tofDays, targetName) => {
     S.mccSchedule = { atSimTime: S.sim.t + 0.5 * DAY, targetName, arrivalSimTime: S.sim.t + tofDays * DAY, executed: false };
     S.missionState = { soiEntered: false, soiAt: 0, minMoonDist: Infinity, loiDone: false, autoLOI: true };
-    setStatus(`MCC at T+0.5d, arrival T+${tofDays.toFixed(2)}d`, 'sys');
   };
   if (!plan){
-    const target = ($('tpTarget')?.value) || 'moon';
-    const tof = parseFloat($('tpTof')?.value) || 5;
+    const target = ($('tpTarget')?.value) || 'moon', tof = parseFloat($('tpTof')?.value) || 5;
     const r = planTransferSmart(target, tof, true);
     if (!r){ setStatus('Burn failed', 'err'); return; }
     if (r.tofDays) scheduleMCC(r.tofDays, target);
     updateTransferPlanUI(); return;
   }
-  const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+  const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag / ve));
   if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return; }
   S.ship.pos.copy(plan.startPos); S.ship.vel.copy(plan.endVel);
@@ -1329,36 +1199,25 @@ function executeTransferBurn(){
 }
 function updateTransferPlanUI(){
   const plan = S.transferPlan;
-  if (!plan){
-    const el = $('tpResult'); if (el) el.style.display = 'none';
-    const ex = $('tpExecute'); if (ex) ex.style.display = 'none';
-    return;
-  }
+  if (!plan){ const el = $('tpResult'); if (el) el.style.display = 'none'; const ex = $('tpExecute'); if (ex) ex.style.display = 'none'; return; }
   const el = $('tpResult'); if (el) el.style.display = 'block';
   const ex = $('tpExecute'); if (ex) ex.style.display = 'block';
   setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
   setText('tpDir', plan.mode);
-  const arrivalDate = new Date((S.sim.t0 + S.sim.t + plan.tofDays*DAY)*1000);
-  setText('tpArr', arrivalDate.toISOString().slice(0,10) + ' (' + plan.tofDays.toFixed(2) + ' d)');
+  setText('tpArr', new Date((S.sim.t0 + S.sim.t + plan.tofDays*DAY)*1000).toISOString().slice(0,10) + ' (' + plan.tofDays.toFixed(2) + ' d)');
 }
 
 /* =====[ PART 15 ] MCC + SOI + LOI ===================== */
-let lastFrame = performance.now();
-let lastLogTime = 0;
-let lastDiagTime = 0;
+let lastFrame = performance.now(), lastLogTime = 0, lastDiagTime = 0;
 function executeMCC(){
-  const mcc = S.mccSchedule;
-  if (!mcc || mcc.executed) return; mcc.executed = true;
+  const mcc = S.mccSchedule; if (!mcc || mcc.executed) return; mcc.executed = true;
   const centralName = pickCentralBody(mcc.targetName);
-  const remaining = mcc.arrivalSimTime - S.sim.t;
-  if (remaining <= 0){ setStatus('MCC skip', 'warn'); return; }
+  const remaining = mcc.arrivalSimTime - S.sim.t; if (remaining <= 0){ setStatus('MCC skip', 'warn'); return; }
   const centralNow = getBodyStateAt(centralName, S.sim.t);
   const centralFuture = getBodyStateAt(centralName, mcc.arrivalSimTime);
   const targetFuture = getBodyStateAt(mcc.targetName, mcc.arrivalSimTime);
-  const mu = BODY[centralName].mu;
-  const currentPos = S.ship.pos.clone(); const currentVel = S.ship.vel.clone();
-  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos);
-  const r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
+  const mu = BODY[centralName].mu, currentPos = S.ship.pos.clone(), currentVel = S.ship.vel.clone();
+  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos), r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
   const perp = new THREE.Vector3(-Math.sin(r2_angle), Math.cos(r2_angle), 0);
   const targetPerilune = BODY[mcc.targetName].R + 500;
   const offsetsToTry = [500, 1000, 1500, 2000, 3000, 4000, -500, -1000, -1500, -2000, -3000, -4000];
@@ -1375,51 +1234,39 @@ function executeMCC(){
     if (!best || miss < best.miss) best = { dvVec: v1i.clone().sub(currentVel), dvMag, miss, minDist: shadow.minDist, offset };
   }
   if (!best){ setStatus('MCC: no solution', 'warn'); return; }
-  const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+  const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
   const fuelNeed = m0 * (1 - Math.exp(-best.dvMag / ve));
   if (fuelNeed > S.ship.fuel){ setStatus('MCC: no fuel', 'err'); return; }
   S.ship.vel.add(best.dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += best.dvMag;
   setStatus(`MCC: dV=${best.dvMag.toFixed(0)} m/s perilune=${best.minDist.toFixed(0)}km`, 'phys');
 }
 function checkLunarApproach(){
-  const moon = S.bodies.moon;
-  if (!moon || S.ship.landed || S.ship.crashed) return;
-  const d = S.ship.pos.distanceTo(moon.pos); const SOI = 66100;
+  const moon = S.bodies.moon; if (!moon || S.ship.landed || S.ship.crashed) return;
+  const d = S.ship.pos.distanceTo(moon.pos), SOI = 66100;
   if (!S.missionState.soiEntered && d < SOI){
     S.missionState.soiEntered = true; S.missionState.soiAt = S.sim.t;
-    if (S.sim.warp > 3600){
-      S.sim.warp = 3600;
-      const wSel = $('warp'); if (wSel) wSel.value = '3600';
-      setStatus('WARP → 3,600×', 'sys');
-    }
+    if (S.sim.warp > 3600){ S.sim.warp = 3600; const wSel = $('warp'); if (wSel) wSel.value = '3600'; setStatus('WARP → 3,600×', 'sys'); }
     setStatus(`MOON SOI d=${d.toFixed(0)}km`, 'phys');
   }
   if (S.missionState.soiEntered && d < S.missionState.minMoonDist) S.missionState.minMoonDist = d;
   if (S.missionState.autoLOI && S.missionState.soiEntered && !S.missionState.loiDone){
-    const rHat = S.ship.pos.clone().sub(moon.pos).normalize();
-    const vRel = S.ship.vel.clone().sub(moon.vel);
-    const vRad = vRel.dot(rHat);
-    const vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad));
-    const vTanMag = vTanVec.length();
+    const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
+    const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
     const vCirc = Math.sqrt(moon.mu / d);
     let predictedPerilune = d;
     const vEsc = Math.sqrt(2 * moon.mu / d);
     if (vRel.length() < vEsc){
       const E = 0.5 * vRel.lengthSq() - moon.mu / d;
       if (E < 0){
-        const hMag = d * vTanMag;
-        const a = -moon.mu / (2*E);
-        const e = Math.sqrt(Math.max(0, 1 - hMag*hMag/(moon.mu*a)));
+        const hMag = d * vTanMag, a = -moon.mu / (2*E), e = Math.sqrt(Math.max(0, 1 - hMag*hMag/(moon.mu*a)));
         predictedPerilune = a * (1 - e);
       }
     }
     const shouldFire = vRad < 0 && (d < 5000 || (d < 20000 && predictedPerilune > moon.R * 5));
     if (shouldFire && vTanMag > 0.05 && d > moon.R + 300){
-      const newVRel = vTanVec.clone().normalize().multiplyScalar(vCirc);
-      const dvVec = newVRel.clone().sub(vRel);
-      const dvMag = dvVec.length() * 1000;
+      const newVRel = vTanVec.clone().normalize().multiplyScalar(vCirc), dvVec = newVRel.clone().sub(vRel), dvMag = dvVec.length() * 1000;
       if (dvMag < 5){ S.missionState.loiDone = true; S.missionState.autoLOI = false; return; }
-      const m0 = S.ship.dry + S.ship.fuel; const ve = S.ship.isp * G0;
+      const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
       const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
       if (fuelNeed > S.ship.fuel){ setStatus('LOI: no fuel', 'err'); S.missionState.autoLOI = false; return; }
       S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
@@ -1430,13 +1277,12 @@ function checkLunarApproach(){
   }
 }
 
-/* =====[ PART 16 ] AI AUTOPILOT (진단 로그) ===================== */
+/* =====[ PART 16 ] AI (커리큘럼 + gradient 보상) ===================== */
 const AI = {
   NN_IN: 6, NN_HID: 12, NN_OUT: 1, DNA_LEN: 6*12 + 12*1,
-  population: [], generation: 0,
-  bestDNA: null, bestScore: -Infinity,
+  population: [], generation: 0, bestDNA: null, bestScore: -Infinity,
   training: false, live: false,
-  POP_SIZE: 40, GENERATIONS: 35, ELITISM: 4,
+  POP_SIZE: 40, GENERATIONS: 40, ELITISM: 4,
   _debugged: false, _debugged2: false, _lastStats: null,
 };
 function aiRandomDNA(){ const d = new Float32Array(AI.DNA_LEN); for (let i = 0; i < AI.DNA_LEN; i++) d[i] = (Math.random()*2 - 1) * 0.5; return d; }
@@ -1446,18 +1292,20 @@ function aiForward(dna, inputs){
   let s = 0; for (let i = 0; i < AI.NN_HID; i++) s += h[i] * dna[k++];
   return 1 / (1 + Math.exp(-s));
 }
+/* ★ 커리큘럼: 500m → 20km. 초기 난이도 매우 낮음 */
 function aiTrainingStates(gen){
   const R = 1737.4, dry = S.ship.dry;
   const fuel0 = (S.ship.fuel0 > 0) ? S.ship.fuel0 : 110000;
   const thrustN = (S.ship.thrustKN > 0) ? S.ship.thrustKN * 1000 : 1000000;
   const isp = (S.ship.isp > 0) ? S.ship.isp : 421;
-  const progress = Math.min(1, gen / 20);
-  const scale = 0.3 + 0.7 * progress;
+  const progress = Math.min(1, gen / 25);
+  const scale = 0.025 + 0.975 * progress;  // 0.025 → 1.0
+  const baseAlt = 20 * scale;  // km: 0.5 → 20
   return [
-    { r: R + 20 + 30*scale, vr: -5 - 5*scale,  vt: 10 + 20*scale, fuel: fuel0,         dryMass: dry, thrustN, isp },
-    { r: R + 30 + 40*scale, vr: -8 - 7*scale,  vt: 15 + 25*scale, fuel: fuel0 * 0.9,   dryMass: dry, thrustN, isp },
-    { r: R + 40 + 50*scale, vr: -10 - 10*scale, vt: 20 + 30*scale, fuel: fuel0 * 0.8,   dryMass: dry, thrustN, isp },
-    { r: R + 50 + 50*scale, vr: -12 - 13*scale, vt: 25 + 35*scale, fuel: fuel0 * 0.7,   dryMass: dry, thrustN, isp },
+    { r: R + baseAlt, vr: -(1 + 9 * progress), vt: 0, fuel: fuel0, dryMass: dry, thrustN, isp },
+    { r: R + baseAlt * 1.5, vr: -(1.2 + 10 * progress), vt: 0, fuel: fuel0, dryMass: dry, thrustN, isp },
+    { r: R + baseAlt * 2, vr: -(1.5 + 12 * progress), vt: 5 * progress, fuel: fuel0 * 0.9, dryMass: dry, thrustN, isp },
+    { r: R + baseAlt * 3, vr: -(2 + 13 * progress), vt: 10 * progress, fuel: fuel0 * 0.8, dryMass: dry, thrustN, isp },
   ];
 }
 function aiShadowSim(dna, init){
@@ -1469,35 +1317,28 @@ function aiShadowSim(dna, init){
   let minAlt = r - moonR;
   let safety = 20000;
   let iterCount = 0;
-  
   if (!AI._debugged){
     AI._debugged = true;
-    console.log(`[AI debug] sim start: alt=${(r - moonR).toFixed(1)}km vr=${vr} vt=${vt} fuel=${fuel} dry=${dryMass} thrustN=${thrustN} isp=${isp}`);
+    console.log(`[AI debug] sim start: alt=${(r-moonR).toFixed(2)}km vr=${vr.toFixed(1)} vt=${vt.toFixed(1)} fuel=${fuel.toFixed(0)} thrustN=${thrustN}`);
   }
-  
   while (t < tMax && safety-- > 0){
     iterCount++;
     const alt = r - moonR;
     if (alt < minAlt) minAlt = alt;
-    
     if (alt <= 0){
       const vTotal = Math.sqrt(vr*vr + vt*vt) * 1000;
-      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: ${vTotal < 5 ? 'LANDED' : 'CRASHED'} v=${vTotal.toFixed(0)}m/s iter=${iterCount}`); }
+      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim: ${vTotal<5?'LANDED':'CRASHED'} v=${vTotal.toFixed(0)}m/s iter=${iterCount}`); }
       return { landed: vTotal < 5, crashed: vTotal >= 5, vTouch: vTotal, fuelUsed: fuel0 - fuel, time: t, minAlt: 0 };
     }
     if (fuel <= 0){
-      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: OUT_OF_FUEL at alt=${alt.toFixed(1)}km iter=${iterCount}`); }
+      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim: OUT_OF_FUEL alt=${alt.toFixed(1)} iter=${iterCount}`); }
       return { landed: false, crashed: false, outOfFuel: true, fuelUsed: fuel0, time: t, minAlt };
     }
     const mass = dryMass + fuel;
-    if (mass <= 0 || !isFinite(mass)){
-      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: BAD_MASS iter=${iterCount}`); }
-      return { landed: false, crashed: true, vTouch: 999, fuelUsed: fuel0, time: t, minAlt };
-    }
-    
+    if (mass <= 0 || !isFinite(mass)) return { landed: false, crashed: true, vTouch: 999, fuelUsed: fuel0, time: t, minAlt };
     const gLocal = mu / (r*r), gSurf = mu / (moonR*moonR);
     const inputs = [
-      Math.min(1, alt / 100),
+      Math.min(1, alt / Math.max(1, 20)),           // 정규화: 0-20km
       Math.max(-1, Math.min(1, vr / 100)),
       Math.min(1, Math.abs(vt) / 100),
       fuel / fuel0,
@@ -1506,7 +1347,6 @@ function aiShadowSim(dna, init){
     ];
     const throttle = aiForward(dna, inputs);
     const fuelBurn = (thrustN * throttle / (isp * g0)) / 1000;
-    
     function deriv(r_, vr_, vt_, f_){
       const m_ = dryMass + f_;
       if (m_ <= 0) return { dr: vr_, dvr: -mu/(r_*r_), dvt: 0, df: 0 };
@@ -1526,28 +1366,40 @@ function aiShadowSim(dna, init){
     fuel = Math.max(0, fuel + (k1.df + 2*k2.df + 2*k3.df + k4.df) * dt / 6);
     t += dt;
   }
-  if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim end: TIMEOUT iter=${iterCount} alt=${minAlt.toFixed(1)}km`); }
+  if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim: TIMEOUT alt=${minAlt.toFixed(1)}`); }
   return { landed: false, crashed: false, timeout: true, fuelUsed: fuel0 - fuel, time: t, minAlt };
 }
+/* ★ Gradient 보상: v=300까지 유효한 gradient */
 function aiEvaluate(dna, gen){
-  const states = aiTrainingStates(gen); let total = 0;
+  const states = aiTrainingStates(gen);
+  let total = 0;
   const stats = { landed: 0, crashed: 0, outOfFuel: 0, timeout: 0 };
   for (const st of states){
     const res = aiShadowSim(dna, st);
     const initAlt = st.r - 1737.4;
     const progress = Math.max(0, Math.min(1, 1 - res.minAlt / Math.max(1, initAlt)));
     let score;
-    if (res.landed){ score = 1000 + (1 - res.fuelUsed / st.fuel) * 500; stats.landed++; }
-    else if (res.crashed){ score = -Math.min(500, res.vTouch * 5) + progress * 300; stats.crashed++; }
-    else if (res.outOfFuel){ score = -200 + progress * 400; stats.outOfFuel++; }
-    else { score = -300 + progress * 200; stats.timeout++; }
+    if (res.landed){
+      score = 1000 + (1 - res.fuelUsed / st.fuel) * 300;
+      stats.landed++;
+    } else if (res.crashed){
+      // v=0 → +500+200=700, v=100 → +250+200=450, v=200 → 0+200=200, v=300 → -250+200=-50
+      score = Math.max(-500, 500 - res.vTouch * 2.5) + progress * 200;
+      stats.crashed++;
+    } else if (res.outOfFuel){
+      score = -300;
+      stats.outOfFuel++;
+    } else {
+      score = -400;
+      stats.timeout++;
+    }
     total += score;
   }
   AI._lastStats = stats;
   return total / states.length;
 }
 function aiCrossover(a, b){
-  const c = new Float32Array(AI.DNA_LEN); const cut = Math.floor(Math.random() * AI.DNA_LEN);
+  const c = new Float32Array(AI.DNA_LEN), cut = Math.floor(Math.random() * AI.DNA_LEN);
   for (let i = 0; i < AI.DNA_LEN; i++) c[i] = i < cut ? a[i] : b[i];
   return c;
 }
@@ -1557,7 +1409,7 @@ function aiMutate(d, rate, sigma){
   }
 }
 function aiTournament(pop, scores){
-  let bi = Math.floor(Math.random() * pop.length); let bs = scores[bi];
+  let bi = Math.floor(Math.random() * pop.length), bs = scores[bi];
   for (let i = 1; i < 4; i++){ const idx = Math.floor(Math.random() * pop.length); if (scores[idx] > bs){ bs = scores[idx]; bi = idx; } }
   return bi;
 }
@@ -1575,9 +1427,7 @@ async function aiTrain(){
   if (AI.training) return;
   AI.training = true; aiInitPopulation();
   AI._debugged = false; AI._debugged2 = false;
-  
   logMsg('data', `[AI] config: fuel0=${S.ship.fuel0} dry=${S.ship.dry} thrustKN=${S.ship.thrustKN} isp=${S.ship.isp}`);
-  
   const trainBtn = $('aiTrain'), stopBtn = $('aiStop'), landBtn = $('aiLand');
   if (trainBtn) trainBtn.disabled = true;
   if (stopBtn) stopBtn.style.display = 'block';
@@ -1585,28 +1435,23 @@ async function aiTrain(){
   setStatus('[AI] Training started', 'ga');
   setText('aiText', 'Training...');
   const tStart = performance.now();
-  
   for (let gen = 0; gen < AI.GENERATIONS; gen++){
     if (!AI.training) break;
     const scores = AI.population.map(d => aiEvaluate(d, gen));
     let bi = 0; for (let i = 1; i < scores.length; i++) if (scores[i] > scores[bi]) bi = i;
     if (scores[bi] > AI.bestScore){ AI.bestScore = scores[bi]; AI.bestDNA = AI.population[bi].slice(); }
-    
     const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
     const stats = AI._lastStats || {};
     logMsg('ga', `[AI] Gen ${gen+1}/${AI.GENERATIONS}: best=${scores[bi].toFixed(0)} avg=${avg.toFixed(0)} | L:${stats.landed||0} C:${stats.crashed||0} F:${stats.outOfFuel||0} T:${stats.timeout||0}`);
-    
-    const progress = ((gen+1) / AI.GENERATIONS * 100);
-    const bar = $('aiBar'); if (bar) bar.style.width = progress.toFixed(0) + '%';
+    const bar = $('aiBar'); if (bar) bar.style.width = ((gen+1)/AI.GENERATIONS*100).toFixed(0) + '%';
     setText('aiScore', AI.bestScore.toFixed(0));
     setText('aiText', `Gen ${gen+1}/${AI.GENERATIONS}`);
-    
     await new Promise(r => setTimeout(r, 0));
     if (gen === AI.GENERATIONS - 1) break;
     const nextPop = [];
     const sorted = scores.map((s, i) => ({ s, i })).sort((a, b) => b.s - a.s);
     for (let e = 0; e < AI.ELITISM && e < sorted.length; e++) nextPop.push(AI.population[sorted[e].i].slice());
-    const sigma = Math.max(0.05, 0.3 * Math.exp(-gen/15));
+    const sigma = Math.max(0.05, 0.3 * Math.exp(-gen/20));
     while (nextPop.length < AI.POP_SIZE){
       const a = aiTournament(AI.population, scores), b = aiTournament(AI.population, scores);
       const c = aiCrossover(AI.population[a], AI.population[b]); aiMutate(c, 0.15, sigma); nextPop.push(c);
@@ -1632,18 +1477,16 @@ function aiStopTraining(){
 function aiLiveControl(){
   if (!AI.live || !AI.bestDNA) return;
   const moon = S.bodies.moon; if (!moon) return;
-  const r = S.ship.pos.clone().sub(moon.pos); const rMag = r.length(); const alt = rMag - moon.R;
+  const r = S.ship.pos.clone().sub(moon.pos), rMag = r.length(), alt = rMag - moon.R;
   if (alt <= 0) return;
-  if (alt > 100) { S.ship.throttle = 0; return; }
-  const rHat = r.clone().normalize();
-  const vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat);
-  const vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
+  if (alt > 20) { S.ship.throttle = 0; return; }
+  const rHat = r.clone().normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
+  const vRad = vRel.dot(rHat), vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
   const mass = S.ship.dry + S.ship.fuel;
   const gLocal = moon.mu / (rMag*rMag), gSurf = moon.mu / (moon.R*moon.R);
   const fuel0 = (S.ship.fuel0 > 0) ? S.ship.fuel0 : 1;
   const inputs = [
-    Math.min(1, alt / 100),
+    Math.min(1, alt / 20),
     Math.max(-1, Math.min(1, vRad / 100)),
     Math.min(1, vTan / 100),
     S.ship.fuel / fuel0,
@@ -1652,17 +1495,17 @@ function aiLiveControl(){
   ];
   const throttle = aiForward(AI.bestDNA, inputs);
   S.ship.throttle = throttle * 100; S.ship.burnDir = 'retrograde'; S.ship.refFrame = 'moon';
-  if (!AI._lastLog || performance.now() - AI._lastLog > 1500){
+  if (!AI._lastLog || performance.now() - AI._lastLog > 500){
     AI._lastLog = performance.now();
-    console.log(`[AI] alt=${alt.toFixed(1)}km vRad=${(vRad*1000).toFixed(0)} vTan=${(vTan*1000).toFixed(0)} thr=${S.ship.throttle.toFixed(0)}%`);
+    console.log(`[AI] alt=${alt.toFixed(2)}km vRad=${(vRad*1000).toFixed(0)} vTan=${(vTan*1000).toFixed(0)} thr=${S.ship.throttle.toFixed(0)}%`);
   }
 }
 function aiStartLive(){
   if (!AI.bestDNA){ setStatus('[AI] Train first', 'warn'); return; }
   const moon = S.bodies.moon; if (!moon) return;
   const alt = S.ship.pos.distanceTo(moon.pos) - moon.R;
-  if (alt > 5000){ setStatus(`[AI] Too high (${alt.toFixed(0)}km)`, 'warn'); return; }
-  if (!S.landingActive && alt > 500) startLanding();
+  if (alt > 100){ setStatus(`[AI] Too high (${alt.toFixed(0)}km, need <100km)`, 'warn'); return; }
+  if (!S.landingActive) startLanding();
   AI.live = true; S.ship.refFrame = 'moon';
   setStatus('[AI] Autopilot engaged', 'ok'); setOpsStatus('AI Autopilot active');
   const offBtn = $('aiOff'); if (offBtn) offBtn.style.display = 'block';
@@ -1677,26 +1520,20 @@ function aiStopLive(){
 
 /* =====[ PART 17 ] DATA MANAGER ===================== */
 const DM = {
-  KEY_PREFIX: 'celestium_dm_',
-  MAX_PER_CATEGORY: 3,
+  KEY_PREFIX: 'celestium_dm_', MAX_PER_CATEGORY: 3,
   save(categoryKey, data){
     const fullKey = this.KEY_PREFIX + categoryKey + '_' + Date.now();
-    const entry = { ...data, key: categoryKey, savedAt: Date.now() };
-    try { localStorage.setItem(fullKey, JSON.stringify(entry)); } catch(e){ setStatus('[DM] Save failed: ' + e.message, 'err'); return null; }
-    const all = this.list();
-    const inCategory = all.filter(e => e.key === categoryKey).sort((a,b) => (b.score || 0) - (a.score || 0));
-    if (inCategory.length > this.MAX_PER_CATEGORY){ inCategory.slice(this.MAX_PER_CATEGORY).forEach(e => this.archive(e)); }
+    try { localStorage.setItem(fullKey, JSON.stringify({ ...data, key: categoryKey, savedAt: Date.now() })); } catch(e){ setStatus('[DM] Save failed', 'err'); return; }
+    const inCategory = this.list().filter(e => e.key === categoryKey).sort((a,b) => (b.score||0) - (a.score||0));
+    if (inCategory.length > this.MAX_PER_CATEGORY) inCategory.slice(this.MAX_PER_CATEGORY).forEach(e => this.archive(e));
     logMsg('data', `Saved ${categoryKey} (score ${data.score || '-'})`);
     this.refreshUI();
-    return entry;
   },
   list(){
     const out = [];
     for (let i = 0; i < localStorage.length; i++){
       const k = localStorage.key(i);
-      if (k && k.startsWith(this.KEY_PREFIX) && !k.includes('_archive_')){
-        try { out.push(JSON.parse(localStorage.getItem(k))); } catch(e){}
-      }
+      if (k && k.startsWith(this.KEY_PREFIX) && !k.includes('_archive_')){ try { out.push(JSON.parse(localStorage.getItem(k))); } catch(e){} }
     }
     return out.sort((a,b) => b.savedAt - a.savedAt);
   },
@@ -1704,22 +1541,11 @@ const DM = {
     const out = [];
     for (let i = 0; i < localStorage.length; i++){
       const k = localStorage.key(i);
-      if (k && k.includes('_archive_')){
-        try { const data = JSON.parse(localStorage.getItem(k)); out.push(...(data.entries || [])); } catch(e){}
-      }
+      if (k && k.includes('_archive_')){ try { const d = JSON.parse(localStorage.getItem(k)); out.push(...(d.entries||[])); } catch(e){} }
     }
     return out;
   },
-  load(categoryKey, savedAt){
-    const fullKey = this.KEY_PREFIX + categoryKey + '_' + savedAt;
-    const raw = localStorage.getItem(fullKey);
-    return raw ? JSON.parse(raw) : null;
-  },
-  delete(categoryKey, savedAt){
-    const fullKey = this.KEY_PREFIX + categoryKey + '_' + savedAt;
-    localStorage.removeItem(fullKey);
-    this.refreshUI();
-  },
+  delete(key, savedAt){ localStorage.removeItem(this.KEY_PREFIX + key + '_' + savedAt); this.refreshUI(); },
   archive(entry){
     const monthKey = new Date(entry.savedAt).toISOString().slice(0, 7);
     const archiveKey = this.KEY_PREFIX + 'archive_' + monthKey;
@@ -1730,120 +1556,76 @@ const DM = {
     localStorage.removeItem(this.KEY_PREFIX + entry.key + '_' + entry.savedAt);
   },
   autoCleanup(){
-    const all = this.list();
-    const byCategory = {};
-    for (const e of all){ if (!byCategory[e.key]) byCategory[e.key] = []; byCategory[e.key].push(e); }
-    const maxPerCat = parseInt(($('dmMax')?.value) || 3);
+    const all = this.list(), byCat = {};
+    for (const e of all){ if (!byCat[e.key]) byCat[e.key] = []; byCat[e.key].push(e); }
+    const maxPer = parseInt(($('dmMax')?.value) || 3);
     let archived = 0;
-    for (const k in byCategory){
-      const sorted = byCategory[k].sort((a,b) => (b.score || 0) - (a.score || 0));
-      if (sorted.length > maxPerCat){ sorted.slice(maxPerCat).forEach(e => { this.archive(e); archived++; }); }
-    }
-    logMsg('data', `Auto-cleanup: archived ${archived} items`);
-    this.refreshUI();
+    for (const k in byCat){ const s = byCat[k].sort((a,b) => (b.score||0)-(a.score||0)); if (s.length > maxPer){ s.slice(maxPer).forEach(e => { this.archive(e); archived++; }); } }
+    logMsg('data', `Cleanup: ${archived} archived`); this.refreshUI();
   },
   backup(){
-    const all = this.list(); const archive = this.listArchive();
-    const data = { exportedAt: new Date().toISOString(), items: all, archive };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'celestium_data_' + Date.now() + '.json'; a.click();
+    const all = this.list(), archive = this.listArchive();
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), items: all, archive }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'celestium_data_' + Date.now() + '.json'; a.click();
     logMsg('data', `Backup: ${all.length} items`);
   },
   clearAll(){
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++){
-      const k = localStorage.key(i);
-      if (k && k.startsWith(this.KEY_PREFIX)) keys.push(k);
-    }
-    keys.forEach(k => localStorage.removeItem(k));
-    logMsg('warn', `Cleared ${keys.length} items`);
-    this.refreshUI();
+    const keys = []; for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.startsWith(this.KEY_PREFIX)) keys.push(k); }
+    keys.forEach(k => localStorage.removeItem(k)); logMsg('warn', `Cleared ${keys.length} items`); this.refreshUI();
   },
   refreshUI(){
-    const all = this.list(); const archive = this.listArchive();
+    const all = this.list(), archive = this.listArchive();
     setText('dmCount', all.length); setText('dmArchiveCount', archive.length);
     const listEl = $('dmList'); if (!listEl) return;
     listEl.innerHTML = '';
     if (all.length === 0){ listEl.innerHTML = '<div style="font-size:10px;color:#88ccff;padding:6px;">저장된 데이터 없음</div>'; return; }
-    const sorted = all.slice().sort((a,b) => b.savedAt - a.savedAt);
-    for (const entry of sorted){
-      const div = document.createElement('div');
-      div.className = 'dm-item';
+    for (const entry of all){
+      const div = document.createElement('div'); div.className = 'dm-item';
       const d = new Date(entry.savedAt);
-      const timeStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      div.innerHTML = `
-        <div class="dm-name">${entry.key}</div>
-        <div class="dm-meta">score: ${entry.score || '-'} | ${timeStr}</div>
-        <div class="dm-actions">
-          <button data-load="${entry.key}|${entry.savedAt}">불러오기</button>
-          <button data-delete="${entry.key}|${entry.savedAt}">삭제</button>
-        </div>
-      `;
+      div.innerHTML = `<div class="dm-name">${entry.key}</div><div class="dm-meta">score: ${entry.score || '-'} | ${d.toISOString().slice(0,16).replace('T',' ')}</div><div class="dm-actions"><button data-load="${entry.key}|${entry.savedAt}">불러오기</button><button data-delete="${entry.key}|${entry.savedAt}">삭제</button></div>`;
       listEl.appendChild(div);
     }
-    listEl.querySelectorAll('[data-load]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const [k, t] = btn.getAttribute('data-load').split('|');
-        const entry = DM.load(k, parseInt(t));
-        if (entry && entry.dna) DM.applyToAI(entry);
-      });
-    });
-    listEl.querySelectorAll('[data-delete]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('이 항목을 삭제하시겠습니까?')) return;
-        const [k, t] = btn.getAttribute('data-delete').split('|');
-        DM.delete(k, parseInt(t));
-      });
-    });
-  },
-  applyToAI(entry){
-    if (!entry.dna){ setStatus('No DNA in this entry', 'warn'); return; }
-    AI.bestDNA = new Float32Array(entry.dna);
-    AI.bestScore = entry.score || 0;
-    setText('aiText', `Loaded (score ${entry.score || '-'})`);
-    setText('aiScore', String(entry.score || '-'));
-    const lb = $('aiLand'); if (lb) lb.disabled = false;
-    logMsg('data', `Loaded ${entry.key} → AI active`);
+    listEl.querySelectorAll('[data-load]').forEach(btn => btn.addEventListener('click', () => {
+      const [k, t] = btn.getAttribute('data-load').split('|');
+      const raw = localStorage.getItem(DM.KEY_PREFIX + k + '_' + t);
+      if (!raw) return;
+      const entry = JSON.parse(raw);
+      if (entry.dna){ AI.bestDNA = new Float32Array(entry.dna); AI.bestScore = entry.score || 0;
+        setText('aiText', `Loaded (score ${entry.score || '-'})`); setText('aiScore', String(entry.score || '-'));
+        $('aiLand').disabled = false; logMsg('data', `Loaded ${entry.key}`); }
+    }));
+    listEl.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => {
+      if (!confirm('삭제하시겠습니까?')) return;
+      const [k, t] = btn.getAttribute('data-delete').split('|');
+      DM.delete(k, parseInt(t));
+    }));
   },
   saveCurrentAI(){
-    if (!AI.bestDNA){ setStatus('[DM] No trained DNA', 'warn'); return; }
+    if (!AI.bestDNA){ setStatus('[DM] No DNA', 'warn'); return; }
     const vehicleKey = ($('vehiclePreset')?.value) || 'apollo';
-    const target = 'moon';
-    const categoryKey = `ga_${target}_${vehicleKey}`;
-    DM.save(categoryKey, {
-      type: 'ga_landing', target, vehicle: vehicleKey,
-      score: AI.bestScore, dna: Array.from(AI.bestDNA),
-      arch: [AI.NN_IN, AI.NN_HID, AI.NN_OUT],
-    });
+    DM.save(`ga_moon_${vehicleKey}`, { type: 'ga_landing', target: 'moon', vehicle: vehicleKey, score: AI.bestScore, dna: Array.from(AI.bestDNA), arch: [AI.NN_IN, AI.NN_HID, AI.NN_OUT] });
   },
 };
 
 /* =====[ PART 18 ] 발사 창 최적화 ===================== */
 function computeHohmannDv(targetName, testT){
-  const centralName = pickCentralBody(targetName);
-  const centralNow = getBodyStateAt(centralName, testT);
+  const centralName = pickCentralBody(targetName), centralNow = getBodyStateAt(centralName, testT);
   if (!centralNow) return null;
-  const mu = BODY[centralName].mu;
-  const r1 = S.ship.pos.distanceTo(S.bodies[centralName].pos);
+  const mu = BODY[centralName].mu, r1 = S.ship.pos.distanceTo(S.bodies[centralName].pos);
   if (r1 < 1 || !isFinite(r1)) return null;
-  let tofSec = 0, r2_mag = 0, targetFuture, centralFuture;
+  let tofSec = 0, r2_mag = 0;
   for (let iter = 0; iter < 6; iter++){
-    targetFuture = getBodyStateAt(targetName, testT + tofSec);
-    centralFuture = getBodyStateAt(centralName, testT + tofSec);
+    const targetFuture = getBodyStateAt(targetName, testT + tofSec);
+    const centralFuture = getBodyStateAt(centralName, testT + tofSec);
     if (!targetFuture || !centralFuture) return null;
-    const r2v = targetFuture.pos.clone().sub(centralFuture.pos);
-    r2_mag = r2v.length();
+    const r2v = targetFuture.pos.clone().sub(centralFuture.pos); r2_mag = r2v.length();
     if (r2_mag < 100 || !isFinite(r2_mag)) return null;
     const a = (r1 + r2_mag) / 2;
     const newTof = Math.PI * Math.sqrt(a*a*a / mu);
-    if (!isFinite(newTof) || newTof > 365*DAY){ return null; }
-    if (Math.abs(newTof - tofSec) < 1) break;
-    tofSec = newTof;
+    if (!isFinite(newTof) || newTof > 365*DAY) return null;
+    if (Math.abs(newTof - tofSec) < 1) break; tofSec = newTof;
   }
-  const a_transfer = (r1 + r2_mag) / 2;
-  const v_circ = Math.sqrt(mu / r1);
-  const v_peri = Math.sqrt(mu * (2/r1 - 1/a_transfer));
+  const a_transfer = (r1 + r2_mag) / 2, v_circ = Math.sqrt(mu / r1), v_peri = Math.sqrt(mu * (2/r1 - 1/a_transfer));
   const dv = (v_peri - v_circ) * 1000;
   if (!isFinite(dv) || dv < 0) return null;
   return { dvMag: dv, tofDays: tofSec/DAY, r2_mag };
@@ -1852,7 +1634,7 @@ function optimizeLaunchWindow(targetName, scanDays){
   const savedT = S.sim.t;
   S.sim.paused = true;
   const playBtn = $('play'); if (playBtn) playBtn.textContent = 'PLAY';
-  setStatus(`[LW] Scanning ${scanDays} days...`, 'sys');
+  setStatus(`[LW] Scanning ${scanDays}d...`, 'sys');
   const tStart = performance.now();
   let best = null;
   for (let offset = 0; offset <= scanDays; offset += 0.5){
@@ -1861,16 +1643,13 @@ function optimizeLaunchWindow(targetName, scanDays){
     if (r && (!best || r.dvMag < best.dvMag)) best = { ...r, launchOffsetDays: offset, testT };
   }
   const elapsed = ((performance.now() - tStart) / 1000).toFixed(2);
-  if (!best){ setStatus(`[LW] No valid window in ${scanDays}d`, 'warn'); return null; }
+  if (!best){ setStatus(`[LW] No window in ${scanDays}d`, 'warn'); return null; }
   const current = computeHohmannDv(targetName, savedT);
   const improvement = current ? (current.dvMag - best.dvMag) : 0;
-  logMsg('ok', `[LW] Best: T+${best.launchOffsetDays.toFixed(1)}d, dV=${best.dvMag.toFixed(0)} m/s (vs now ${current?.dvMag.toFixed(0) || '?'}, -${improvement.toFixed(0)}), ${elapsed}s`);
-  /* 최적 시점으로 이동 */
+  logMsg('ok', `[LW] Best: T+${best.launchOffsetDays.toFixed(1)}d dV=${best.dvMag.toFixed(0)} (vs now ${current?.dvMag.toFixed(0) || '?'}, -${improvement.toFixed(0)}), ${elapsed}s`);
   S.sim.t = savedT + best.launchOffsetDays * DAY;
-  computeBodies(S.sim.t);
-  resetShipToParkingOrbit();
-  S.sim.t = savedT + best.launchOffsetDays * DAY;
-  computeBodies(S.sim.t);
+  computeBodies(S.sim.t); resetShipToParkingOrbit();
+  S.sim.t = savedT + best.launchOffsetDays * DAY; computeBodies(S.sim.t);
   return best;
 }
 
@@ -1880,7 +1659,6 @@ function animate(){
   const now = performance.now();
   const realDt = Math.min(0.1, (now - lastFrame)/1000);
   lastFrame = now;
-  
   if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
     let remaining = realDt * S.sim.warp;
     let safety = 800000;
@@ -1904,93 +1682,65 @@ function animate(){
       lastDiagTime = now;
       const e = S.bodies.earth, m = S.bodies.moon;
       if (e){
-        const r = S.ship.pos.clone().sub(e.pos);
-        const v = S.ship.vel.clone().sub(e.vel);
+        const r = S.ship.pos.clone().sub(e.pos), v = S.ship.vel.clone().sub(e.vel);
         const dM = m ? S.ship.pos.distanceTo(m.pos) : 0;
         console.log(`[diag] altE=${(r.length()-e.R).toFixed(0)}km v=${v.length().toFixed(3)} dM=${dM.toFixed(0)}km`);
       }
     }
-  } else {
-    computeBodies(S.sim.t);
-  }
+  } else computeBodies(S.sim.t);
   syncMeshes(); updateCamera(); updateTelemetry();
   if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
 }
 
-/* =====[ PART 20 ] i18n + UI 이벤트 ===================== */
+/* =====[ PART 20 ] UI ===================== */
 function applyLanguage(){
   const dict = I18N[S.lang] || I18N.ko;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (dict[key]) el.textContent = dict[key];
   });
-  const langEn = $('langEn'), langKo = $('langKo');
-  if (langEn) langEn.className = (S.lang === 'en') ? 'active' : '';
-  if (langKo) langKo.className = (S.lang === 'ko') ? 'active' : '';
-  const playBtn = $('play');
-  if (playBtn) playBtn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
+  $('langEn').className = (S.lang === 'en') ? 'active' : '';
+  $('langKo').className = (S.lang === 'ko') ? 'active' : '';
+  const playBtn = $('play'); if (playBtn) playBtn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
 }
-
 function bindUI(){
-  document.querySelectorAll('.sc-header[data-collapse]').forEach(h => {
-    h.addEventListener('click', () => h.classList.toggle('collapsed'));
-  });
+  document.querySelectorAll('.sc-header[data-collapse]').forEach(h => h.addEventListener('click', () => h.classList.toggle('collapsed')));
   document.getElementById('log-header-bar')?.addEventListener('click', toggleChatLog);
-  
   $('langEn')?.addEventListener('click', () => { S.lang = 'en'; applyLanguage(); });
   $('langKo')?.addEventListener('click', () => { S.lang = 'ko'; applyLanguage(); });
-  
   $('play')?.addEventListener('click', () => {
     S.sim.paused = !S.sim.paused;
-    const btn = $('play');
-    if (btn) btn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
+    const btn = $('play'); if (btn) btn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
     setStatus(S.sim.paused ? 'PAUSED' : 'PLAYING', 'sys');
   });
-  
   $('reset')?.addEventListener('click', () => {
     try {
-      S.sim.t = 0; S.sim.paused = true;
-      S.sim.warp = 86400; S.sim.dt = 5; S.sim.method = 'rk4';
-      const playBtn = document.getElementById('btn-play'); if (playBtn) playBtn.textContent = 'PLAY';
-      const wSel = document.getElementById('time-warp'); if (wSel) wSel.value = '86400';
-      S.camMode = 'free'; S._lastCamMode = 'free';
-      const camSel = document.getElementById('camera-mode'); if (camSel) camSel.value = 'free';
-      S.vis.trail = true;
-      const trailCb = document.getElementById('cb-trail'); if (trailCb) trailCb.checked = true;
+      S.sim.t = 0; S.sim.paused = true; S.sim.warp = 86400; S.sim.dt = 5; S.sim.method = 'rk4';
+      $('play').textContent = 'PLAY'; $('warp').value = '86400';
+      S.camMode = 'free'; S._lastCamMode = 'free'; $('camera').value = 'free';
+      S.vis.trail = true; $('showTrail').checked = true;
       const apollo = VEHICLES['apollo'];
       S.ship.dry = apollo.dry; S.ship.fuel = apollo.fuel; S.ship.fuel0 = apollo.fuel;
       S.ship.isp = apollo.isp; S.ship.thrustKN = apollo.thrust;
       S.ship.burnDir = 'prograde'; S.ship.refFrame = 'earth'; S.ship.throttle = 0;
-      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      setVal('sl-dry', apollo.dry); setVal('sl-fuel', apollo.fuel);
-      setVal('sl-isp', apollo.isp); setVal('sl-thrust', apollo.thrust);
-      setVal('vehicle-preset', 'apollo'); setVal('in-dt', '5');
-      setVal('in-integrator', 'rk4'); setVal('burn-dv', '100');
+      $('sl-dry').value = apollo.dry; $('sl-fuel').value = apollo.fuel; $('sl-isp').value = apollo.isp; $('sl-thrust').value = apollo.thrust;
+      $('vehicle-preset').value = 'apollo'; $('in-dt').value = '5'; $('in-integrator').value = 'rk4'; $('burn-dv').value = '100';
       setText('labDry', apollo.dry + ' kg'); setText('labFuel', apollo.fuel + ' kg');
       setText('labIsp', apollo.isp + ' s'); setText('labThrust', apollo.thrust + ' kN');
-      ['tab-prograde','tab-retro','tab-normal','tab-radial'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.classList.remove('active');
-      });
-      document.getElementById('tab-prograde')?.classList.add('active');
+      ['tab-prograde','tab-retro','tab-normal','tab-radial'].forEach(id => document.getElementById(id).classList.remove('active'));
+      $('tab-prograde').classList.add('active');
       const today = new Date();
       const yyyy = today.getFullYear(), mm = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
-      const dateInput = document.getElementById('in-date');
-      if (dateInput){
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        const dt0 = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
-        if (!isNaN(dt0)) S.sim.t0 = dt0.getTime()/1000;
-      }
+      $('in-date').value = `${yyyy}-${mm}-${dd}`;
+      const dt0 = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
+      if (!isNaN(dt0)) S.sim.t0 = dt0.getTime()/1000;
       S.csvLog.length = 0;
-      const opsEl = document.getElementById('ops-status'); if (opsEl) opsEl.style.display = 'none';
-      const tpEl = document.getElementById('tp-result'); if (tpEl) tpEl.style.display = 'none';
-      const tpEx = document.getElementById('tp-execute'); if (tpEx) tpEx.style.display = 'none';
+      $('ops-status').style.display = 'none'; $('tp-result').style.display = 'none'; $('tp-execute').style.display = 'none';
       AI.live = false;
-      resetShipToParkingOrbit();
-      updateTelemetry();
+      resetShipToParkingOrbit(); updateTelemetry();
       setStatus('FULL RESET', 'sys');
     } catch(err){ console.error('Reset failed:', err); }
   });
-  
   $('applyPreset')?.addEventListener('click', applyPreset);
   $('burnExec')?.addEventListener('click', executeBurn);
   const dirMap = { mPro:'prograde', mRetro:'retrograde', mNormal:'normal', mRadial:'radial' };
@@ -2003,126 +1753,87 @@ function bindUI(){
   }
   $('tpPlan')?.addEventListener('click', handlePlanTransfer);
   $('tpExecute')?.addEventListener('click', executeTransferBurn);
-  $('lwOpt')?.addEventListener('click', () => {
-    const target = ($('tpTarget')?.value) || 'moon';
-    optimizeLaunchWindow(target, 30);
-  });
+  $('lwOpt')?.addEventListener('click', () => { const t = ($('tpTarget')?.value) || 'moon'; optimizeLaunchWindow(t, 30); });
   $('btnDOI')?.addEventListener('click', startDOI);
   $('btnLand')?.addEventListener('click', startLanding);
-  
   $('vehiclePreset')?.addEventListener('change', e => {
     const v = VEHICLES[e.target.value]; if (!v) return;
     S.ship.dry = v.dry; S.ship.fuel = v.fuel; S.ship.fuel0 = v.fuel;
     S.ship.isp = v.isp; S.ship.thrustKN = v.thrust;
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-    setVal('sl-dry', v.dry); setVal('sl-fuel', v.fuel);
-    setVal('sl-isp', v.isp); setVal('sl-thrust', v.thrust);
+    $('sl-dry').value = v.dry; $('sl-fuel').value = v.fuel; $('sl-isp').value = v.isp; $('sl-thrust').value = v.thrust;
     setText('labDry', v.dry + ' kg'); setText('labFuel', v.fuel + ' kg');
     setText('labIsp', v.isp + ' s'); setText('labThrust', v.thrust + ' kN');
-    updateCapability();
-    logMsg('sys', `Vehicle: ${e.target.value}`);
+    updateCapability(); logMsg('sys', `Vehicle: ${e.target.value}`);
   });
-  const sliders = {
-    slDry: { key:'dry', label:'labDry', suffix:' kg' },
-    slFuel: { key:'fuel0', label:'labFuel', suffix:' kg' },
-    slIsp: { key:'isp', label:'labIsp', suffix:' s' },
-    slThrust: { key:'thrustKN', label:'labThrust', suffix:' kN' },
-  };
+  const sliders = { slDry:['dry','labDry',' kg'], slFuel:['fuel0','labFuel',' kg'], slIsp:['isp','labIsp',' s'], slThrust:['thrustKN','labThrust',' kN'] };
   for (const id in sliders){
     $(id)?.addEventListener('input', e => {
       const v = parseFloat(e.target.value); if (!isFinite(v)) return;
-      const info = sliders[id];
-      if (info.key === 'fuel0'){ S.ship.fuel0 = v; S.ship.fuel = Math.min(S.ship.fuel, v); }
-      else S.ship[info.key] = v;
-      setText(info.label, v + info.suffix);
-      updateCapability();
+      const [key, lab, suf] = sliders[id];
+      if (key === 'fuel0'){ S.ship.fuel0 = v; S.ship.fuel = Math.min(S.ship.fuel, v); }
+      else S.ship[key] = v;
+      setText(lab, v + suf); updateCapability();
     });
   }
-  
   $('warp')?.addEventListener('change', e => { S.sim.warp = parseFloat(e.target.value) || 1; });
   $('camera')?.addEventListener('change', e => {
     const v = e.target.value.toLowerCase();
-    if (v.includes('ship')) S.camMode = 'ship';
-    else if (v.includes('earth')) S.camMode = 'earth';
-    else if (v.includes('moon')) S.camMode = 'moon';
-    else if (v.includes('sun')) S.camMode = 'sun';
+    if (v.includes('ship')) S.camMode = 'ship'; else if (v.includes('earth')) S.camMode = 'earth';
+    else if (v.includes('moon')) S.camMode = 'moon'; else if (v.includes('sun')) S.camMode = 'sun';
     else S.camMode = 'free';
   });
   $('showTrail')?.addEventListener('change', e => { S.vis.trail = e.target.checked; });
   $('maxPoints')?.addEventListener('change', e => {
     S.trailMax = parseInt(e.target.value, 10) || 5000;
-    const newGeom = new THREE.BufferGeometry();
-    newGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
-    newGeom.setDrawRange(0, 0);
-    S.trail.geometry.dispose();
-    S.trail.geometry = newGeom;
-    S.trailPos.length = 0;
+    const ng = new THREE.BufferGeometry(); ng.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3)); ng.setDrawRange(0, 0);
+    S.trail.geometry.dispose(); S.trail.geometry = ng; S.trailPos.length = 0;
   });
-  $('clearTrail')?.addEventListener('click', () => {
-    S.trailPos.length = 0; S.trail.geometry.setDrawRange(0, 0);
-    setStatus('Trail cleared', 'sys');
-  });
+  $('clearTrail')?.addEventListener('click', () => { S.trailPos.length = 0; S.trail.geometry.setDrawRange(0, 0); setStatus('Trail cleared', 'sys'); });
   $('dt')?.addEventListener('change', e => { S.sim.dt = parseFloat(e.target.value) || 5; });
   $('integrator')?.addEventListener('change', e => { S.sim.method = e.target.value; });
-  $('launchDate')?.addEventListener('change', e => {
-    const d = new Date(e.target.value + 'T12:00:00Z');
-    if (!isNaN(d)){ S.sim.t0 = d.getTime()/1000; S.sim.t = 0; computeBodies(0); }
-  });
+  $('launchDate')?.addEventListener('change', e => { const d = new Date(e.target.value + 'T12:00:00Z'); if (!isNaN(d)){ S.sim.t0 = d.getTime()/1000; S.sim.t = 0; computeBodies(0); } });
   $('exportCsv')?.addEventListener('click', exportCSV);
-  
   $('aiTrain')?.addEventListener('click', () => {
     const size = ($('aiSize')?.value) || 'standard';
-    if (size === 'quick'){ AI.POP_SIZE = 24; AI.GENERATIONS = 20; }
-    else if (size === 'thorough'){ AI.POP_SIZE = 60; AI.GENERATIONS = 50; }
-    else { AI.POP_SIZE = 40; AI.GENERATIONS = 35; }
+    if (size === 'quick'){ AI.POP_SIZE = 30; AI.GENERATIONS = 25; }
+    else if (size === 'thorough'){ AI.POP_SIZE = 60; AI.GENERATIONS = 60; }
+    else { AI.POP_SIZE = 40; AI.GENERATIONS = 40; }
     aiTrain();
   });
   $('aiStop')?.addEventListener('click', aiStopTraining);
   $('aiLand')?.addEventListener('click', aiStartLive);
   $('aiOff')?.addEventListener('click', aiStopLive);
   $('aiSave')?.addEventListener('click', () => DM.saveCurrentAI());
-  
   $('dmCleanup')?.addEventListener('click', () => DM.autoCleanup());
   $('dmBackup')?.addEventListener('click', () => DM.backup());
-  $('dmClear')?.addEventListener('click', () => {
-    if (confirm('모든 저장 데이터를 삭제하시겠습니까? 복구 불가.')) DM.clearAll();
-  });
-  
+  $('dmClear')?.addEventListener('click', () => { if (confirm('전체 삭제?')) DM.clearAll(); });
   const helpBtn = $('helpBtn'), helpClose = $('helpClose'), overlay = $('helpOverlay');
-  helpBtn?.addEventListener('click', () => overlay?.classList.add('show'));
-  helpClose?.addEventListener('click', () => overlay?.classList.remove('show'));
+  helpBtn?.addEventListener('click', () => overlay.classList.add('show'));
+  helpClose?.addEventListener('click', () => overlay.classList.remove('show'));
   overlay?.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
   addEventListener('keydown', e => {
     if (e.code === 'Space' && e.target === document.body){ e.preventDefault(); $('play')?.click(); }
-    if (e.key === 'r' || e.key === 'R'){ if (e.target === document.body) $('reset')?.click(); }
+    if ((e.key === 'r' || e.key === 'R') && e.target === document.body) $('reset')?.click();
   });
-  
-  DM.refreshUI();
-  applyLanguage();
+  DM.refreshUI(); applyLanguage();
 }
 
 /* =====[ PART 21 ] Boot ===================== */
 function boot(){
   const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth()+1).padStart(2,'0');
-  const dd = String(today.getDate()).padStart(2,'0');
-  const dateInput = $('launchDate');
-  if (dateInput){
-    dateInput.value = `${yyyy}-${mm}-${dd}`;
-    const d = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
-    if (!isNaN(d)) S.sim.t0 = d.getTime()/1000;
-  }
-  initScene();
-  bindUI();
+  const yyyy = today.getFullYear(), mm = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
+  $('launchDate').value = `${yyyy}-${mm}-${dd}`;
+  const d = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
+  if (!isNaN(d)) S.sim.t0 = d.getTime()/1000;
+  initScene(); bindUI();
   if ('ontouchstart' in window || window.innerWidth < 1200){
     document.getElementById('chat-log')?.classList.add('collapsed');
-    const t = document.getElementById('chat-toggle'); if (t) t.textContent = '▲';
-    const sizeSel = document.getElementById('ai-size'); if (sizeSel) sizeSel.value = 'quick';
+    document.getElementById('chat-toggle').textContent = '▲';
+    const ss = document.getElementById('ai-size'); if (ss) ss.value = 'quick';
   }
-  logMsg('sys', 'CELESTIUM 4.0 v4.6 booted');
-  logMsg('sys', '착륙 P-제어 / AI 커리큘럼 학습 / 매 세대 L:C:F:T 통계');
-  logMsg('sys', 'AI 학습 시작 시 config 로그와 첫 시뮬 결과를 확인하세요');
+  logMsg('sys', 'CELESTIUM 4.0 v4.7 booted');
+  logMsg('sys', '착륙: margin-based suicide burn (1.5× 안전). WARP→60×.');
+  logMsg('sys', 'AI: 커리큘럼 500m→20km. gradient 보상.');
   setTimeout(() => debugInitialState(), 100);
   animate();
 }
