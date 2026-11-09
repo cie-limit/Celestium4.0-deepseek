@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>CELESTIUM GA Lab</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:monospace; }
+body { background:#050505; color:#ccc; padding:16px; font-size:12px; }
+h1 { color:#0ff; font-size:16px; margin-bottom:8px; letter-spacing:2px; }
+h2 { color:#0f0; font-size:13px; margin:16px 0 6px; border-bottom:1px solid #333; padding-bottom:4px; }
+.grid { display:grid; grid-template-columns: 320px 1fr; gap:16px; }
+.card { background:#111; border:1px solid #333; padding:10px; border-radius:4px; margin-bottom:10px; }
+.row { display:flex; justify-content:space-between; padding:2px 0; }
+.row span:last-child { color:#ff0; font-weight:bold; }
+button { background:#003; border:1px solid #0ff; color:#0ff; padding:6px 12px; cursor:pointer; font-family:monospace; font-size:12px; margin:2px; }
+button:hover { background:#0ff; color:#000; }
+button.danger { border-color:#f55; color:#f55; }
+button.danger:hover { background:#f55; color:#000; }
+button:disabled { opacity:0.4; cursor:not-allowed; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+th, td { padding:3px 6px; text-align:left; border-bottom:1px solid #222; }
+th { color:#0ff; }
+.case-A { color:#f55; } .case-B { color:#fa0; } .case-C { color:#f55; }
+.case-D { color:#fa0; } .case-E { color:#0f0; } .case-F { color:#88f; }
+#log { height:180px; overflow-y:auto; background:#000; border:1px solid #333; padding:6px; font-size:11px; line-height:1.5; }
+#log div { padding:1px 0; }
+#log .info { color:#0ff; } #log .warn { color:#fa0; } #log .err { color:#f55; } #log .ok { color:#0f0; }
+#dna-out { width:100%; height:100px; background:#000; color:#0f0; border:1px solid #333; padding:6px; font-family:monospace; font-size:10px; resize:vertical; }
+.progress { background:#222; height:8px; border-radius:4px; overflow:hidden; margin-top:6px; }
+.progress > div { height:100%; background:#0ff; transition:width 0.1s; }
+.stat-L { color:#0f0; } .stat-C { color:#f55; } .stat-F { color:#fa0; } .stat-T { color:#88f; }
+</style>
+</head>
+<body>
+
+<h1>CELESTIUM · GA LAB</h1>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <div class="row"><span>상태</span><span id="status">대기</span></div>
+      <div class="progress"><div id="progress-bar" style="width:0%"></div></div>
+      <div class="row" style="margin-top:8px;"><span>Gen</span><span id="stat-gen">0 / 40</span></div>
+      <div class="row"><span>Best</span><span id="stat-best">-</span></div>
+      <div class="row"><span>Avg</span><span id="stat-avg">-</span></div>
+      <div class="row"><span>Population</span><span id="stat-pop">2000</span></div>
+    </div>
+
+    <div class="card">
+      <button id="btn-start">시작</button>
+      <button id="btn-stop" class="danger" disabled>중단</button>
+      <button id="btn-reset">초기화</button>
+      <button id="btn-copy">DNA 복사</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">현재 파라미터</h2>
+      <div class="row"><span>초기 고도</span><span id="p-alt">1000 m</span></div>
+      <div class="row"><span>초기 vr</span><span id="p-vr">-10 m/s</span></div>
+      <div class="row"><span>tMax</span><span id="p-tmax">500 s</span></div>
+      <div class="row"><span>baseSigma</span><span id="p-sigma">0.30</span></div>
+      <div class="row"><span>mutationRate</span><span id="p-mr">0.15</span></div>
+      <div class="row"><span>커리큘럼 속도</span><span id="p-cs">1.00</span></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">결과 DNA (JSON)</h2>
+      <textarea id="dna-out" readonly placeholder="학습 완료 후 여기에 DNA가 표시됩니다"></textarea>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">진단 로그 (자동 조정)</h2>
+      <div id="log"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">세대별 통계</h2>
+      <div style="max-height:400px; overflow-y:auto;">
+        <table>
+          <thead>
+            <tr><th>Gen</th><th>Best</th><th>Avg</th><th>L</th><th>C</th><th>F</th><th>T</th><th>조정</th></tr>
+          </thead>
+          <tbody id="stats-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ===== 상수 ===== */
+const MOON_R = 1737.4, MOON_MU = 4902.8, G0 = 9.80665;
+
+/* Celestium Apollo 기본값 */
+const SHIP = {
+  dry: 13500,
+  fuel0: 110000,
+  isp: 421,
+  thrustKN: 1000,  // kN
+};
+
+/* 신경망 구조 */
+const NN_IN = 6, NN_HID = 12, NN_OUT = 1, DNA_LEN = NN_IN*NN_HID + NN_HID*NN_OUT;
+
+/* 조정 가능 파라미터 */
+const ADAPT = {
+  popSize: 2000,
+  generations: 40,
+  eliteCount: 4,
+  currentAlt: 1000,
+  maxAlt: 10000,
+  currentVr: -10,
+  tMax: 500,
+  baseSigma: 0.3,
+  mutationRate: 0.15,
+  curriculumSpeed: 1.0,
+};
+
+/* 상태 */
+const ST = {
+  population: [],
+  scores: [],
+  gen: 0,
+  bestDNA: null,
+  bestScore: -Infinity,
+  running: false,
+  history: [],
+  _lastGenTime: 0,
+};
+
+/* ===== 신경망 ===== */
+function makeRandomDNA(){
+  const d = new Float32Array(DNA_LEN);
+  for (let i=0;i<DNA_LEN;i++) d[i] = (Math.random()*2 - 1) * 0.5;
+  return d;
+}
+function forward(dna, x){
+  const h = new Float32Array(NN_HID);
+  let k = 0;
+  for (let j=0;j<NN_HID;j++){
+    let s = 0;
+    for (let i=0;i<NN_IN;i++) s += x[i] * dna[k++];
+    h[j] = Math.tanh(s);
+  }
+  let s = 0;
+  for (let i=0;i<NN_HID;i++) s += h[i] * dna[k++];
+  return 1 / (1 + Math.exp(-s));
+}
+
+/* ===== 시뮬 ===== */
+function simDNA(dna, init){
+  let r = init.r, vr = init.vr, vt = init.vt, fuel = init.fuel;
+  const dry = SHIP.dry, thrustN = SHIP.thrustKN * 1000, isp = SHIP.isp;
+  const fuel0 = fuel;
+  let minAlt = r - MOON_R;
+  let t = 0;
+  const dt = 0.5, tMax = ADAPT.tMax;
+  const maxAlt = init.maxAlt || (ADAPT.currentAlt + MOON_R - MOON_R);
+
+  while (t < tMax && fuel > 0){
+    const alt = r - MOON_R;
+    if (alt < minAlt) minAlt = alt;
+    if (alt <= 0){
+      const vT = Math.sqrt(vr*vr + vt*vt) * 1000;
+      const kind = vT < 3 ? 'L' : 'C';
+      return { kind, vT, fuelUsed: fuel0 - fuel, t, minAlt: 0 };
+    }
+    const mass = dry + fuel;
+    if (mass <= 0) return { kind: 'C', vT: 999, fuelUsed: fuel0, t, minAlt };
+    const gLocal = MOON_MU / (r*r);
+    const gSurf = MOON_MU / (MOON_R*MOON_R);
+    const inputs = [
+      Math.min(1, alt / (ADAPT.currentAlt * 1.2 + 500)),
+      Math.max(-1, Math.min(1, vr / 100)),
+      Math.min(1, Math.abs(vt) / 100),
+      fuel / fuel0,
+      (mass - dry) / fuel0,
+      Math.min(1, gLocal / gSurf),
+    ];
+    const throttle = forward(dna, inputs);
+    const fuelBurn = (thrustN * throttle / (isp * G0)) / 1000;
+
+    const deriv = (r_, vr_, vt_, f_) => {
+      const m_ = dry + f_;
+      if (m_ <= 0) return { dr: vr_, dvr: -MOON_MU/(r_*r_), dvt: 0, df: 0 };
+      const gR = -MOON_MU/(r_*r_);
+      const cent = (vt_*vt_)/r_;
+      let thR = 0, thT = 0;
+      const vM = Math.sqrt(vr_*vr_ + vt_*vt_);
+      if (vM > 1e-9){
+        const thr = (thrustN * throttle / m_) / 1000;
+        thR = -vr_/vM * thr;
+        thT = -vt_/vM * thr;
+      }
+      return { dr: vr_, dvr: gR + cent + thR, dvt: -(vr_*vt_)/r_ + thT, df: -fuelBurn };
+    };
+    const k1 = deriv(r, vr, vt, fuel);
+    const k2 = deriv(r + k1.dr*dt/2, vr + k1.dvr*dt/2, vt + k1.dvt*dt/2, fuel + k1.df*dt/2);
+    const k3 = deriv(r + k2.dr*dt/2, vr + k2.dvr*dt/2, vt + k2.dvt*dt/2, fuel + k2.df*dt/2);
+    const k4 = deriv(r + k3.dr*dt, vr + k3.dvr*dt, vt + k3.dvt*dt, fuel + k3.df*dt);
+    r += (k1.dr + 2*k2.dr + 2*k3.dr + k4.dr) * dt / 6;
+    vr += (k1.dvr + 2*k2.dvr + 2*k3.dvr + k4.dvr) * dt / 6;
+    vt += (k1.dvt + 2*k2.dvt + 2*k3.dvt + k4.dvt) * dt / 6;
+    fuel = Math.max(0, fuel + (k1.df + 2*k2.df + 2*k3.df + k4.df) * dt / 6);
+    t += dt;
+  }
+  if (fuel <= 0) return { kind: 'F', vT: 0, fuelUsed: fuel0, t, minAlt };
+  return { kind: 'T', vT: 0, fuelUsed: fuel0 - fuel, t, minAlt };
+}
+
+/* ===== 시나리오 ===== */
+function getScenarios(gen){
+  const progress = Math.min(1, gen / (ADAPT.generations * 0.7));
+  const scale = 0.15 + 0.85 * progress;
+  const baseAlt = Math.max(200, ADAPT.currentAlt * scale);
+  return [
+    { r: MOON_R + baseAlt, vr: ADAPT.currentVr * scale, vt: 0, fuel: SHIP.fuel0, maxAlt: baseAlt },
+    { r: MOON_R + baseAlt * 1.5, vr: ADAPT.currentVr * scale * 1.2, vt: 5, fuel: SHIP.fuel0 * 0.9, maxAlt: baseAlt * 1.5 },
+    { r: MOON_R + baseAlt * 2, vr: ADAPT.currentVr * scale * 1.4, vt: 10, fuel: SHIP.fuel0 * 0.8, maxAlt: baseAlt * 2 },
+  ];
+}
+
+/* ===== 평가 ===== */
+function evaluate(dna, gen){
+  const scenarios = getScenarios(gen);
+  const stats = { L:0, C:0, F:0, T:0, crashVSum:0, crashCount:0 };
+  let total = 0;
+  for (const st of scenarios){
+    const res = simDNA(dna, st);
+    const initAlt = st.r - MOON_R;
+    const progress = Math.max(0, Math.min(1, 1 - res.minAlt / Math.max(1, initAlt)));
+    let score;
+    if (res.kind === 'L'){
+      score = 1000 + (1 - res.fuelUsed / st.fuel) * 300;
+      stats.L++;
+    } else if (res.kind === 'C'){
+      score = Math.max(-500, 500 - res.vT * 2.5) + progress * 200;
+      stats.C++;
+      stats.crashVSum += res.vT;
+      stats.crashCount++;
+    } else if (res.kind === 'F'){
+      score = -300;
+      stats.F++;
+    } else {
+      score = -400;
+      stats.T++;
+    }
+    total += score;
+  }
+  return { score: total / scenarios.length, stats };
+}
+
+/* ===== GA 연산 ===== */
+function tournament(pop, scores, k=3){
+  let bi = Math.floor(Math.random() * pop.length);
+  let bs = scores[bi];
+  for (let i=0;i<k;i++){
+    const idx = Math.floor(Math.random() * pop.length);
+    if (scores[idx] > bs){ bs = scores[idx]; bi = idx; }
+  }
+  return bi;
+}
+function crossover(a, b){
+  const c = new Float32Array(DNA_LEN);
+  const cut = Math.floor(Math.random() * DNA_LEN);
+  for (let i=0;i<DNA_LEN;i++) c[i] = i < cut ? a[i] : b[i];
+  return c;
+}
+function mutate(d, rate, sigma){
+  for (let i=0;i<DNA_LEN;i++){
+    if (Math.random() < rate){
+      d[i] += (Math.random()*2 - 1) * sigma;
+      if (d[i] > 1) d[i] = 1;
+      if (d[i] < -1) d[i] = -1;
+    }
+  }
+}
+
+/* ===== 자동 진단 ===== */
+function diagnose(gen, scores, stats){
+  const total = scores.length;
+  const sum = scores.reduce((a,b)=>a+b,0);
+  const avg = sum / total;
+  const variance = scores.reduce((s,x)=>s+(x-avg)**2,0) / total;
+  const crashAvgV = stats.crashCount > 0 ? stats.crashVSum / stats.crashCount : 0;
+  const issues = [];
+
+  if (stats.T === total){
+    issues.push({ case:'A', name:'ALL_TIMEOUT', action:`tMax ${ADAPT.tMax}→${Math.round(ADAPT.tMax*1.3)}, 초기고도 ${Math.round(ADAPT.currentAlt)}→${Math.round(ADAPT.currentAlt*0.7)}` });
+    ADAPT.tMax = Math.min(3000, ADAPT.tMax * 1.3);
+    ADAPT.currentAlt = Math.max(200, ADAPT.currentAlt * 0.7);
+  }
+  else if (stats.F === total){
+    issues.push({ case:'B', name:'NO_FUEL', action:`초기vr ${ADAPT.currentVr.toFixed(1)}→${(ADAPT.currentVr*0.7).toFixed(1)}` });
+    ADAPT.currentVr *= 0.7;
+  }
+  else if (stats.C === total && crashAvgV > 100){
+    issues.push({ case:'C', name:'HARD_CRASH', action:`충돌v=${crashAvgV.toFixed(0)}, 커리큘럼 리셋 + sigma ↑` });
+    ADAPT.currentAlt = Math.max(200, ADAPT.currentAlt * 0.7);
+    ADAPT.currentVr *= 0.8;
+    ADAPT.baseSigma = Math.min(0.6, ADAPT.baseSigma * 1.2);
+  }
+  else if (variance < 100){
+    issues.push({ case:'D', name:'NO_GRADIENT', action:`분산=${variance.toFixed(0)}, baseSigma ↑` });
+    ADAPT.baseSigma = Math.min(0.6, ADAPT.baseSigma * 1.3);
+  }
+  else if (stats.L > 0){
+    issues.push({ case:'E', name:'LEARNING', action:`착륙 ${stats.L}건, 커리큘럼 진행` });
+    ADAPT.curriculumSpeed = Math.min(1.5, ADAPT.curriculumSpeed * 1.1);
+  }
+
+  /* 정체 감지 */
+  if (ST.history.length >= 5){
+    const recent = ST.history.slice(-5);
+    const bests = recent.map(h => h.best);
+    if (Math.max(...bests) - Math.min(...bests) < 20){
+      issues.push({ case:'F', name:'STAGNATION', action:`5세대 정체, sigma ↑` });
+      ADAPT.baseSigma = Math.min(0.6, ADAPT.baseSigma * 1.3);
+    }
+  }
+
+  return issues;
+}
+
+/* ===== UI 헬퍼 ===== */
+function el(id){ return document.getElementById(id); }
+function log(text, type='info'){
+  const d = document.createElement('div');
+  d.className = type;
+  const t = new Date();
+  d.textContent = `[${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}] ${text}`;
+  el('log').appendChild(d);
+  el('log').scrollTop = el('log').scrollHeight;
+}
+function updateParams(){
+  el('p-alt').textContent = Math.round(ADAPT.currentAlt) + ' m';
+  el('p-vr').textContent = ADAPT.currentVr.toFixed(1) + ' m/s';
+  el('p-tmax').textContent = Math.round(ADAPT.tMax) + ' s';
+  el('p-sigma').textContent = ADAPT.baseSigma.toFixed(2);
+  el('p-mr').textContent = ADAPT.mutationRate.toFixed(2);
+  el('p-cs').textContent = ADAPT.curriculumSpeed.toFixed(2);
+  el('stat-pop').textContent = ADAPT.popSize;
+}
+
+/* ===== 세대 실행 ===== */
+async function runGeneration(){
+  const gen = ST.gen;
+  const scenarios = getScenarios(gen);
+  const aggStats = { L:0, C:0, F:0, T:0, crashVSum:0, crashCount:0 };
+  const scores = new Array(ADAPT.popSize);
+
+  for (let i=0;i<ADAPT.popSize;i++){
+    if (!ST.running) return false;
+    const { score, stats } = evaluate(ST.population[i], gen);
+    scores[i] = score;
+    aggStats.L += stats.L;
+    aggStats.C += stats.C;
+    aggStats.F += stats.F;
+    aggStats.T += stats.T;
+    aggStats.crashVSum += stats.crashVSum;
+    aggStats.crashCount += stats.crashCount;
+
+    if (i % 50 === 0){
+      el('progress-bar').style.width = ((i/ADAPT.popSize)*100).toFixed(1) + '%';
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  ST.scores = scores;
+  let bi = 0;
+  for (let i=1;i<scores.length;i++) if (scores[i] > scores[bi]) bi = i;
+  if (scores[bi] > ST.bestScore){
+    ST.bestScore = scores[bi];
+    ST.bestDNA = ST.population[bi].slice();
+  }
+
+  const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+
+  /* 진단 */
+  const issues = diagnose(gen, scores, aggStats);
+  const issueLabel = issues.map(i => `<span class="case-${i.case}">Case ${i.case}</span>: ${i.action}`).join('<br>') || '-';
+
+  /* 통계 표 추가 */
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${gen+1}</td>
+    <td>${scores[bi].toFixed(0)}</td>
+    <td>${avg.toFixed(0)}</td>
+    <td class="stat-L">${aggStats.L}</td>
+    <td class="stat-C">${aggStats.C}</td>
+    <td class="stat-F">${aggStats.F}</td>
+    <td class="stat-T">${aggStats.T}</td>
+    <td style="font-size:10px;">${issueLabel}</td>
+  `;
+  el('stats-body').appendChild(tr);
+  el('stats-body').parentElement.parentElement.scrollTop = 9999;
+
+  el('stat-gen').textContent = (gen+1) + ' / ' + ADAPT.generations;
+  el('stat-best').textContent = scores[bi].toFixed(0);
+  el('stat-avg').textContent = avg.toFixed(0);
+
+  issues.forEach(iss => {
+    const type = iss.case === 'E' ? 'ok' : (iss.case === 'A' || iss.case === 'C' ? 'err' : 'warn');
+    log(`Gen ${gen+1} Case ${iss.case} (${iss.name}): ${iss.action}`, type);
+  });
+
+  ST.history.push({ gen, best: scores[bi], avg, stats: aggStats });
+  updateParams();
+
+  /* 다음 세대 생성 */
+  const sorted = scores.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
+  const next = [];
+  for (let e=0;e<ADAPT.eliteCount && e<sorted.length;e++){
+    next.push(ST.population[sorted[e].i].slice());
+  }
+  const sigma = Math.max(0.05, ADAPT.baseSigma * Math.exp(-gen/(ADAPT.generations * 0.5)));
+  while (next.length < ADAPT.popSize){
+    const a = tournament(ST.population, scores);
+    const b = tournament(ST.population, scores);
+    const c = crossover(ST.population[a], ST.population[b]);
+    mutate(c, ADAPT.mutationRate, sigma);
+    next.push(c);
+  }
+
+  ST.population = next;
+  ST.gen++;
+
+  return ST.gen < ADAPT.generations;
+}
+
+/* ===== 컨트롤 ===== */
+async function start(){
+  if (ST.running) return;
+  ST.running = true;
+  el('btn-start').disabled = true;
+  el('btn-stop').disabled = false;
+  el('status').textContent = '학습 중...';
+  log('학습 시작 (pop=' + ADAPT.popSize + ', gen=' + ADAPT.generations + ')', 'info');
+  updateParams();
+
+  while (ST.running){
+    const cont = await runGeneration();
+    if (!cont) break;
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  ST.running = false;
+  el('btn-start').disabled = false;
+  el('btn-stop').disabled = true;
+  el('status').textContent = '완료';
+  el('progress-bar').style.width = '100%';
+  el('dna-out').value = JSON.stringify({
+    dna: Array.from(ST.bestDNA || []),
+    score: ST.bestScore,
+    arch: [NN_IN, NN_HID, NN_OUT],
+    params: { alt: ADAPT.currentAlt, vr: ADAPT.currentVr, tMax: ADAPT.tMax },
+  });
+  log(`학습 완료. Best score=${ST.bestScore.toFixed(0)}`, 'ok');
+}
+
+function stop(){
+  ST.running = false;
+  el('status').textContent = '중단됨';
+  log('사용자 중단', 'warn');
+}
+
+function reset(){
+  ST.population = [];
+  ST.scores = [];
+  ST.gen = 0;
+  ST.bestDNA = null;
+  ST.bestScore = -Infinity;
+  ST.running = false;
+  ST.history = [];
+
+  ADAPT.currentAlt = 1000;
+  ADAPT.currentVr = -10;
+  ADAPT.tMax = 500;
+  ADAPT.baseSigma = 0.3;
+  ADAPT.mutationRate = 0.15;
+  ADAPT.curriculumSpeed = 1.0;
+
+  for (let i=0;i<ADAPT.popSize;i++) ST.population.push(makeRandomDNA());
+
+  el('log').innerHTML = '';
+  el('stats-body').innerHTML = '';
+  el('dna-out').value = '';
+  el('progress-bar').style.width = '0%';
+  el('stat-gen').textContent = '0 / ' + ADAPT.generations;
+  el('stat-best').textContent = '-';
+  el('stat-avg').textContent = '-';
+  el('status').textContent = '대기';
+  el('btn-start').disabled = false;
+  el('btn-stop').disabled = true;
+
+  updateParams();
+  log('초기화 완료. 팝 ' + ADAPT.popSize + '개체 생성.', 'info');
+}
+
+function copyDNA(){
+  const ta = el('dna-out');
+  if (!ta.value){ log('DNA 없음. 먼저 학습하세요.', 'warn'); return; }
+  ta.select();
+  document.execCommand('copy');
+  log('DNA 복사됨', 'ok');
+}
+
+/* ===== 부트 ===== */
+el('btn-start').addEventListener('click', start);
+el('btn-stop').addEventListener('click', stop);
+el('btn-reset').addEventListener('click', reset);
+el('btn-copy').addEventListener('click', copyDNA);
+
+reset();
+</script>
+</body>
+</html>
