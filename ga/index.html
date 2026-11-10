@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CELESTIUM GA Lab v5</title>
+<title>CELESTIUM GA Lab v6</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:monospace; }
 body { background:#050505; color:#ccc; padding:12px; font-size:12px; }
@@ -29,7 +29,7 @@ th { color:#0ff; }
 </head>
 <body>
 
-<h1>CELESTIUM · GA LAB v5</h1>
+<h1>CELESTIUM · GA LAB v6</h1>
 
 <div class="grid">
   <div>
@@ -81,19 +81,20 @@ th { color:#0ff; }
 <script>
 'use strict';
 
-/* ===== 상수 ===== */
 const MOON_R = 1737.4, MOON_MU = 4902.8, G0 = 9.80665;
 const SHIP = { dry: 13500, fuel0: 110000, isp: 421, thrustKN: 1000 };
 const NN_IN = 6, NN_HID = 12, NN_OUT = 1, DNA_LEN = NN_IN*NN_HID + NN_HID*NN_OUT;
 
-/* ★ 7단계 커리큘럼 (모두 물리적 가능) */
+/* ★ L 판정: vT < 10 m/s (Celestium 통일) */
+const LANDING_THRESHOLD = 10;
+
 const STAGES = [
   { name:'S1-5m',      altMin:5,    altMax:5,    vtMax:0,   vrMin:-1,   vrMax:-1,   tMax:15,  maxGens:3,  targetBest:500 },
   { name:'S2-20m',     altMin:20,   altMax:20,   vtMax:0,   vrMin:-2,   vrMax:-2,   tMax:25,  maxGens:4,  targetBest:500 },
-  { name:'S3-100m',    altMin:100,  altMax:100,  vtMax:0,   vrMin:-5,   vrMax:-5,   tMax:40,  maxGens:4,  targetBest:500 },
-  { name:'S4-500m',    altMin:500,  altMax:500,  vtMax:0,   vrMin:-10,  vrMax:-10,  tMax:60,  maxGens:5,  targetBest:500 },
-  { name:'S5-2km',     altMin:2000, altMax:2000, vtMax:0,   vrMin:-20,  vrMax:-20,  tMax:90,  maxGens:5,  targetBest:500 },
-  { name:'S6-5km-V0',  altMin:5000, altMax:5000, vtMax:0,   vrMin:-50,  vrMax:-50,  tMax:150, maxGens:6,  targetBest:500 },
+  { name:'S3-100m',    altMin:100,  altMax:100,  vtMax:0,   vrMin:-5,   vrMax:-5,   tMax:40,  maxGens:5,  targetBest:500 },
+  { name:'S4-500m',    altMin:500,  altMax:500,  vtMax:0,   vrMin:-10,  vrMax:-10,  tMax:60,  maxGens:6,  targetBest:500 },
+  { name:'S5-2km',     altMin:2000, altMax:2000, vtMax:0,   vrMin:-20,  vrMax:-20,  tMax:90,  maxGens:6,  targetBest:500 },
+  { name:'S6-5km-V0',  altMin:5000, altMax:5000, vtMax:0,   vrMin:-50,  vrMax:-50,  tMax:150, maxGens:7,  targetBest:500 },
   { name:'S7-5km-V50', altMin:5000, altMax:5000, vtMax:50,  vrMin:-100, vrMax:-100, tMax:180, maxGens:10, targetBest:500 },
 ];
 
@@ -114,14 +115,14 @@ const ST = {
   stageBest: -Infinity,
 };
 
-/* ===== 초기 DNA (20% 낮은 throttle 편향) ===== */
+/* ★ 초기 DNA: 저추력 편향 10%로 축소 */
 function makeRandomDNA(){
   const d = new Float32Array(DNA_LEN);
-  const isLowThrottle = Math.random() < 0.2;
+  const isLowThrottle = Math.random() < 0.1;
   const hiddenStart = NN_IN * NN_HID;
   for (let i=0;i<DNA_LEN;i++){
     if (isLowThrottle && i >= hiddenStart){
-      d[i] = (Math.random()*2 - 1) * 0.8 - 0.6;
+      d[i] = (Math.random()*2 - 1) * 0.5 - 0.4;
     } else {
       d[i] = (Math.random()*2 - 1) * 0.4;
     }
@@ -129,7 +130,7 @@ function makeRandomDNA(){
   return d;
 }
 
-/* ===== 신경망 (초기 12% throttle) ===== */
+/* ★ 출력 활성화: sigmoid(0.7s - 2.5) → 초기 8% (호버 회피) */
 function forward(dna, x){
   const h = new Float32Array(NN_HID);
   let k = 0;
@@ -140,10 +141,9 @@ function forward(dna, x){
   }
   let s = 0;
   for (let i=0;i<NN_HID;i++) s += h[i] * dna[k++];
-  return 1 / (1 + Math.exp(-(s * 0.7 - 2.0)));
+  return 1 / (1 + Math.exp(-(s * 0.7 - 2.5)));
 }
 
-/* ===== 물리 시뮬 ===== */
 function simDNA(dna, init){
   let r = init.r, vr = init.vr, vt = init.vt, fuel = init.fuel;
   const dry = SHIP.dry, thrustN = SHIP.thrustKN * 1000, isp = SHIP.isp;
@@ -157,7 +157,7 @@ function simDNA(dna, init){
     if (alt < minAlt) minAlt = alt;
     if (alt <= 0){
       const vT = Math.sqrt(vr*vr + vt*vt) * 1000;
-      return { kind: vT < 3 ? 'L' : 'C', vT, fuelUsed: fuel0 - fuel, t, minAlt: 0 };
+      return { kind: vT < LANDING_THRESHOLD ? 'L' : 'C', vT, fuelUsed: fuel0 - fuel, t, minAlt: 0 };
     }
     const mass = dry + fuel;
     if (mass <= 0) return { kind: 'C', vT: 999, fuelUsed: fuel0, t, minAlt };
@@ -201,18 +201,16 @@ function simDNA(dna, init){
   return { kind: 'T', vT: 0, fuelUsed: fuel0 - fuel, t, minAlt };
 }
 
-/* ===== 시나리오 ===== */
 function getScenarios(stageIdx){
   const s = STAGES[stageIdx];
-  const interp = (a, b) => a + (b-a) * Math.random();
   return [
-    { r: MOON_R + interp(s.altMin, s.altMax), vr: interp(s.vrMin, s.vrMax), vt: 0, fuel: SHIP.fuel0, tMax: s.tMax },
-    { r: MOON_R + interp(s.altMin, s.altMax), vr: interp(s.vrMin, s.vrMax), vt: s.vtMax * 0.5, fuel: SHIP.fuel0 * 0.9, tMax: s.tMax },
-    { r: MOON_R + interp(s.altMin, s.altMax), vr: interp(s.vrMin, s.vrMax), vt: s.vtMax, fuel: SHIP.fuel0 * 0.8, tMax: s.tMax },
+    { r: MOON_R + s.altMin, vr: s.vrMin, vt: 0, fuel: SHIP.fuel0, tMax: s.tMax },
+    { r: MOON_R + (s.altMin + s.altMax)/2, vr: (s.vrMin + s.vrMax)/2, vt: s.vtMax * 0.5, fuel: SHIP.fuel0 * 0.9, tMax: s.tMax },
+    { r: MOON_R + s.altMax, vr: s.vrMax, vt: s.vtMax, fuel: SHIP.fuel0 * 0.8, tMax: s.tMax },
   ];
 }
 
-/* ===== 평가 (T가 C보다 나쁘지 않게, minAlt 반영) ===== */
+/* ★ C에 crashV gradient */
 function evaluate(dna, stageIdx){
   const scenarios = getScenarios(stageIdx);
   const stats = { L:0, C:0, F:0, T:0, crashVSum:0, crashCount:0 };
@@ -227,7 +225,9 @@ function evaluate(dna, stageIdx){
       score = 1000 + fuelSave * 500;
       stats.L++;
     } else if (res.kind === 'C'){
-      score = -1000 + progress * 300;
+      /* v=0→+500, v=10→-750, v=20→-1000 */
+      const vFactor = 1 - Math.min(res.vT / 20, 1);
+      score = -1000 + vFactor * 500;
       stats.C++; stats.crashVSum += res.vT; stats.crashCount++;
     } else if (res.kind === 'F'){
       score = -1500 + progress * 500;
@@ -242,7 +242,6 @@ function evaluate(dna, stageIdx){
   return { score: total / scenarios.length, stats };
 }
 
-/* ===== GA 연산 ===== */
 function tournament(pop, scores, k){
   let bi = Math.floor(Math.random() * pop.length), bs = scores[bi];
   for (let i=0;i<k;i++){
@@ -267,7 +266,6 @@ function mutate(d, rate, sigma){
   }
 }
 
-/* ===== UI ===== */
 function el(id){ return document.getElementById(id); }
 function log(text, type='info'){
   const d = document.createElement('div');
@@ -336,7 +334,6 @@ async function runGeneration(){
   ST.history.push({ gen, stage: stageIdx, best: genBest, avg, stats: aggStats });
   ST.gensInStage++;
 
-  /* Stage 진행 */
   const targetReached = ST.stageBest >= stage.targetBest;
   const maxReached = ST.gensInStage >= stage.maxGens;
   let stageAdvanced = false;
@@ -361,7 +358,6 @@ async function runGeneration(){
     ST.stageBest = -Infinity;
   }
 
-  /* 다음 세대 */
   const sorted = scores.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
   const next = [];
   for (let e=0;e<ADAPT.eliteCount && e<sorted.length;e++) next.push(ST.population[sorted[e].i].slice());
@@ -392,7 +388,7 @@ async function start(){
   el('btn-start').disabled = true;
   el('btn-stop').disabled = false;
   el('status').textContent = '학습 중...';
-  log(`학습 시작 (pop=${ADAPT.popSize}, ${STAGES.length} stages)`, 'info');
+  log(`학습 시작 (pop=${ADAPT.popSize}, ${STAGES.length} stages, L<${LANDING_THRESHOLD}m/s)`, 'info');
 
   let safety = 500;
   while (ST.running && safety-- > 0){
@@ -408,16 +404,17 @@ async function start(){
   el('progress-bar').style.width = '100%';
 
   generateReport();
-  log(`완료. Best=${ST.bestScore.toFixed(0)}. '결과 복사' 클릭`, 'ok');
+  log(`완료. Best=${ST.bestScore.toFixed(0)}`, 'ok');
 }
 
 function generateReport(){
   const now = new Date();
   const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   
-  let r = `=== CELESTIUM GA LAB v5 리포트 ===\n`;
+  let r = `=== CELESTIUM GA LAB v6 리포트 ===\n`;
   r += `시각: ${timeStr}\n`;
   r += `Best: ${ST.bestScore.toFixed(2)} | Pop: ${ADAPT.popSize} | Total Gens: ${ST.gen}\n`;
+  r += `Landing threshold: ${LANDING_THRESHOLD} m/s\n`;
   r += `Final Stage: ${STAGES[Math.min(ST.currentStage, STAGES.length-1)].name}\n\n`;
   
   r += `=== Stage별 최고 best ===\n`;
@@ -445,7 +442,8 @@ function generateReport(){
     score: ST.bestScore,
     arch: [NN_IN, NN_HID, NN_OUT],
     norm: { alt: 15000, vr: 100, vt: 1700, fuel: SHIP.fuel0 },
-    activation: 'sigmoid(0.7s - 2.0)',
+    activation: 'sigmoid(0.7s - 2.5)',
+    landingThreshold: LANDING_THRESHOLD,
     finalStage: ST.currentStage,
     stageName: STAGES[Math.min(ST.currentStage, STAGES.length-1)].name,
   });
@@ -473,7 +471,7 @@ function reset(){
   el('status').textContent = '대기';
   el('btn-start').disabled = false; el('btn-stop').disabled = true;
   updateStageList();
-  log('초기화 완료 (v5, sigmoid(0.7s-2.0), 20% 저추력 편향)', 'info');
+  log('초기화 v6: L<10m/s, 8% 초기 스로틀', 'info');
 }
 
 function copyReport(){
