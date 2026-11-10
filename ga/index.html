@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CELESTIUM GA Lab v6</title>
+<title>CELESTIUM GA Lab v7</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:monospace; }
 body { background:#050505; color:#ccc; padding:12px; font-size:12px; }
@@ -29,7 +29,7 @@ th { color:#0ff; }
 </head>
 <body>
 
-<h1>CELESTIUM · GA LAB v6</h1>
+<h1>CELESTIUM · GA LAB v7 (SI units)</h1>
 
 <div class="grid">
   <div>
@@ -81,13 +81,16 @@ th { color:#0ff; }
 <script>
 'use strict';
 
-const MOON_R = 1737.4, MOON_MU = 4902.8, G0 = 9.80665;
-const SHIP = { dry: 13500, fuel0: 110000, isp: 421, thrustKN: 1000 };
+/* ===== 상수 (★ SI 단위) ===== */
+const MOON_R_M = 1737400;               // 달 반지름 (m)
+const MOON_MU_M = 4.9028e12;            // 달 μ (m³/s²)
+const G0 = 9.80665;
+const SHIP = { dry: 13500, fuel0: 110000, isp: 421, thrustN: 1000000 };
+
 const NN_IN = 6, NN_HID = 12, NN_OUT = 1, DNA_LEN = NN_IN*NN_HID + NN_HID*NN_OUT;
+const LANDING_THRESHOLD = 10;  // m/s
 
-/* ★ L 판정: vT < 10 m/s (Celestium 통일) */
-const LANDING_THRESHOLD = 10;
-
+/* ★ altMin/altMax: 미터 단위 */
 const STAGES = [
   { name:'S1-5m',      altMin:5,    altMax:5,    vtMax:0,   vrMin:-1,   vrMax:-1,   tMax:15,  maxGens:3,  targetBest:500 },
   { name:'S2-20m',     altMin:20,   altMax:20,   vtMax:0,   vrMin:-2,   vrMax:-2,   tMax:25,  maxGens:4,  targetBest:500 },
@@ -115,7 +118,7 @@ const ST = {
   stageBest: -Infinity,
 };
 
-/* ★ 초기 DNA: 저추력 편향 10%로 축소 */
+/* ===== 초기 DNA ===== */
 function makeRandomDNA(){
   const d = new Float32Array(DNA_LEN);
   const isLowThrottle = Math.random() < 0.1;
@@ -130,7 +133,7 @@ function makeRandomDNA(){
   return d;
 }
 
-/* ★ 출력 활성화: sigmoid(0.7s - 2.5) → 초기 8% (호버 회피) */
+/* ===== 신경망: 초기 8% ===== */
 function forward(dna, x){
   const h = new Float32Array(NN_HID);
   let k = 0;
@@ -144,25 +147,37 @@ function forward(dna, x){
   return 1 / (1 + Math.exp(-(s * 0.7 - 2.5)));
 }
 
+/* ===== 시뮬레이션 (★ SI 단위 통일) ===== */
 function simDNA(dna, init){
-  let r = init.r, vr = init.vr, vt = init.vt, fuel = init.fuel;
-  const dry = SHIP.dry, thrustN = SHIP.thrustKN * 1000, isp = SHIP.isp;
+  let r = init.r;              // m
+  let vr = init.vr, vt = init.vt;  // m/s
+  let fuel = init.fuel;        // kg
+  const dry = SHIP.dry;
+  const thrustN = SHIP.thrustN;
+  const ve = SHIP.isp * G0;    // m/s
   const fuel0 = fuel;
-  let minAlt = r - MOON_R, t = 0;
+
+  let minAlt = r - MOON_R_M;
+  let t = 0;
   const tMax = init.tMax;
-  const dt = tMax > 300 ? 1.0 : 0.3;
+  const dt = tMax > 200 ? 0.5 : 0.1;  // 짧은 시나리오는 더 정밀하게
 
   while (t < tMax && fuel > 0){
-    const alt = r - MOON_R;
+    const alt = r - MOON_R_M;
     if (alt < minAlt) minAlt = alt;
+
     if (alt <= 0){
-      const vT = Math.sqrt(vr*vr + vt*vt) * 1000;
+      const vT = Math.sqrt(vr*vr + vt*vt);  // ★ m/s 직접
       return { kind: vT < LANDING_THRESHOLD ? 'L' : 'C', vT, fuelUsed: fuel0 - fuel, t, minAlt: 0 };
     }
+
     const mass = dry + fuel;
     if (mass <= 0) return { kind: 'C', vT: 999, fuelUsed: fuel0, t, minAlt };
-    const gLocal = MOON_MU / (r*r), gSurf = MOON_MU / (MOON_R*MOON_R);
 
+    const gLocal = MOON_MU_M / (r*r);        // m/s²
+    const gSurf = MOON_MU_M / (MOON_R_M*MOON_R_M);
+
+    /* ★ 입력 정규화 (SI 스케일 유지) */
     const inputs = [
       Math.min(1, alt / 15000),
       Math.max(-1, Math.min(1, vr / 100)),
@@ -172,19 +187,22 @@ function simDNA(dna, init){
       Math.min(1, gLocal / gSurf),
     ];
     const throttle = forward(dna, inputs);
-    const fuelBurn = (thrustN * throttle / (isp * G0)) / 1000;
+    const fuelBurn = thrustN * throttle / ve;  // ★ kg/s (÷1000 제거)
 
+    /* 추력 방향 (retrograde) */
     const vM = Math.sqrt(vr*vr + vt*vt);
     let thR = 0, thT = 0;
     if (vM > 1e-9){
-      const thr = (thrustN * throttle / mass) / 1000;
+      const thr = thrustN * throttle / mass;  // m/s²
       thR = -vr/vM * thr;
       thT = -vt/vM * thr;
     }
+
     const deriv = (r_, vr_, vt_, f_) => {
       const m_ = dry + f_;
-      if (m_ <= 0) return { dr: vr_, dvr: -MOON_MU/(r_*r_), dvt: 0, df: 0 };
-      const gR = -MOON_MU/(r_*r_), cent = (vt_*vt_)/r_;
+      if (m_ <= 0) return { dr: vr_, dvr: -MOON_MU_M/(r_*r_), dvt: 0, df: 0 };
+      const gR = -MOON_MU_M/(r_*r_);
+      const cent = (vt_*vt_)/r_;
       return { dr: vr_, dvr: gR + cent + thR, dvt: -(vr_*vt_)/r_ + thT, df: -fuelBurn };
     };
     const k1 = deriv(r, vr, vt, fuel);
@@ -201,23 +219,24 @@ function simDNA(dna, init){
   return { kind: 'T', vT: 0, fuelUsed: fuel0 - fuel, t, minAlt };
 }
 
+/* ===== 시나리오 (altMin은 m 단위) ===== */
 function getScenarios(stageIdx){
   const s = STAGES[stageIdx];
   return [
-    { r: MOON_R + s.altMin, vr: s.vrMin, vt: 0, fuel: SHIP.fuel0, tMax: s.tMax },
-    { r: MOON_R + (s.altMin + s.altMax)/2, vr: (s.vrMin + s.vrMax)/2, vt: s.vtMax * 0.5, fuel: SHIP.fuel0 * 0.9, tMax: s.tMax },
-    { r: MOON_R + s.altMax, vr: s.vrMax, vt: s.vtMax, fuel: SHIP.fuel0 * 0.8, tMax: s.tMax },
+    { r: MOON_R_M + s.altMin, vr: s.vrMin, vt: 0, fuel: SHIP.fuel0, tMax: s.tMax },
+    { r: MOON_R_M + (s.altMin + s.altMax)/2, vr: (s.vrMin + s.vrMax)/2, vt: s.vtMax * 0.5, fuel: SHIP.fuel0 * 0.9, tMax: s.tMax },
+    { r: MOON_R_M + s.altMax, vr: s.vrMax, vt: s.vtMax, fuel: SHIP.fuel0 * 0.8, tMax: s.tMax },
   ];
 }
 
-/* ★ C에 crashV gradient */
+/* ===== 평가 ===== */
 function evaluate(dna, stageIdx){
   const scenarios = getScenarios(stageIdx);
   const stats = { L:0, C:0, F:0, T:0, crashVSum:0, crashCount:0 };
   let total = 0;
   for (const st of scenarios){
     const res = simDNA(dna, st);
-    const initAlt = st.r - MOON_R;
+    const initAlt = st.r - MOON_R_M;
     const progress = Math.max(0, Math.min(1, 1 - res.minAlt / Math.max(1, initAlt)));
     const fuelSave = 1 - res.fuelUsed / st.fuel;
     let score;
@@ -225,7 +244,6 @@ function evaluate(dna, stageIdx){
       score = 1000 + fuelSave * 500;
       stats.L++;
     } else if (res.kind === 'C'){
-      /* v=0→+500, v=10→-750, v=20→-1000 */
       const vFactor = 1 - Math.min(res.vT / 20, 1);
       score = -1000 + vFactor * 500;
       stats.C++; stats.crashVSum += res.vT; stats.crashCount++;
@@ -242,6 +260,7 @@ function evaluate(dna, stageIdx){
   return { score: total / scenarios.length, stats };
 }
 
+/* ===== GA ===== */
 function tournament(pop, scores, k){
   let bi = Math.floor(Math.random() * pop.length), bs = scores[bi];
   for (let i=0;i<k;i++){
@@ -266,6 +285,7 @@ function mutate(d, rate, sigma){
   }
 }
 
+/* ===== UI ===== */
 function el(id){ return document.getElementById(id); }
 function log(text, type='info'){
   const d = document.createElement('div');
@@ -282,7 +302,7 @@ function updateStageList(){
     const s = STAGES[i];
     const marker = i < ST.currentStage ? '✓' : (i === ST.currentStage ? '▶' : '○');
     const color = i < ST.currentStage ? '#0f0' : (i === ST.currentStage ? '#0ff' : '#666');
-    html += `<div style="color:${color};"><b>${marker} ${s.name}</b>: ${s.altMin/1000}-${s.altMax/1000}km, vt≤${s.vtMax}, tMax=${s.tMax}s</div>`;
+    html += `<div style="color:${color};"><b>${marker} ${s.name}</b>: alt=${s.altMin}m, vr≤${s.vrMin}, vt≤${s.vtMax}, tMax=${s.tMax}s</div>`;
   }
   el('stage-list').innerHTML = html;
 }
@@ -388,7 +408,7 @@ async function start(){
   el('btn-start').disabled = true;
   el('btn-stop').disabled = false;
   el('status').textContent = '학습 중...';
-  log(`학습 시작 (pop=${ADAPT.popSize}, ${STAGES.length} stages, L<${LANDING_THRESHOLD}m/s)`, 'info');
+  log(`v7 학습 시작 (pop=${ADAPT.popSize}, ${STAGES.length} stages, L<${LANDING_THRESHOLD}m/s)`, 'info');
 
   let safety = 500;
   while (ST.running && safety-- > 0){
@@ -411,10 +431,10 @@ function generateReport(){
   const now = new Date();
   const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   
-  let r = `=== CELESTIUM GA LAB v6 리포트 ===\n`;
+  let r = `=== CELESTIUM GA LAB v7 리포트 ===\n`;
   r += `시각: ${timeStr}\n`;
   r += `Best: ${ST.bestScore.toFixed(2)} | Pop: ${ADAPT.popSize} | Total Gens: ${ST.gen}\n`;
-  r += `Landing threshold: ${LANDING_THRESHOLD} m/s\n`;
+  r += `Landing threshold: ${LANDING_THRESHOLD} m/s | Units: SI (m, m/s, N)\n`;
   r += `Final Stage: ${STAGES[Math.min(ST.currentStage, STAGES.length-1)].name}\n\n`;
   
   r += `=== Stage별 최고 best ===\n`;
@@ -444,6 +464,7 @@ function generateReport(){
     norm: { alt: 15000, vr: 100, vt: 1700, fuel: SHIP.fuel0 },
     activation: 'sigmoid(0.7s - 2.5)',
     landingThreshold: LANDING_THRESHOLD,
+    units: 'SI',
     finalStage: ST.currentStage,
     stageName: STAGES[Math.min(ST.currentStage, STAGES.length-1)].name,
   });
@@ -471,7 +492,7 @@ function reset(){
   el('status').textContent = '대기';
   el('btn-start').disabled = false; el('btn-stop').disabled = true;
   updateStageList();
-  log('초기화 v6: L<10m/s, 8% 초기 스로틀', 'info');
+  log('초기화 v7: SI units (m, m/s), L<10, sigmoid(0.7s-2.5)', 'info');
 }
 
 function copyReport(){
