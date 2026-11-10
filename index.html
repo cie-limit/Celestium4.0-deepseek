@@ -1,1361 +1,192 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CELESTIUM 4.0</title>
+<title>CELESTIUM GA Lab v6</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
-body { background: #000; color: #aaddff; overflow: hidden; height: 100vh; width: 100vw; -webkit-tap-highlight-color: transparent; }
-#canvas-container { position: fixed; inset: 0; }
-#canvas-container canvas { display: block; }
-.panel { position: fixed; background: rgba(5,10,20,0.92); border: 1px solid #004488; padding: 10px 12px; box-shadow: 0 0 15px rgba(0,100,255,0.2); border-radius: 6px; z-index: 10; font-size: 11px; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-#panel-top { top: 6px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: 98vw; justify-content: center; padding: 6px 10px; }
-#panel-left { top: 76px; left: 6px; width: 290px; max-height: calc(100vh - 100px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-#panel-right { top: 76px; right: 6px; width: 290px; max-height: calc(100vh - 100px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.sc-header { color: #00ffff; font-size: 12px; border-bottom: 1px solid #004488; margin-bottom: 6px; padding-bottom: 4px; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; cursor: pointer; user-select: none; }
-.sc-header:first-child { margin-top: 0; }
-.sc-header.collapsed::after { content: ' ▸'; color: #ffcc00; font-size: 10px; }
-.sc-header:not(.collapsed)::after { content: ' ▾'; color: #ffcc00; font-size: 10px; }
-.sc-header.collapsed + .collapsible-body { display: none; }
-.version-tag { color: #ffcc00; font-size: 9px; margin-left: 4px; }
-button { border: 1px solid #00ffff; color: #00ffff; background: rgba(0,50,100,0.5); padding: 7px 10px; font-family: 'Orbitron', sans-serif; font-size: 11px; cursor: pointer; letter-spacing: 1px; border-radius: 4px; transition: all 0.15s; min-height: 34px; touch-action: manipulation; }
-button:hover { background: #00ffff; color: #000; }
-button:active { transform: scale(0.97); }
-button.active { background: #00ffff; color: #000; font-weight: 700; }
-button.danger { border-color: #ff5555; color: #ff5555; }
-button.danger:hover, button.danger:active { background: #ff5555; color: #000; }
-button.primary { border-color: #ffcc00; color: #ffcc00; background: rgba(50,40,0,0.5); }
-button.primary:hover, button.primary:active { background: #ffcc00; color: #000; }
-button:disabled { opacity: 0.4; cursor: not-allowed; }
-input[type="range"] { width: 100%; accent-color: #00ffff; }
-input[type="number"], input[type="text"], select, input[type="date"] { background: rgba(0,20,40,0.8); border: 1px solid #003366; color: #aaddff; padding: 5px 6px; font-family: 'Orbitron', sans-serif; font-size: 11px; width: 100%; border-radius: 3px; }
-input[type="checkbox"] { accent-color: #00ffff; width: 18px; height: 18px; }
-.row { display: flex; justify-content: space-between; margin: 3px 0; align-items: center; gap: 6px; }
-.row label { color: #88ccff; font-size: 10px; }
-.row .val { color: #ffcc00; font-size: 11px; font-weight: 700; text-align: right; }
-.row .val.warn { color: #ffaa00; }
-.row .val.bad { color: #ff5555; }
-.field { margin: 6px 0; }
-.field > label { display: block; color: #88ccff; font-size: 10px; margin-bottom: 3px; }
-.tabs { display: flex; gap: 3px; margin-bottom: 6px; }
-.tabs button { flex: 1; padding: 6px 4px; font-size: 10px; }
-.lang-toggle { display: flex; gap: 2px; }
-.lang-toggle button { padding: 4px 8px; font-size: 10px; min-height: 30px; }
-.metric-box { background: rgba(0,50,100,0.25); border: 1px solid #003366; padding: 5px 7px; border-radius: 3px; margin: 3px 0; }
-h1.title { color: #00ffff; font-size: 15px; letter-spacing: 2px; }
-#chat-log { position: fixed; bottom: 6px; left: 50%; transform: translateX(-50%); width: min(460px, 90vw); max-height: 240px; background: rgba(5,10,20,0.94); border: 1px solid #004488; border-radius: 6px; z-index: 20; display: flex; flex-direction: column; backdrop-filter: blur(2px); box-shadow: 0 0 15px rgba(0,100,255,0.2); transition: max-height 0.25s ease; }
-#chat-log.collapsed { max-height: 34px; }
-#chat-log.collapsed #log-body { display: none; }
-#chat-log .log-header { padding: 8px 12px; color: #00ffff; font-size: 11px; letter-spacing: 2px; border-bottom: 1px solid #004488; text-transform: uppercase; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 32px; user-select: none; }
-#chat-log.collapsed .log-header { border-bottom: none; }
-#chat-log .log-toggle { color: #ffcc00; font-size: 12px; }
-#log-body { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 10px; line-height: 1.5; min-height: 80px; -webkit-overflow-scrolling: touch; }
-.log-line { margin: 2px 0; word-wrap: break-word; }
-.log-time { color: #445566; font-size: 9px; }
-.log-tag { font-weight: 700; font-size: 9px; margin-right: 3px; }
-.log-sys .log-tag { color: #00ffff; }
-.log-phys .log-tag { color: #ffcc00; }
-.log-warn .log-tag { color: #ffaa00; }
-.log-err .log-tag { color: #ff5555; }
-.log-ok .log-tag { color: #33ff33; }
-.log-ok { color: #aaffaa; }
-.log-ga .log-tag { color: #a070ff; }
-.log-data .log-tag { color: #00ffaa; }
-#help-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; z-index: 100; align-items: center; justify-content: center; }
-#help-overlay.show { display: flex; }
-#help-content { max-width: 700px; max-height: 80vh; overflow-y: auto; background: rgba(5,10,20,0.98); border: 1px solid #00ffff; padding: 20px; border-radius: 6px; margin: 10px; }
-#help-content h2 { color: #00ffff; margin-bottom: 12px; letter-spacing: 2px; }
-#help-content p { font-size: 12px; line-height: 1.6; color: #aaddff; margin-bottom: 6px; }
-#mobile-console { position: fixed; top: 0; left: 0; right: 0; height: 28vh; background: rgba(0,0,0,0.94); color: #00ff88; font-family: monospace; font-size: 11px; padding: 6px 10px; overflow-y: auto; z-index: 9999; border-bottom: 2px solid #00ffff; white-space: pre-wrap; word-break: break-all; display: none; }
-#mobile-console.show { display: block; }
-#mobile-console-toggle { position: fixed; top: 6px; right: 6px; z-index: 10000; background: rgba(0,255,255,0.85); color: #000; border: 0; padding: 6px 10px; border-radius: 3px; font-size: 10px; font-family: 'Orbitron', sans-serif; }
-.dm-item { background: rgba(0,30,60,0.4); border: 1px solid #003366; border-radius: 3px; padding: 5px 7px; margin: 3px 0; font-size: 10px; }
-.dm-item .dm-name { color: #00ffff; font-weight: 700; }
-.dm-item .dm-meta { color: #88ccff; font-size: 9px; }
-.dm-item .dm-actions { display: flex; gap: 3px; margin-top: 3px; }
-.dm-item .dm-actions button { flex: 1; padding: 3px 6px; font-size: 9px; min-height: 24px; }
-@media (max-width: 1200px) {
-  #panel-left, #panel-right { width: 260px; font-size: 10px; padding: 8px 10px; }
-  .row label { font-size: 9px; } .row .val { font-size: 10px; }
-  .sc-header { font-size: 11px; }
-  button { font-size: 10px; padding: 6px 8px; min-height: 32px; }
-}
-@media (max-width: 1024px) {
-  #panel-left { width: 240px; left: 4px; }
-  #panel-right { width: 240px; right: 4px; }
-  #chat-log { width: min(420px, 80vw); }
-}
-@media (max-width: 768px) {
-  #panel-left, #panel-right { width: 210px; font-size: 9px; padding: 6px 8px; }
-  #panel-left { top: 72px; max-height: calc(100vh - 90px); }
-  #panel-right { top: 72px; max-height: calc(100vh - 90px); }
-  .row label { font-size: 8px; } .row .val { font-size: 9px; }
-  .sc-header { font-size: 10px; padding-bottom: 3px; margin-bottom: 4px; margin-top: 5px; }
-  button { font-size: 9px; padding: 6px; min-height: 30px; }
-  .metric-box { padding: 3px 5px; margin: 2px 0; }
-  #chat-log { width: min(340px, 85vw); }
-  h1.title { font-size: 13px; } .version-tag { display: none; }
-}
-@media (max-width: 600px) { #panel-left, #panel-right { width: 47vw; } #chat-log { width: 94vw; } }
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: rgba(0,20,40,0.5); }
-::-webkit-scrollbar-thumb { background: #004488; border-radius: 3px; }
+* { margin:0; padding:0; box-sizing:border-box; font-family:monospace; }
+body { background:#050505; color:#ccc; padding:12px; font-size:12px; }
+h1 { color:#0ff; font-size:15px; margin-bottom:6px; letter-spacing:2px; }
+h2 { color:#0f0; font-size:12px; margin:12px 0 4px; border-bottom:1px solid #333; padding-bottom:3px; }
+.grid { display:grid; grid-template-columns: 340px 1fr; gap:12px; }
+.card { background:#111; border:1px solid #333; padding:8px; border-radius:4px; margin-bottom:8px; }
+.row { display:flex; justify-content:space-between; padding:2px 0; }
+.row span:last-child { color:#ff0; font-weight:bold; }
+button { background:#003; border:1px solid #0ff; color:#0ff; padding:6px 10px; cursor:pointer; font-family:monospace; font-size:11px; margin:2px; }
+button:hover { background:#0ff; color:#000; }
+button.danger { border-color:#f55; color:#f55; }
+button.danger:hover { background:#f55; color:#000; }
+button:disabled { opacity:0.4; cursor:not-allowed; }
+table { width:100%; border-collapse:collapse; font-size:10px; }
+th, td { padding:2px 5px; text-align:left; border-bottom:1px solid #222; }
+th { color:#0ff; }
+#log { height:160px; overflow-y:auto; background:#000; border:1px solid #333; padding:5px; font-size:10px; line-height:1.4; }
+#log .info { color:#0ff; } #log .warn { color:#fa0; } #log .err { color:#f55; } #log .ok { color:#0f0; }
+#report-out { width:100%; height:260px; background:#000; color:#0f0; border:1px solid #333; padding:5px; font-family:monospace; font-size:10px; resize:vertical; }
+.progress { background:#222; height:8px; border-radius:4px; overflow:hidden; margin-top:6px; }
+.progress > div { height:100%; background:#0ff; transition:width 0.1s; }
 </style>
 </head>
 <body>
 
-<div id="canvas-container"></div>
-<div id="mobile-console"></div>
-<button id="mobile-console-toggle" onclick="toggleMobileConsole()">DBG</button>
+<h1>CELESTIUM · GA LAB v6</h1>
 
-<div id="panel-top" class="panel">
-  <h1 class="title">CELESTIUM 4.0 <span class="version-tag">v4.7</span></h1>
-  <div class="lang-toggle"><button id="lang-en" class="active">EN</button><button id="lang-ko">KO</button></div>
-  <button id="btn-play">PLAY</button>
-  <button id="btn-reset">RESET</button>
-  <button id="btn-help">?</button>
-  <div style="display:flex; gap:4px; align-items:center;">
-    <label style="font-size:10px;color:#88ccff;" data-i18n="warp">WARP</label>
-    <select id="time-warp" style="width:150px;">
-      <option value="1">1× (실시간)</option>
-      <option value="60">60× (1분/s)</option>
-      <option value="3600">3,600× (1시간/s)</option>
-      <option value="86400" selected>86,400× (1일/s)</option>
-      <option value="432000">432,000× (5일/s)</option>
-      <option value="864000">864,000× (10일/s)</option>
-      <option value="2592000">2,592,000× (30일/s)</option>
-    </select>
-  </div>
-  <div style="display:flex; gap:4px; align-items:center;">
-    <label style="font-size:10px;color:#88ccff;" data-i18n="camera">CAM</label>
-    <select id="camera-mode" style="width:110px;">
-      <option value="free" selected>자유</option>
-      <option value="ship">우주선</option>
-      <option value="earth">지구</option>
-      <option value="moon">달</option>
-      <option value="sun">태양</option>
-    </select>
-  </div>
-</div>
+<div class="grid">
+  <div>
+    <div class="card">
+      <div class="row"><span>상태</span><span id="status">대기</span></div>
+      <div class="progress"><div id="progress-bar" style="width:0%"></div></div>
+      <div class="row" style="margin-top:6px;"><span>Gen</span><span id="stat-gen">0</span></div>
+      <div class="row"><span>Stage</span><span id="stat-stage">S1-5m</span></div>
+      <div class="row"><span>Best (overall)</span><span id="stat-best">-</span></div>
+      <div class="row"><span>Best (stage)</span><span id="stat-stage-best">-</span></div>
+      <div class="row"><span>Avg</span><span id="stat-avg">-</span></div>
+    </div>
 
-<div id="panel-left" class="panel">
-  <div class="sc-header" data-collapse="telemetry">TELEMETRY</div>
-  <div class="metric-box collapsible-body">
-    <div class="row"><label data-i18n="sim_time">SIM TIME</label><span class="val" id="tm-time">0.000 d</span></div>
-    <div class="row"><label data-i18n="date">DATE</label><span class="val" id="tm-date">--</span></div>
-    <div class="row"><label data-i18n="ship_mass">SHIP MASS</label><span class="val" id="tm-mass">-- kg</span></div>
-    <div class="row"><label data-i18n="fuel">FUEL</label><span class="val" id="tm-fuel">-- kg</span></div>
-    <div class="row"><label data-i18n="speed">SPEED</label><span class="val" id="tm-speed">-- km/s</span></div>
-    <div class="row"><label data-i18n="alt_earth">ALT (Earth)</label><span class="val" id="tm-alt-e">-- km</span></div>
-    <div class="row"><label data-i18n="alt_moon">ALT (Moon)</label><span class="val" id="tm-alt-m">-- km</span></div>
-    <div class="row"><label data-i18n="dist_mars">DIST (Mars)</label><span class="val" id="tm-alt-mars">-- km</span></div>
-    <div class="row"><label data-i18n="dv_used">ΔV USED</label><span class="val" id="tm-dv">-- m/s</span></div>
-  </div>
+    <div class="card">
+      <button id="btn-start">시작</button>
+      <button id="btn-stop" class="danger" disabled>중단</button>
+      <button id="btn-reset">초기화</button>
+      <button id="btn-copy">결과 복사</button>
+    </div>
 
-  <div class="sc-header" data-collapse="lunarops">LUNAR OPS</div>
-  <div class="collapsible-body">
-    <button id="btn-doi" class="primary" style="width:100%;" data-i18n="doi">DOI: 200km으로 강하</button>
-    <button id="btn-land" class="danger" style="width:100%; margin-top:6px;" data-i18n="land">달 착륙 (자동제어)</button>
-    <div class="metric-box" id="ops-status" style="margin-top:6px; display:none;">
-      <div class="row"><label>Status</label><span class="val" id="ops-text">--</span></div>
+    <div class="card">
+      <h2 style="margin-top:0">Stage 진행 상태</h2>
+      <div id="stage-list" style="font-size:10px; line-height:1.6;"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">결과 리포트 (복사용)</h2>
+      <textarea id="report-out" readonly placeholder="완료 후 '결과 복사' 버튼"></textarea>
     </div>
   </div>
 
-  <div class="sc-header" data-collapse="ai">AI AUTOPILOT</div>
-  <div class="collapsible-body">
-    <div class="field"><label data-i18n="ai_size">학습 규모</label>
-      <select id="ai-size">
-        <option value="quick">빠름 (~2초)</option>
-        <option value="standard" selected>표준 (~8초)</option>
-        <option value="thorough">정밀 (~25초)</option>
-      </select>
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">진단 로그</h2>
+      <div id="log"></div>
     </div>
-    <button id="btn-ai-train" class="primary" style="width:100%;" data-i18n="ai_train">AI 학습 시작</button>
-    <button id="btn-ai-stop" class="danger" style="width:100%; margin-top:4px; display:none;" data-i18n="ai_stop">학습 중단</button>
-    <button id="btn-ai-land" class="primary" style="width:100%; margin-top:4px;" disabled data-i18n="ai_land">AI 자동 착륙</button>
-    <button id="btn-ai-off" style="width:100%; margin-top:4px; display:none;" data-i18n="ai_off">AI 해제</button>
-    <button id="btn-ai-save" style="width:100%; margin-top:4px;" disabled data-i18n="ai_save">현재 DNA 저장</button>
-    <div class="metric-box" id="ai-status" style="margin-top:6px;">
-      <div class="row"><label>State</label><span class="val" id="ai-text">Not trained</span></div>
-      <div class="row"><label>Best Score</label><span class="val" id="ai-score">--</span></div>
-      <div style="margin-top:4px;"><label style="font-size:9px;color:#88ccff;">Progress</label>
-        <div style="background:#001a33;border:1px solid #003366;border-radius:2px;height:8px;overflow:hidden;margin-top:2px;">
-          <div id="ai-bar" style="height:100%;width:0%;background:#00ffff;transition:width 0.2s;"></div>
-        </div>
+    <div class="card">
+      <h2 style="margin-top:0">세대별 통계</h2>
+      <div style="max-height:420px; overflow-y:auto;">
+        <table>
+          <thead><tr><th>Gen</th><th>Stage</th><th>Best</th><th>Avg</th><th>L</th><th>C</th><th>F</th><th>T</th></tr></thead>
+          <tbody id="stats-body"></tbody>
+        </table>
       </div>
     </div>
   </div>
-
-  <div class="sc-header" data-collapse="data">DATA MANAGER</div>
-  <div class="collapsible-body">
-    <div class="row" style="font-size:10px;"><span style="color:#88ccff;">저장 항목</span><span class="val" id="dm-count">0</span></div>
-    <div class="row" style="font-size:10px;"><span style="color:#88ccff;">아카이브</span><span class="val" id="dm-archive-count">0</span></div>
-    <div class="field" style="margin-top:6px;"><label data-i18n="dm_max">정리 정책 (카테고리당 최대)</label>
-      <select id="dm-max"><option value="2">2개</option><option value="3" selected>3개</option><option value="5">5개</option><option value="10">10개</option></select>
-    </div>
-    <button id="btn-dm-cleanup" style="width:100%; margin-top:4px;" data-i18n="dm_cleanup">자동 정리 실행</button>
-    <button id="btn-dm-backup" style="width:100%; margin-top:4px;" data-i18n="dm_backup">전체 백업 (JSON)</button>
-    <button id="btn-dm-clear" class="danger" style="width:100%; margin-top:4px;" data-i18n="dm_clear">전체 삭제</button>
-    <div id="dm-list" style="max-height:300px; overflow-y:auto; margin-top:6px;"></div>
-  </div>
-
-  <div class="sc-header" data-collapse="transfer">TRANSFER PLANNER</div>
-  <div class="collapsible-body">
-    <div class="field"><label data-i18n="target">Target</label>
-      <select id="tp-target"><option value="moon" selected>달</option><option value="mars">화성</option><option value="venus">금성</option></select>
-    </div>
-    <div class="field"><label data-i18n="tof">TOF (일)</label><input type="number" id="tp-tof" value="5" min="0.1" max="500" step="0.1"></div>
-    <button id="btn-tp-plan" style="width:100%;" data-i18n="plan_transfer">PLAN TRANSFER</button>
-    <button id="btn-lw-opt" class="primary" style="width:100%; margin-top:4px;" data-i18n="lw_opt">발사 창 최적화 (30일)</button>
-    <div class="metric-box" id="tp-result" style="margin-top:6px; display:none;">
-      <div class="row"><label>ΔV</label><span class="val" id="tp-dv">-- m/s</span></div>
-      <div class="row"><label>Mode</label><span class="val" id="tp-dir">--</span></div>
-      <div class="row"><label>Arrival</label><span class="val" id="tp-arr">--</span></div>
-    </div>
-    <button id="btn-tp-execute" class="danger" style="width:100%; margin-top:4px; display:none;" data-i18n="execute_burn">EXECUTE BURN</button>
-  </div>
-
-  <div class="sc-header" data-collapse="maneuver">MANEUVER</div>
-  <div class="collapsible-body">
-    <div class="tabs">
-      <button id="tab-prograde" class="active" data-i18n="prograde">순행</button>
-      <button id="tab-retro" data-i18n="retrograde">역행</button>
-      <button id="tab-normal" data-i18n="normal">법선</button>
-      <button id="tab-radial" data-i18n="radial">지름</button>
-    </div>
-    <div class="field"><label data-i18n="burn_dv">ΔV (m/s)</label><input type="number" id="burn-dv" value="100" min="1" max="10000"></div>
-    <button id="btn-burn" style="width:100%;" data-i18n="execute_burn">EXECUTE BURN</button>
-  </div>
-
-  <div class="sc-header collapsed" data-collapse="orbital">ORBITAL ELEMENTS</div>
-  <div class="collapsible-body">
-    <div class="row" style="font-size:10px;color:#88ccff;margin-bottom:4px;"><span>Ref</span><span class="val" id="oe-ref">Earth</span></div>
-    <div class="metric-box">
-      <div class="row"><label>a</label><span class="val" id="oe-a">-- km</span></div>
-      <div class="row"><label>e</label><span class="val" id="oe-ecc">--</span></div>
-      <div class="row"><label>i</label><span class="val" id="oe-inc">-- °</span></div>
-      <div class="row"><label>T</label><span class="val" id="oe-T">--</span></div>
-      <div class="row"><label>Peri alt</label><span class="val" id="oe-rp">-- km</span></div>
-      <div class="row"><label>Apo alt</label><span class="val" id="oe-ra">-- km</span></div>
-      <div class="row"><label>Energy</label><span class="val" id="oe-ener">--</span></div>
-    </div>
-  </div>
-
-  <div class="sc-header collapsed" data-collapse="gravity">GRAVITY FIELD</div>
-  <div class="collapsible-body">
-    <div class="metric-box">
-      <div class="row"><label>Earth g</label><span class="val" id="gr-earth">--</span></div>
-      <div class="row"><label>Moon g</label><span class="val" id="gr-moon">--</span></div>
-      <div class="row"><label>Sun g</label><span class="val" id="gr-sun">--</span></div>
-    </div>
-  </div>
 </div>
 
-<div id="panel-right" class="panel">
-  <div class="sc-header" data-collapse="vehicle">VEHICLE PARAMS</div>
-  <div class="collapsible-body">
-    <div class="field"><label data-i18n="vehicle_preset">Preset</label>
-      <select id="vehicle-preset">
-        <option value="apollo" selected>Apollo S-IVB</option>
-        <option value="starship">Starship</option>
-        <option value="sls">SLS Block 1B</option>
-        <option value="custom">Custom</option>
-      </select>
-    </div>
-    <div class="field"><label>Dry: <span class="val" id="lab-dry">13500 kg</span></label><input type="range" id="sl-dry" min="1000" max="200000" step="500" value="13500"></div>
-    <div class="field"><label>Fuel: <span class="val" id="lab-fuel">110000 kg</span></label><input type="range" id="sl-fuel" min="1000" max="2000000" step="1000" value="110000"></div>
-    <div class="field"><label>Isp: <span class="val" id="lab-isp">421 s</span></label><input type="range" id="sl-isp" min="200" max="500" step="1" value="421"></div>
-    <div class="field"><label>Thrust: <span class="val" id="lab-thrust">1000 kN</span></label><input type="range" id="sl-thrust" min="50" max="20000" step="50" value="1000"></div>
-    <div class="metric-box" id="veh-capability">
-      <div class="row"><label data-i18n="dv_max">ΔV 능력</label><span class="val" id="veh-dv-max">--</span></div>
-      <div class="row"><label data-i18n="dv_used">ΔV 사용</label><span class="val" id="veh-dv-used">--</span></div>
-      <div class="row"><label data-i18n="dv_rem">ΔV 잔여</label><span class="val" id="veh-dv-rem">--</span></div>
-      <div class="row"><label data-i18n="dv_need">미션 필요</label><span class="val" id="veh-dv-need">~6,400 m/s</span></div>
-      <div class="row"><label data-i18n="verdict">판정</label><span class="val" id="veh-verdict">--</span></div>
-    </div>
-  </div>
-
-  <div class="sc-header collapsed" data-collapse="init">INITIAL CONDITIONS</div>
-  <div class="collapsible-body">
-    <div class="field"><label data-i18n="parking_alt">Parking Alt (km)</label><input type="number" id="parking-alt" value="200" min="100" max="40000" step="10"></div>
-    <div class="field"><label data-i18n="launch_date">Launch Date</label><input type="date" id="in-date"></div>
-    <div class="field"><label data-i18n="dt">dt (s)</label><select id="in-dt"><option value="1">1</option><option value="5" selected>5</option><option value="10">10</option><option value="60">60</option></select></div>
-    <div class="field"><label data-i18n="integrator">Integrator</label><select id="in-integrator"><option value="rk4" selected>RK4</option><option value="euler">Euler</option></select></div>
-  </div>
-
-  <div class="sc-header collapsed" data-collapse="trail">TRAJECTORY</div>
-  <div class="collapsible-body">
-    <div class="row"><label data-i18n="trail_show">궤적선 표시</label><input type="checkbox" id="cb-trail" checked></div>
-    <div class="field"><label data-i18n="trail_max">최대 점 수</label><input type="number" id="trail-max" value="5000" min="100" max="50000" step="100"></div>
-    <button id="btn-clear-trail" style="width:100%; margin-top:4px;" data-i18n="clear_trail">궤적 지우기</button>
-  </div>
-
-  <div class="sc-header collapsed" data-collapse="export">EXPORT</div>
-  <div class="collapsible-body"><button id="export-csv" style="width:100%;" data-i18n="export_csv">CSV 내보내기</button></div>
-</div>
-
-<div id="chat-log" class="collapsed">
-  <div class="log-header" id="log-header-bar">
-    <span>MISSION LOG</span>
-    <span class="log-toggle" id="chat-toggle">▲</span>
-  </div>
-  <div id="log-body"></div>
-</div>
-
-<div id="help-overlay">
-  <div id="help-content">
-    <h2 data-i18n="help_title">CELESTIUM 4.0 — v4.7 안내</h2>
-    <p data-i18n="help_1">착륙: stopping-dist × 1.5 마진. WARP 자동 60×.</p>
-    <p data-i18n="help_2">AI: 커리큘럼 500m → 20km. gradient 보상.</p>
-    <p data-i18n="help_3">스윙바이: v4.8에서 재구현.</p>
-    <div style="text-align:right; margin-top:14px;"><button id="btn-close-help">CLOSE</button></div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 'use strict';
 
-/* =====[ PART 0 ] i18n ===================== */
-const I18N = {
-  en: {
-    warp:'WARP', camera:'CAM', sim_time:'SIM TIME', date:'DATE', ship_mass:'SHIP MASS',
-    fuel:'FUEL', speed:'SPEED', alt_earth:'ALT (Earth)', alt_moon:'ALT (Moon)',
-    dist_mars:'DIST (Mars)', dv_used:'ΔV USED',
-    doi:'DOI: Lower to 200km', land:'Land (Auto)',
-    ai_size:'Size', ai_train:'Train AI', ai_stop:'Stop', ai_land:'Auto-Land',
-    ai_off:'Disengage', ai_save:'Save DNA',
-    dm_max:'Max per cat', dm_cleanup:'Cleanup', dm_backup:'Backup', dm_clear:'Clear',
-    target:'Target', tof:'TOF (days)', plan_transfer:'PLAN', lw_opt:'Launch Window',
-    execute_burn:'EXECUTE', prograde:'Pro', retrograde:'Retro', normal:'Normal', radial:'Radial',
-    burn_dv:'ΔV (m/s)', vehicle_preset:'Preset', dv_max:'ΔV Cap', dv_rem:'ΔV Rem',
-    dv_need:'Need', verdict:'Verdict',
-    parking_alt:'Parking Alt', launch_date:'Launch', dt:'dt', integrator:'Integ',
-    trail_show:'Show', trail_max:'Max', clear_trail:'Clear', export_csv:'Export CSV',
-    help_title:'v4.7', help_1:'Land: 1.5x safety. WARP→60x.', help_2:'AI: 500m→20km curriculum.', help_3:'Swingby: v4.8.',
-  },
-  ko: {
-    warp:'시간가속', camera:'카메라', sim_time:'시뮬시간', date:'날짜', ship_mass:'선체질량',
-    fuel:'연료', speed:'속도', alt_earth:'고도(지구)', alt_moon:'고도(달)',
-    dist_mars:'거리(화성)', dv_used:'ΔV 사용',
-    doi:'DOI: 200km으로 강하', land:'달 착륙 (자동제어)',
-    ai_size:'학습 규모', ai_train:'AI 학습 시작', ai_stop:'학습 중단', ai_land:'AI 자동 착륙',
-    ai_off:'AI 해제', ai_save:'현재 DNA 저장',
-    dm_max:'카테고리당 최대', dm_cleanup:'자동 정리', dm_backup:'전체 백업', dm_clear:'전체 삭제',
-    target:'목표', tof:'TOF (일)', plan_transfer:'전이 계획', lw_opt:'발사 창 최적화',
-    execute_burn:'분사 실행', prograde:'순행', retrograde:'역행', normal:'법선', radial:'지름',
-    burn_dv:'ΔV (m/s)', vehicle_preset:'프리셋', dv_max:'ΔV 능력', dv_rem:'ΔV 잔여',
-    dv_need:'미션 필요', verdict:'판정',
-    parking_alt:'주차 고도', launch_date:'발사 날짜', dt:'적분', integrator:'적분기',
-    trail_show:'표시', trail_max:'최대', clear_trail:'지우기', export_csv:'CSV 내보내기',
-    help_title:'v4.7 안내', help_1:'착륙: 1.5배 안전 마진. WARP→60×.', help_2:'AI: 500m→20km 커리큘럼.', help_3:'스윙바이: v4.8.',
-  }
+const MOON_R = 1737.4, MOON_MU = 4902.8, G0 = 9.80665;
+const SHIP = { dry: 13500, fuel0: 110000, isp: 421, thrustKN: 1000 };
+const NN_IN = 6, NN_HID = 12, NN_OUT = 1, DNA_LEN = NN_IN*NN_HID + NN_HID*NN_OUT;
+
+/* ★ L 판정: vT < 10 m/s (Celestium 통일) */
+const LANDING_THRESHOLD = 10;
+
+const STAGES = [
+  { name:'S1-5m',      altMin:5,    altMax:5,    vtMax:0,   vrMin:-1,   vrMax:-1,   tMax:15,  maxGens:3,  targetBest:500 },
+  { name:'S2-20m',     altMin:20,   altMax:20,   vtMax:0,   vrMin:-2,   vrMax:-2,   tMax:25,  maxGens:4,  targetBest:500 },
+  { name:'S3-100m',    altMin:100,  altMax:100,  vtMax:0,   vrMin:-5,   vrMax:-5,   tMax:40,  maxGens:5,  targetBest:500 },
+  { name:'S4-500m',    altMin:500,  altMax:500,  vtMax:0,   vrMin:-10,  vrMax:-10,  tMax:60,  maxGens:6,  targetBest:500 },
+  { name:'S5-2km',     altMin:2000, altMax:2000, vtMax:0,   vrMin:-20,  vrMax:-20,  tMax:90,  maxGens:6,  targetBest:500 },
+  { name:'S6-5km-V0',  altMin:5000, altMax:5000, vtMax:0,   vrMin:-50,  vrMax:-50,  tMax:150, maxGens:7,  targetBest:500 },
+  { name:'S7-5km-V50', altMin:5000, altMax:5000, vtMax:50,  vrMin:-100, vrMax:-100, tMax:180, maxGens:10, targetBest:500 },
+];
+
+const ADAPT = {
+  popSize: 2000,
+  eliteCount: 6,
+  mutationRate: 0.15,
+  baseSigma: 0.35,
+  tournamentK: 5,
+  injectPct: 0.05,
 };
 
-const UI = {
-  canvas:'canvas-container',
-  simTime:'tm-time', date:'tm-date', shipMass:'tm-mass', fuel:'tm-fuel',
-  speed:'tm-speed', altEarth:'tm-alt-e', altMoon:'tm-alt-m', distMars:'tm-alt-mars', dvUsed:'tm-dv',
-  grEarth:'gr-earth', grMoon:'gr-moon', grSun:'gr-sun',
-  applyPreset:'btn-apply-preset',
-  mPro:'tab-prograde', mRetro:'tab-retro', mNormal:'tab-normal', mRadial:'tab-radial',
-  dvInput:'burn-dv', burnExec:'btn-burn',
-  showTrail:'cb-trail', maxPoints:'trail-max', clearTrail:'btn-clear-trail',
-  play:'btn-play', reset:'btn-reset', warp:'time-warp', camera:'camera-mode',
-  langEn:'lang-en', langKo:'lang-ko', exportCsv:'export-csv',
-  parkAlt:'parking-alt', launchDate:'in-date', dt:'in-dt', integrator:'in-integrator',
-  vehiclePreset:'vehicle-preset',
-  slDry:'sl-dry', slFuel:'sl-fuel', slIsp:'sl-isp', slThrust:'sl-thrust',
-  labDry:'lab-dry', labFuel:'lab-fuel', labIsp:'lab-isp', labThrust:'lab-thrust',
-  vehDvMax:'veh-dv-max', vehDvUsed:'veh-dv-used', vehDvRem:'veh-dv-rem', vehDvNeed:'veh-dv-need', vehVerdict:'veh-verdict',
-  helpBtn:'btn-help', helpClose:'btn-close-help', helpOverlay:'help-overlay',
-  oeRef:'oe-ref', oeA:'oe-a', oeEcc:'oe-ecc', oeInc:'oe-inc',
-  oeT:'oe-T', oeRp:'oe-rp', oeRa:'oe-ra', oeEner:'oe-ener',
-  tpTarget:'tp-target', tpTof:'tp-tof', tpPlan:'btn-tp-plan',
-  tpResult:'tp-result', tpDv:'tp-dv', tpDir:'tp-dir', tpArr:'tp-arr',
-  tpExecute:'btn-tp-execute', lwOpt:'btn-lw-opt',
-  btnDOI:'btn-doi', btnLand:'btn-land', opsStatus:'ops-status', opsText:'ops-text',
-  aiSize:'ai-size', aiTrain:'btn-ai-train', aiStop:'btn-ai-stop',
-  aiLand:'btn-ai-land', aiOff:'btn-ai-off', aiSave:'btn-ai-save',
-  aiText:'ai-text', aiScore:'ai-score', aiBar:'ai-bar',
-  dmCount:'dm-count', dmArchiveCount:'dm-archive-count', dmMax:'dm-max',
-  dmList:'dm-list', dmCleanup:'btn-dm-cleanup', dmBackup:'btn-dm-backup', dmClear:'btn-dm-clear',
-};
-const $ = (k) => document.getElementById(UI[k] || k);
-const setText = (k, t) => { const el = $(k); if (el) el.textContent = t; };
-function toggleMobileConsole(){ document.getElementById('mobile-console')?.classList.toggle('show'); }
-function toggleChatLog(){
-  const el = document.getElementById('chat-log'); if (!el) return;
-  el.classList.toggle('collapsed');
-  const t = document.getElementById('chat-toggle');
-  if (t) t.textContent = el.classList.contains('collapsed') ? '▲' : '▼';
-}
-(function setupMobileConsole(){
-  const oL = console.log.bind(console), oW = console.warn.bind(console), oE = console.error.bind(console);
-  function append(tag, args){
-    const el = document.getElementById('mobile-console'); if (!el) return;
-    const text = Array.from(args).map(a => {
-      if (a === null) return 'null'; if (a === undefined) return 'undefined';
-      if (typeof a === 'object'){ try { return JSON.stringify(a); } catch(e){ return String(a); } }
-      return String(a);
-    }).join(' ');
-    el.textContent += `[${tag}] ${text}\n`; el.scrollTop = el.scrollHeight;
-  }
-  console.log = (...a) => { oL(...a); append('LOG', a); };
-  console.warn = (...a) => { oW(...a); append('WRN', a); };
-  console.error = (...a) => { oE(...a); append('ERR', a); };
-  window.addEventListener('error', e => append('ERR', [e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')]));
-})();
-const LOG_MAX = 3000;
-function logMsg(tag, text){
-  const host = document.getElementById('log-body'); if (!host){ console.log(`[${tag}] ${text}`); return; }
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0'), mm = String(now.getMinutes()).padStart(2,'0'), ss = String(now.getSeconds()).padStart(2,'0');
-  const line = document.createElement('div'); line.className = 'log-line log-' + tag;
-  line.innerHTML = `<span class="log-time">[${hh}:${mm}:${ss}]</span> <span class="log-tag">${tag.toUpperCase()}</span> ${text}`;
-  host.appendChild(line);
-  while (host.childElementCount > LOG_MAX) host.removeChild(host.firstChild);
-  host.scrollTop = host.scrollHeight;
-}
-function setStatus(text, tag='sys'){ logMsg(tag, text); }
-function setOpsStatus(text){ const el = $('opsStatus'); if (el) el.style.display = 'block'; setText('opsText', text); }
-
-/* =====[ PART 1 ] 상수 ===================== */
-const G0 = 9.80665, J2000_MS = Date.UTC(2000,0,1,12,0,0), AU = 149597870.7, DAY = 86400, DEG = Math.PI/180;
-const BODY = {
-  sun: { mu: 1.32712440018e11, R: 696340, col: 0xffdd44 },
-  mercury: { mu: 22032.0, R: 2439.7, col: 0xaaaaaa, parent: 'sun', el: { a: 0.387098*AU, e: 0.205630, i: 7.005, om: 48.331, w: 29.124, L0: 252.250 } },
-  venus: { mu: 324858.592, R: 6051.8, col: 0xddbb66, parent: 'sun', el: { a: 0.723332*AU, e: 0.006772, i: 3.3946, om: 76.680, w: 54.884, L0: 181.979 } },
-  earth: { mu: 398600.4418, R: 6371.0, col: 0x2a66cc, parent: 'sun', el: { a: 1.000000*AU, e: 0.016709, i: 0.0000, om: 0.0, w: 114.20783, L0: 100.46435 } },
-  moon: { mu: 4902.800, R: 1737.4, col: 0xcccccc, parent: 'earth', el: { a: 384400.0, e: 0.0549, i: 5.145, om: 125.08, w: 318.15, L0: 115.3654, mu_p: 398600.4418 } },
-  mars: { mu: 42828.375, R: 3389.5, col: 0xcc4422, parent: 'sun', el: { a: 1.52366231*AU, e: 0.093412, i: 1.85061, om: 49.57854, w: 336.04084, L0: 355.45332 } },
-};
-const VEHICLES = {
-  'apollo':   { dry: 13500,  fuel: 110000,  isp: 421, thrust: 1000 },
-  'starship': { dry: 120000, fuel: 1200000, isp: 380, thrust: 16000 },
-  'sls':      { dry: 12000,  fuel: 130000,  isp: 462, thrust: 440 },
-  'custom':   { dry: 50000,  fuel: 200000,  isp: 350, thrust: 5000 },
+const ST = {
+  population: [], scores: [], gen: 0,
+  bestDNA: null, bestScore: -Infinity,
+  running: false, history: [],
+  currentStage: 0, gensInStage: 0,
+  stageBest: -Infinity,
 };
 
-/* =====[ PART 2 ] 상태 ===================== */
-const S = {
-  scene: null, cam: null, rdr: null, ctrl: null,
-  meshes: {}, markers: {}, trail: null, trailPos: [], trailMax: 5000, trailMinKm: 10,
-  bodies: {},
-  ship: {
-    pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-    dry: 13500, fuel: 110000, fuel0: 110000, isp: 421, thrustKN: 1000,
-    throttle: 0, burnDir: 'prograde', landed: false, crashed: false,
-    dvUsed: 0, refFrame: 'earth',
-  },
-  sim: { t0: Date.UTC(2026,5,5)/1000, t: 0, warp: 1, paused: true, dt: 5, method: 'rk4' },
-  vis: { trail: true },
-  camMode: 'free', _lastCamMode: 'free',
-  csvLog: [],
-  transferPlan: null, mccSchedule: null, doiSchedule: null,
-  landingActive: false, landingPhase: 'none', _savedWarp: 86400,
-  missionState: { soiEntered: false, soiAt: 0, minMoonDist: Infinity, loiDone: false, autoLOI: true },
-  lang: 'ko', _lastLandLog: 0,
-};
-
-/* =====[ PART 3 ] 수치 ===================== */
-function fmt(n, digits=2){ if (!isFinite(n)) return '--'; if (Math.abs(n) >= 1e6) return n.toExponential(2); return n.toFixed(digits); }
-
-/* =====[ PART 4 ] Three.js ===================== */
-function createGlowTexture(hexColor){
-  const size = 128; const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d'); const cx = size/2, cy = size/2;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size/2);
-  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.15, hexColor);
-  grad.addColorStop(0.5, hexColor + '55'); grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
-}
-function createMarker(hexColor){
-  return new THREE.Sprite(new THREE.SpriteMaterial({ map: createGlowTexture(hexColor), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-}
-function initScene(){
-  const host = document.getElementById(UI.canvas); if (!host){ console.error('canvas host missing'); return; }
-  S.scene = new THREE.Scene(); S.scene.background = new THREE.Color(0x000005);
-  S.cam = new THREE.PerspectiveCamera(50, host.clientWidth/host.clientHeight, 10, 1e12);
-  S.cam.position.set(2*AU, 0.6*AU, 2*AU);
-  S.rdr = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  S.rdr.setSize(host.clientWidth, host.clientHeight); S.rdr.setPixelRatio(Math.min(2, devicePixelRatio));
-  host.appendChild(S.rdr.domElement);
-  S.ctrl = new THREE.OrbitControls(S.cam, S.rdr.domElement);
-  S.ctrl.enableDamping = true; S.ctrl.dampingFactor = 0.08; S.ctrl.minDistance = 100; S.ctrl.maxDistance = 1e12;
-  S.scene.add(new THREE.AmbientLight(0x666688, 0.6)); S.scene.add(new THREE.PointLight(0xffffff, 2, 0, 0));
-  const sg = new THREE.BufferGeometry(); const pts = [];
-  for (let i=0;i<3000;i++){ const r = 1e10, th = Math.acos(2*Math.random()-1), ph = 2*Math.PI*Math.random();
-    pts.push(r*Math.sin(th)*Math.cos(ph), r*Math.cos(th), r*Math.sin(th)*Math.sin(ph)); }
-  sg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  S.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 4e7 })));
-  for (const name in BODY){
-    const b = BODY[name];
-    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), new THREE.MeshBasicMaterial({ color: b.col, wireframe: true, transparent: true, opacity: 0.35 }));
-    m.scale.setScalar(b.R); m.userData.baseR = b.R; S.scene.add(m); S.meshes[name] = m;
-    const marker = createMarker('#' + b.col.toString(16).padStart(6, '0')); S.scene.add(marker); S.markers[name] = marker;
-  }
-  const ship = new THREE.Group(); ship.name = 'ship';
-  ship.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.5, 8), new THREE.MeshBasicMaterial({ color: 0xdddddd })));
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.0, 8), new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
-  nose.position.y = 1.7; ship.add(nose);
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.5, 8), new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.8 }));
-  flame.position.y = -2.0; flame.rotation.x = Math.PI; flame.visible = false; flame.name = 'flame'; ship.add(flame);
-  ship.scale.setScalar(500); S.scene.add(ship); S.meshes.ship = ship;
-  S.markers.ship = createMarker('#ffffff'); S.scene.add(S.markers.ship);
-  const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3));
-  tg.setDrawRange(0, 0);
-  S.trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.9 }));
-  S.trail.frustumCulled = false; S.scene.add(S.trail);
-  addEventListener('resize', () => {
-    S.cam.aspect = host.clientWidth / host.clientHeight; S.cam.updateProjectionMatrix();
-    S.rdr.setSize(host.clientWidth, host.clientHeight);
-  });
-  computeBodies(0); resetShipToParkingOrbit(); syncMeshes(); S.rdr.render(S.scene, S.cam);
-}
-
-/* =====[ PART 5 ] 물리 엔진 ===================== */
-function solveKepler(M, e){
-  M = ((M % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-  let E = M + e*Math.sin(M);
-  for (let k=0;k<15;k++){ const f = E - e*Math.sin(E) - M, fp = 1 - e*Math.cos(E), dE = f/fp; E -= dE; if (Math.abs(dE) < 1e-12) break; }
-  return E;
-}
-function keplerStateVectors(el, mu_parent, days){
-  const a = el.a, e = el.e, n = Math.sqrt(mu_parent/(a*a*a));
-  const M = (el.L0 - el.om - el.w)*DEG + n*days*DAY;
-  const E = solveKepler(M, e);
-  const cE = Math.cos(E), sE = Math.sin(E), b = a*Math.sqrt(1-e*e), denom = 1 - e*cE;
-  const xP = a*(cE - e), yP = b*sE, vxP = -a*n*sE/denom, vyP = b*n*cE/denom;
-  const cO=Math.cos(el.om*DEG), sO=Math.sin(el.om*DEG), cW=Math.cos(el.w*DEG), sW=Math.sin(el.w*DEG);
-  const cI=Math.cos(el.i*DEG), sI=Math.sin(el.i*DEG);
-  return {
-    pos: new THREE.Vector3((cO*cW - sO*sW*cI)*xP + (-cO*sW - sO*cW*cI)*yP, (sO*cW + cO*sW*cI)*xP + (-sO*sW + cO*cW*cI)*yP, (sW*sI)*xP + (cW*sI)*yP),
-    vel: new THREE.Vector3((cO*cW - sO*sW*cI)*vxP + (-cO*sW - sO*cW*cI)*vyP, (sO*cW + cO*sW*cI)*vxP + (-sO*sW + cO*cW*cI)*vyP, (sW*sI)*vxP + (cW*sI)*vyP),
-  };
-}
-function computeBodies(simSec){
-  const epochMs = S.sim.t0*1000 + simSec*1000;
-  const days = (epochMs - J2000_MS)/(1000*DAY);
-  S.bodies.sun = { pos: new THREE.Vector3(0,0,0), vel: new THREE.Vector3(0,0,0), mu: BODY.sun.mu, R: BODY.sun.R };
-  for (const name in BODY){
-    if (name === 'sun') continue;
-    const b = BODY[name];
-    const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
-    const st = keplerStateVectors(b.el, muParent, days);
-    const parent = S.bodies[b.parent];
-    if (parent){ st.pos.add(parent.pos); st.vel.add(parent.vel); }
-    S.bodies[name] = { pos: st.pos, vel: st.vel, mu: b.mu, R: b.R };
-  }
-}
-function gravityAt(pos){
-  const a = new THREE.Vector3();
-  for (const n in S.bodies){
-    const b = S.bodies[n];
-    const r = b.pos.clone().sub(pos), d2 = r.lengthSq(), d = Math.sqrt(d2);
-    if (d < 1e-6) continue;
-    if (d < b.R) a.addScaledVector(r.normalize(), b.mu * d / (b.R*b.R*b.R));
-    else a.addScaledVector(r.normalize(), b.mu / d2);
-  }
-  return a;
-}
-function thrustAccel(pos, vel){
-  const out = new THREE.Vector3();
-  if (S.ship.throttle <= 0 || S.ship.fuel <= 0 || S.ship.landed || S.ship.crashed) return out;
-  const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100);
-  const mass = S.ship.dry + S.ship.fuel;
-  if (mass <= 0) return out;
-  const a_km_s2 = (thrustN / mass) * 1e-3;
-  const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
-  const rRel = pos.clone().sub(ref.pos), vRel = vel.clone().sub(ref.vel);
-  let dir;
-  switch (S.ship.burnDir){
-    case 'prograde': dir = vRel.clone().normalize(); break;
-    case 'retrograde': dir = vRel.clone().normalize().negate(); break;
-    case 'normal': dir = rRel.clone().cross(vRel).normalize(); break;
-    default: dir = rRel.clone().normalize(); break;
-  }
-  if (!isFinite(dir.x) || dir.lengthSq() < 1e-12) return out;
-  return dir.multiplyScalar(a_km_s2);
-}
-function deriv(pos, vel){ return { dp: vel.clone(), dv: gravityAt(pos).add(thrustAccel(pos, vel)) }; }
-function stepRK4(dt){
-  const p0 = S.ship.pos.clone(), v0 = S.ship.vel.clone();
-  const k1 = deriv(p0, v0);
-  const k2 = deriv(p0.clone().addScaledVector(k1.dp, dt/2), v0.clone().addScaledVector(k1.dv, dt/2));
-  const k3 = deriv(p0.clone().addScaledVector(k2.dp, dt/2), v0.clone().addScaledVector(k2.dv, dt/2));
-  const k4 = deriv(p0.clone().addScaledVector(k3.dp, dt), v0.clone().addScaledVector(k3.dv, dt));
-  S.ship.pos.copy(p0).addScaledVector(k1.dp, dt/6).addScaledVector(k2.dp, dt/3).addScaledVector(k3.dp, dt/3).addScaledVector(k4.dp, dt/6);
-  S.ship.vel.copy(v0).addScaledVector(k1.dv, dt/6).addScaledVector(k2.dv, dt/3).addScaledVector(k3.dv, dt/3).addScaledVector(k4.dv, dt/6);
-  if (S.ship.throttle > 0 && S.ship.fuel > 0){
-    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100), ve = S.ship.isp * G0;
-    const dm = Math.min(thrustN/ve * dt, S.ship.fuel);
-    S.ship.fuel -= dm;
-    S.ship.dvUsed += (thrustN/(S.ship.dry + S.ship.fuel + dm/2)) * dt;
-  }
-}
-function stepEuler(dt){
-  const a = gravityAt(S.ship.pos).add(thrustAccel(S.ship.pos, S.ship.vel));
-  S.ship.vel.addScaledVector(a, dt); S.ship.pos.addScaledVector(S.ship.vel, dt);
-  if (S.ship.throttle > 0 && S.ship.fuel > 0){
-    const thrustN = S.ship.thrustKN * 1000 * (S.ship.throttle/100), ve = S.ship.isp * G0;
-    const dm = Math.min(thrustN/ve * dt, S.ship.fuel);
-    S.ship.fuel -= dm;
-    S.ship.dvUsed += (thrustN/(S.ship.dry + S.ship.fuel + dm/2)) * dt;
-  }
-}
-function checkCollision(){
-  for (const n in S.bodies){
-    if (n === 'sun') continue;
-    const b = S.bodies[n], d = S.ship.pos.distanceTo(b.pos);
-    if (d < b.R){
-      const relV = S.ship.vel.clone().sub(b.vel), speed = relV.length() * 1000;
-      if (speed < 10){
-        S.ship.landed = true; S.ship.throttle = 0;
-        const rHat = S.ship.pos.clone().sub(b.pos).normalize();
-        S.ship.pos.copy(b.pos).addScaledVector(rHat, b.R); S.ship.vel.copy(b.vel);
-        setStatus(`SOFT LANDING @ ${n.toUpperCase()} v_rel=${speed.toFixed(1)} m/s`, 'ok');
-        setOpsStatus(`LANDED @ ${n.toUpperCase()}`);
-      } else {
-        S.ship.crashed = true; S.ship.throttle = 0;
-        setStatus(`CRASHED @ ${n.toUpperCase()} v_rel=${speed.toFixed(0)} m/s`, 'err');
-        setOpsStatus(`CRASHED (${speed.toFixed(0)} m/s)`);
-      }
-      return;
-    }
-  }
-}
-function nearestBodyInfo(pos){
-  let minD = Infinity, nearest = null, nearestName = null;
-  for (const n in S.bodies){
-    if (n === 'sun') continue;
-    const b = S.bodies[n], d = pos.distanceTo(b.pos);
-    if (d < minD){ minD = d; nearest = b; nearestName = n; }
-  }
-  return { body: nearest, name: nearestName, dist: minD };
-}
-function pickAdaptiveDt(maxDt){
-  const info = nearestBodyInfo(S.ship.pos); if (!info.body) return maxDt;
-  const vRel = S.ship.vel.clone().sub(info.body.vel).length();
-  return Math.max(0.05, Math.min(maxDt, (info.dist / Math.max(0.001, vRel)) / 50));
-}
-function debugInitialState(){
-  const e = S.bodies.earth; if (!e) return;
-  const r = S.ship.pos.clone().sub(e.pos), v = S.ship.vel.clone().sub(e.vel);
-  console.log(`[debug] Earth pos=${e.pos.length().toExponential(3)}km vel=${e.vel.length().toFixed(3)}km/s ship alt=${(r.length()-e.R).toFixed(1)}km vRel=${v.length().toFixed(3)}km/s`);
-}
-
-/* =====[ PART 6 ] 텔레메트리 ===================== */
-function updateTelemetry(){
-  setText('simTime', fmt(S.sim.t/DAY, 3) + ' d');
-  setText('date', new Date((S.sim.t0 + S.sim.t)*1000).toISOString().slice(0,10));
-  setText('shipMass', fmt(S.ship.dry + S.ship.fuel, 0) + ' kg');
-  setText('fuel', fmt(S.ship.fuel, 0) + ' kg');
-  setText('speed', fmt(S.ship.vel.length(), 3) + ' km/s');
-  const e = S.bodies.earth, mo = S.bodies.moon, ma = S.bodies.mars;
-  if (e)  setText('altEarth', fmt(S.ship.pos.distanceTo(e.pos) - e.R, 0) + ' km');
-  if (mo) setText('altMoon',  fmt(S.ship.pos.distanceTo(mo.pos) - mo.R, 0) + ' km');
-  if (ma) setText('distMars', fmt(S.ship.pos.distanceTo(ma.pos), 0) + ' km');
-  setText('dvUsed', fmt(S.ship.dvUsed, 0) + ' m/s');
-  if (e && mo){
-    const dE = S.ship.pos.distanceTo(e.pos), dM = S.ship.pos.distanceTo(mo.pos), dS = S.ship.pos.length();
-    setText('grEarth', (e.mu/(dE*dE)).toExponential(2));
-    setText('grMoon', (mo.mu/(dM*dM)).toExponential(2));
-    setText('grSun', (BODY.sun.mu/(dS*dS)).toExponential(2));
-  }
-  updateCapability(); updateOrbitalElements();
-}
-function updateCapability(){
-  const ve = S.ship.isp * G0, m0 = S.ship.dry + S.ship.fuel0, mCur = S.ship.dry + S.ship.fuel;
-  const dvMax = ve * Math.log(m0 / S.ship.dry) / 1000;
-  const dvUsed = ve * Math.log(m0 / mCur) / 1000;
-  setText('vehDvMax', dvMax.toFixed(0) + ' m/s');
-  setText('vehDvUsed', (dvUsed*1000).toFixed(0) + ' m/s');
-  setText('vehDvRem', ((dvMax - dvUsed)*1000).toFixed(0) + ' m/s');
-  const v = $('vehVerdict');
-  if (v){
-    if (dvMax >= 7.36){ v.textContent = '여유'; v.className = 'val'; }
-    else if (dvMax >= 6.4){ v.textContent = '아슬'; v.className = 'val warn'; }
-    else { v.textContent = '부족'; v.className = 'val bad'; }
-  }
-}
-function pickReferenceBody(){
-  let ref = S.bodies.earth, name = 'earth', minD = Infinity;
-  for (const n in S.bodies){
-    if (n === 'sun') continue;
-    const b = S.bodies[n], d = S.ship.pos.distanceTo(b.pos), norm = d / b.R;
-    if (norm < minD){ minD = norm; ref = b; name = n; }
-  }
-  return { body: ref, name };
-}
-function computeOrbitalElements(){
-  const pick = pickReferenceBody(), ref = pick.body;
-  const refName = pick.name.charAt(0).toUpperCase() + pick.name.slice(1);
-  const r = S.ship.pos.clone().sub(ref.pos), v = S.ship.vel.clone().sub(ref.vel);
-  const mu = ref.mu, rMag = r.length(), vMag = v.length();
-  if (rMag < 1e-6 || mu <= 0) return { refName, valid: false };
-  const energy = 0.5*vMag*vMag - mu/rMag;
-  const h = r.clone().cross(v), hMag = h.length();
-  const eVec = v.clone().cross(h).divideScalar(mu).sub(r.clone().divideScalar(rMag));
-  const ecc = eVec.length();
-  const a = (Math.abs(energy) > 1e-12) ? -mu/(2*energy) : Infinity;
-  const inc = (hMag > 1e-12) ? Math.acos(Math.max(-1, Math.min(1, h.z/hMag))) * 180/Math.PI : 0;
-  let rp_alt = null, ra_alt = null, period = null;
-  if (ecc < 1 && isFinite(a) && a > 0){ rp_alt = a*(1-ecc) - ref.R; ra_alt = a*(1+ecc) - ref.R; period = 2*Math.PI * Math.sqrt(a*a*a/mu); }
-  return { refName, mu, a, ecc, inc, period, rp_alt, ra_alt, energy, hMag, valid: true };
-}
-function updateOrbitalElements(){
-  const oe = computeOrbitalElements();
-  if (!oe.valid){ setText('oeRef', oe.refName); return; }
-  setText('oeRef', oe.refName);
-  if (isFinite(oe.a) && oe.a > 0) setText('oeA', fmt(oe.a, 1) + ' km');
-  else if (oe.a < 0) setText('oeA', 'hyper'); else setText('oeA', '--');
-  setText('oeEcc', oe.ecc.toFixed(4)); setText('oeInc', oe.inc.toFixed(2) + ' °');
-  if (oe.period !== null){
-    if (oe.period < 3600) setText('oeT', (oe.period/60).toFixed(1) + ' min');
-    else if (oe.period < 86400) setText('oeT', (oe.period/3600).toFixed(2) + ' h');
-    else setText('oeT', (oe.period/86400).toFixed(2) + ' d');
-  } else setText('oeT', '--');
-  setText('oeRp', oe.rp_alt !== null ? fmt(oe.rp_alt, 1) + ' km' : '--');
-  setText('oeRa', oe.ra_alt !== null ? fmt(oe.ra_alt, 1) + ' km' : '--');
-  setText('oeEner', oe.energy.toFixed(4) + ' km²/s²');
-}
-
-/* =====[ PART 7 ] 렌더링 ===================== */
-let lastTrailPos = new THREE.Vector3();
-const MARKER_SCREEN_FRACTION = 0.025;
-function syncMeshes(){
-  for (const n in S.bodies){
-    const b = S.bodies[n], mesh = S.meshes[n];
-    if (mesh){ mesh.position.copy(b.pos); mesh.scale.setScalar(b.R); }
-    const marker = S.markers[n];
-    if (marker){ marker.position.copy(b.pos); marker.scale.setScalar(S.cam.position.distanceTo(b.pos) * MARKER_SCREEN_FRACTION); }
-  }
-  if (S.meshes.ship){
-    S.meshes.ship.position.copy(S.ship.pos);
-    if (S.ship.vel.lengthSq() > 1e-12){
-      const look = S.ship.pos.clone().addScaledVector(S.ship.vel.clone().normalize(), 100);
-      S.meshes.ship.lookAt(look); S.meshes.ship.rotateX(Math.PI/2);
-    }
-    const flame = S.meshes.ship.getObjectByName('flame');
-    if (flame){ flame.visible = S.ship.throttle > 0 && S.ship.fuel > 0; if (flame.visible) flame.scale.y = 0.5 + S.ship.throttle/100; }
-  }
-  if (S.markers.ship){ S.markers.ship.position.copy(S.ship.pos); S.markers.ship.scale.setScalar(S.cam.position.distanceTo(S.ship.pos) * MARKER_SCREEN_FRACTION); }
-  if (S.vis.trail){
-    const minD = Math.max(S.trailMinKm, S.ship.pos.length() * 1e-5);
-    if (S.trailPos.length === 0 || S.ship.pos.distanceTo(lastTrailPos) > minD){
-      S.trailPos.push(S.ship.pos.clone());
-      if (S.trailPos.length > S.trailMax) S.trailPos.shift();
-      lastTrailPos.copy(S.ship.pos);
-      const arr = S.trail.geometry.attributes.position.array;
-      for (let i=0;i<S.trailPos.length;i++){ arr[i*3] = S.trailPos[i].x; arr[i*3+1] = S.trailPos[i].y; arr[i*3+2] = S.trailPos[i].z; }
-      S.trail.geometry.attributes.position.needsUpdate = true;
-      S.trail.geometry.setDrawRange(0, S.trailPos.length);
-    }
-    S.trail.visible = true;
-  } else S.trail.visible = false;
-}
-
-/* =====[ PART 8 ] 카메라 ===================== */
-function updateCamera(){
-  if (S.camMode === 'free'){ S._lastCamMode = 'free'; S.ctrl.update(); return; }
-  let tgt = null, viewDist = 50000;
-  if (S.camMode === 'ship'){ tgt = S.ship.pos; viewDist = 5000; }
-  else if (S.camMode === 'earth' && S.bodies.earth){ tgt = S.bodies.earth.pos; viewDist = S.bodies.earth.R * 4; }
-  else if (S.camMode === 'moon' && S.bodies.moon){ tgt = S.bodies.moon.pos; viewDist = S.bodies.moon.R * 4; }
-  else if (S.camMode === 'sun'){ tgt = S.bodies.sun.pos; viewDist = S.bodies.sun.R * 4; }
-  if (!tgt){ S.ctrl.update(); return; }
-  if (S._lastCamMode !== S.camMode){
-    S._lastCamMode = S.camMode;
-    let dir = S.cam.position.clone().sub(S.ctrl.target);
-    if (dir.lengthSq() < 1e-9) dir.set(1, 0.5, 1);
-    dir.normalize();
-    S.ctrl.target.copy(tgt); S.cam.position.copy(tgt).addScaledVector(dir, viewDist);
-    S.ctrl.minDistance = Math.max(viewDist * 0.05, 100); S.ctrl.maxDistance = viewDist * 100;
-    S.ctrl.update(); return;
-  }
-  const prev = S.ctrl.target.clone();
-  S.ctrl.target.lerp(tgt, (S.sim.warp > 100000) ? 1.0 : 0.20);
-  S.cam.position.add(S.ctrl.target.clone().sub(prev)); S.ctrl.update();
-}
-
-/* =====[ PART 9 ] 초기 배치 ===================== */
-function resetShipToParkingOrbit(){
-  computeBodies(S.sim.t);
-  const e = S.bodies.earth;
-  let alt = parseFloat(($('parkAlt')?.value) || 200);
-  if (!isFinite(alt) || alt < 100) alt = 200; if (alt > 40000) alt = 40000;
-  const r = e.R + alt;
-  S.ship.pos.copy(e.pos).addScaledVector(new THREE.Vector3(1,0,0), r);
-  S.ship.vel.copy(e.vel).addScaledVector(new THREE.Vector3(0,1,0), Math.sqrt(e.mu / r));
-  S.ship.fuel = S.ship.fuel0; S.ship.dvUsed = 0;
-  S.ship.landed = false; S.ship.crashed = false; S.ship.throttle = 0; S.ship.refFrame = 'earth';
-  S.trailPos.length = 0; lastTrailPos.copy(S.ship.pos);
-  S.transferPlan = null; S.mccSchedule = null; S.doiSchedule = null;
-  S.landingActive = false; S.landingPhase = 'none';
-  S.missionState = { soiEntered: false, soiAt: 0, minMoonDist: Infinity, loiDone: false, autoLOI: true };
-  setStatus(`Parking orbit: alt=${alt} km, v_circ=${Math.sqrt(e.mu/r).toFixed(3)} km/s`, 'sys');
-  debugInitialState();
-}
-function applyPreset(){ resetShipToParkingOrbit(); setStatus('Preset applied', 'ok'); }
-
-/* =====[ PART 10 ] 수동 burn ===================== */
-function executeBurn(){
-  const dvMs = parseFloat(($('dvInput')?.value) || 100);
-  if (!isFinite(dvMs) || dvMs <= 0) return;
-  const dv = dvMs / 1000, m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-Math.abs(dv)*1000/ve));
-  if (fuelNeed > S.ship.fuel){ setStatus('Not enough fuel', 'warn'); return; }
-  const ref = S.bodies[S.ship.refFrame] || S.bodies.earth;
-  const rRel = S.ship.pos.clone().sub(ref.pos), vRel = S.ship.vel.clone().sub(ref.vel);
-  let dir;
-  switch (S.ship.burnDir){
-    case 'prograde': dir = vRel.clone().normalize(); break;
-    case 'retrograde': dir = vRel.clone().normalize().negate(); break;
-    case 'normal': dir = rRel.clone().cross(vRel).normalize(); break;
-    default: dir = rRel.clone().normalize(); break;
-  }
-  S.ship.vel.addScaledVector(dir, dv); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMs;
-  setStatus(`BURN: ${S.ship.burnDir} dV=${dvMs.toFixed(0)} m/s`, 'ok');
-}
-
-/* =====[ PART 11 ] DOI + 착륙 (Margin-based suicide burn) ===================== */
-function startDOI(){
-  const moon = S.bodies.moon;
-  if (!moon){ setStatus('No Moon', 'err'); return; }
-  const d = S.ship.pos.distanceTo(moon.pos), d_target = moon.R + 200;
-  if (d < d_target * 1.5){ setStatus(`Already low (alt=${(d-moon.R).toFixed(0)}km)`, 'warn'); return; }
-  S.doiSchedule = null; S.landingActive = false; S.ship.refFrame = 'moon';
-  const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
-  const a_transfer = (d + d_target) / 2, v_apo_transfer = Math.sqrt(moon.mu * (2/d - 1/a_transfer));
-  const dvTan = vTanMag - v_apo_transfer;
-  if (dvTan <= 0){ setStatus('DOI-1: no burn', 'warn'); return; }
-  const dvVec = vTanVec.clone().normalize().multiplyScalar(-dvTan).add(rHat.clone().multiplyScalar(-vRad));
-  const dvMag = dvVec.length() * 1000, m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
-  if (fuelNeed > S.ship.fuel){ setStatus('DOI-1: no fuel', 'err'); return; }
-  S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-  const T_transfer = 2 * Math.PI * Math.sqrt(a_transfer*a_transfer*a_transfer / moon.mu);
-  S.doiSchedule = { atSimTime: S.sim.t + T_transfer/2, dTarget: d_target, dvDone: false };
-  setStatus(`DOI-1: dV=${dvMag.toFixed(0)} m/s, ${(d-moon.R).toFixed(0)}km→peri 200km`, 'ok');
-  setOpsStatus('DOI-1 done. Coasting...');
-}
-function executeDOICirc(){
-  const sched = S.doiSchedule; if (!sched || sched.dvDone) return; sched.dvDone = true;
-  const moon = S.bodies.moon, d = S.ship.pos.distanceTo(moon.pos);
-  const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
-  const dvTan = vTanMag - Math.sqrt(moon.mu / d);
-  const dvVec = vTanVec.clone().normalize().multiplyScalar(-dvTan).add(rHat.clone().multiplyScalar(-vRad));
-  const dvMag = dvVec.length() * 1000, m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
-  if (fuelNeed > S.ship.fuel){ setStatus('DOI-2: no fuel', 'err'); S.doiSchedule = null; return; }
-  S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-  setStatus(`DOI-2: dV=${dvMag.toFixed(0)} m/s, circular alt ${(d-moon.R).toFixed(0)}km`, 'ok');
-  setOpsStatus(`Circular at ${(d-moon.R).toFixed(0)} km`);
-  S.doiSchedule = null;
-}
-
-function startLanding(){
-  const moon = S.bodies.moon; if (!moon) return;
-  const alt = S.ship.pos.distanceTo(moon.pos) - moon.R;
-  if (alt > 5000){ setStatus(`Too high (alt=${alt.toFixed(0)}km)`, 'warn'); setOpsStatus('Too high'); return; }
-  S.ship.refFrame = 'moon';
-
-  /* 접선 성분 제거 (수직 낙하 유도) */
-  const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
-  const dvTan = Math.max(0, vTanMag - 0.01), dvRad = Math.max(0, vRad);
-  const dvVec = new THREE.Vector3();
-  if (dvTan > 0 && vTanMag > 0) dvVec.addScaledVector(vTanVec.clone().normalize(), -dvTan);
-  if (dvRad > 0) dvVec.addScaledVector(rHat, -dvRad);
-  const dvMag = dvVec.length() * 1000, mass = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-  const fuelNeed = mass * (1 - Math.exp(-dvMag / ve));
-  if (fuelNeed > S.ship.fuel){ setStatus('BRAKE no fuel', 'err'); setOpsStatus('Not enough fuel'); return; }
-  S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-
-  /* ★ WARP 자동 감속 */
-  S._savedWarp = S.sim.warp;
-  if (S.sim.warp > 60){
-    S.sim.warp = 60;
-    const wSel = $('warp'); if (wSel) wSel.value = '60';
-    setStatus('WARP → 60× (착륙 정밀 제어)', 'sys');
-  }
-
-  S.landingActive = true; S.landingPhase = 'descending'; S._lastLandLog = 0;
-  setStatus(`BRAKE: dV=${dvMag.toFixed(0)} m/s at ${alt.toFixed(0)}km. Margin ctrl engaged.`, 'phys');
-  setOpsStatus(`Descending from ${alt.toFixed(0)} km.`);
-}
-
-/* ★ Margin-based suicide burn: stopping distance × 1.5 안전 마진 */
-function applyLandingControl(){
-  if (!S.landingActive || S.ship.landed || S.ship.crashed) return;
-  const moon = S.bodies.moon; if (!moon) return;
-  const r = S.ship.pos.clone().sub(moon.pos);
-  const d = r.length(); const alt = d - moon.R;
-  if (alt < 0.001){ S.ship.throttle = 0; return; }
-  const vRel = S.ship.vel.clone().sub(moon.vel);
-  const mass = S.ship.dry + S.ship.fuel;
-  if (mass <= 0){ S.ship.throttle = 0; return; }
-
-  const thrustN = S.ship.thrustKN * 1000;
-  const aThrust = (thrustN / mass) * 1e-3;
-  const gLocal = moon.mu / (d * d);
-  const aNet = Math.max(0.0001, aThrust - gLocal);
-
-  const rHat = r.clone().normalize();
-  const vRad = vRel.dot(rHat);
-  const vDown = Math.max(0, -vRad);
-
-  /* 감속 필요 거리 × 1.5 (50% 안전 마진) */
-  const stoppingDist = (vDown * vDown) / (2 * aNet);
-  const requiredAlt = stoppingDist * 1.5;
-  const marginRatio = alt / Math.max(0.001, requiredAlt);
-
-  if (marginRatio <= 1.0 && vDown > 0.001){
-    /* 안전 마진 이내 → 브레이크 */
-    if (marginRatio < 0.5) S.ship.throttle = 100;
-    else S.ship.throttle = Math.min(100, (1 - marginRatio) * 200);
-    S.ship.burnDir = 'retrograde';
-    S.landingPhase = 'burning';
-  } else if (alt < 0.5 && vDown < 0.03){
-    S.ship.burnDir = 'radial'; S.ship.throttle = 40; S.landingPhase = 'final';
-  } else {
-    S.ship.throttle = 0; S.ship.burnDir = 'retrograde'; S.landingPhase = 'falling';
-  }
-
-  if (!S._lastLandLog || performance.now() - S._lastLandLog > 1000){
-    S._lastLandLog = performance.now();
-    console.log(`[landing] ${S.landingPhase} alt=${alt.toFixed(2)}km vDown=${(vDown*1000).toFixed(0)} stopReq=${(requiredAlt).toFixed(2)}km margin=${(marginRatio*100).toFixed(0)}% thr=${S.ship.throttle.toFixed(0)}%`);
-    setOpsStatus(`ALT ${alt.toFixed(1)}km | V ${(vDown*1000).toFixed(0)} | ${S.landingPhase} ${S.ship.throttle.toFixed(0)}%`);
-  }
-}
-
-/* =====[ PART 12 ] CSV ===================== */
-function logRow(){
-  S.csvLog.push({ t: S.sim.t, date: new Date((S.sim.t0 + S.sim.t)*1000).toISOString(),
-    x: S.ship.pos.x, y: S.ship.pos.y, z: S.ship.pos.z, vx: S.ship.vel.x, vy: S.ship.vel.y, vz: S.ship.vel.z,
-    mass: S.ship.dry + S.ship.fuel, fuel: S.ship.fuel, dv: S.ship.dvUsed });
-  if (S.csvLog.length > 50000) S.csvLog.shift();
-}
-function exportCSV(){
-  if (S.csvLog.length === 0){ setStatus('No CSV', 'warn'); return; }
-  const header = 'sim_t,date,x,y,z,vx,vy,vz,mass,fuel,dv\n';
-  const body = S.csvLog.map(r => `${r.t.toFixed(2)},${r.date},${r.x.toFixed(2)},${r.y.toFixed(2)},${r.z.toFixed(2)},${r.vx.toFixed(5)},${r.vy.toFixed(5)},${r.vz.toFixed(5)},${r.mass.toFixed(0)},${r.fuel.toFixed(0)},${r.dv.toFixed(1)}`).join('\n');
-  const blob = new Blob([header + body], { type: 'text/csv' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'celestium_' + Date.now() + '.csv'; a.click();
-  setStatus(`CSV: ${S.csvLog.length} rows`, 'ok');
-}
-
-/* =====[ PART 13 ] 람베르트 ===================== */
-function stumpffC(z){
-  if (z > 1e-8) return (1 - Math.cos(Math.sqrt(z))) / z;
-  if (z < -1e-8) return (Math.cosh(Math.sqrt(-z)) - 1) / (-z);
-  return 0.5;
-}
-function stumpffS(z){
-  if (z > 1e-8){ const sz = Math.sqrt(z); return (sz - Math.sin(sz)) / (z * sz); }
-  if (z < -1e-8){ const sz = Math.sqrt(-z); return (Math.sinh(sz) - sz) / ((-z) * sz); }
-  return 1/6;
-}
-function lambertSolver(r1, r2, dt, mu, prograde){
-  const r1m = r1.length(), r2m = r2.length();
-  if (r1m < 1e-6 || r2m < 1e-6 || dt <= 0 || mu <= 0) return null;
-  let cosDth = Math.max(-1, Math.min(1, r1.dot(r2) / (r1m * r2m)));
-  const h = r1.clone().cross(r2);
-  let dth = Math.acos(cosDth);
-  if (prograde){ if (h.z < 0) dth = 2*Math.PI - dth; } else { if (h.z >= 0) dth = 2*Math.PI - dth; }
-  const A = Math.sin(dth) * Math.sqrt(r1m * r2m / (1 - cosDth));
-  if (Math.abs(A) < 1e-6) return null;
-  const sqrtMu = Math.sqrt(mu);
-  function yOfZ(z){ const c = stumpffC(z); if (c <= 1e-14) return -1; return r1m + r2m + A * (z * stumpffS(z) - 1) / Math.sqrt(c); }
-  function FofZ(z){ const c = stumpffC(z); if (c <= 1e-14) return NaN; const s = stumpffS(z), yv = yOfZ(z); if (yv < 0) return NaN; return Math.pow(yv / c, 1.5) * s + A * Math.sqrt(yv) - sqrtMu * dt; }
-  let zLo = null, zHi = null, FLo = 0, prevZ = null, prevF = null;
-  for (let z = -60; z <= 400; z += 0.25){
-    const fz = FofZ(z);
-    if (!isFinite(fz)){ prevZ = z; prevF = null; continue; }
-    if (prevF !== null && prevF * fz <= 0){ zLo = prevZ; zHi = z; FLo = prevF; break; }
-    prevZ = z; prevF = fz;
-  }
-  if (zLo === null) return null;
-  let z = 0.5 * (zLo + zHi);
-  for (let i = 0; i < 200; i++){
-    const fz = FofZ(z);
-    if (!isFinite(fz)){ z = 0.5 * (z + zHi); continue; }
-    if (Math.abs(fz) < 1e-9) break;
-    if ((fz > 0) === (FLo > 0)){ zLo = z; FLo = fz; } else { zHi = z; }
-    const nz = 0.5 * (zLo + zHi); if (Math.abs(nz - z) < 1e-13){ z = nz; break; } z = nz;
-  }
-  const yv = yOfZ(z); if (yv < 0) return null;
-  const f = 1 - yv / r1m, g = A * Math.sqrt(yv / mu), gdot = 1 - yv / r2m;
-  if (Math.abs(g) < 1e-12) return null;
-  return { v1: r2.clone().sub(r1.clone().multiplyScalar(f)).divideScalar(g), v2: r2.clone().multiplyScalar(gdot).sub(r1).divideScalar(g), z, dth };
-}
-
-/* =====[ PART 14 ] 전이 계획 ===================== */
-function getBodyStateAt(name, simT){
-  if (name === 'sun') return { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
-  const b = BODY[name]; if (!b) return null;
-  const days = (S.sim.t0*1000 + simT*1000 - J2000_MS)/(1000*DAY);
-  const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
-  const st = keplerStateVectors(b.el, muParent, days);
-  if (b.parent !== 'sun'){ const ps = getBodyStateAt(b.parent, simT); if (ps){ st.pos.add(ps.pos); st.vel.add(ps.vel); } }
-  return st;
-}
-function pickCentralBody(targetName){ return targetName === 'moon' ? 'earth' : 'sun'; }
-function computeBodiesAt(simSec){
-  const days = (S.sim.t0*1000 + simSec*1000 - J2000_MS)/(1000*DAY);
-  const out = { sun: { pos: new THREE.Vector3(), vel: new THREE.Vector3(), mu: BODY.sun.mu, R: BODY.sun.R } };
-  for (const name in BODY){
-    if (name === 'sun') continue;
-    const b = BODY[name];
-    const muParent = (b.el.mu_p !== undefined) ? b.el.mu_p : BODY[b.parent].mu;
-    const st = keplerStateVectors(b.el, muParent, days);
-    const parent = out[b.parent]; if (parent){ st.pos.add(parent.pos); st.vel.add(parent.vel); }
-    out[name] = { pos: st.pos, vel: st.vel, mu: b.mu, R: b.R };
-  }
-  return out;
-}
-function gravityWithBodies(pos, bodies){
-  const a = new THREE.Vector3();
-  for (const n in bodies){
-    const b = bodies[n], r = b.pos.clone().sub(pos), d2 = r.lengthSq(), d = Math.sqrt(d2);
-    if (d < 1e-6) continue;
-    if (d < b.R) a.addScaledVector(r.normalize(), b.mu * d / (b.R*b.R*b.R));
-    else a.addScaledVector(r.normalize(), b.mu / d2);
-  }
-  return a;
-}
-function rk4StepShadow(pos, vel, bodies, dt){
-  const v0 = vel.clone(), a0 = gravityWithBodies(pos, bodies);
-  const p2 = pos.clone().addScaledVector(v0, dt/2), v2 = vel.clone().addScaledVector(a0, dt/2);
-  const a1 = gravityWithBodies(p2, bodies);
-  const p3 = pos.clone().addScaledVector(v2, dt/2), v3 = vel.clone().addScaledVector(a1, dt/2);
-  const a2 = gravityWithBodies(p3, bodies);
-  const p4 = pos.clone().addScaledVector(v3, dt), v4 = vel.clone().addScaledVector(a2, dt);
-  const a3 = gravityWithBodies(p4, bodies);
-  return {
-    pos: pos.clone().addScaledVector(v0, dt/6).addScaledVector(v2, dt/3).addScaledVector(v3, dt/3).addScaledVector(v4, dt/6),
-    vel: vel.clone().addScaledVector(a0, dt/6).addScaledVector(a1, dt/3).addScaledVector(a2, dt/3).addScaledVector(a3, dt/6),
-  };
-}
-function shadowPropagateTrackMin(startPos, startVel, tStart, tofSec, trackName){
-  let pos = startPos.clone(), vel = startVel.clone(), t = 0;
-  let bodies = computeBodiesAt(tStart), counter = 0, safety = 500000;
-  let minDist = Infinity, minDistTime = 0;
-  while (t < tofSec - 1e-6 && safety-- > 0){
-    if (counter++ % 20 === 0) bodies = computeBodiesAt(tStart + t);
-    if (bodies[trackName]){ const dd = pos.distanceTo(bodies[trackName].pos); if (dd < minDist){ minDist = dd; minDistTime = t; } }
-    let dtC = 120;
-    for (const n in bodies){
-      if (n === 'sun') continue;
-      const b = bodies[n], d = pos.distanceTo(b.pos), vR = vel.clone().sub(b.vel).length();
-      const dtS = (d / Math.max(vR, 1e-3)) / 60; if (dtS < dtC) dtC = dtS;
-    }
-    let dt = Math.max(1, Math.min(120, dtC)); dt = Math.min(dt, tofSec - t);
-    const r = rk4StepShadow(pos, vel, bodies, dt); pos = r.pos; vel = r.vel; t += dt;
-  }
-  return { pos, vel, minDist, minDistTime };
-}
-function planHohmannExact(targetName, applyBurn){
-  const centralName = pickCentralBody(targetName), centralNow = getBodyStateAt(centralName, S.sim.t);
-  const mu = BODY[centralName].mu, r1 = S.ship.pos.distanceTo(centralNow.pos);
-  let tofSec = 0, r2_mag = 0, targetFuture = null, centralFuture = null;
-  for (let iter = 0; iter < 10; iter++){
-    targetFuture = getBodyStateAt(targetName, S.sim.t + tofSec);
-    centralFuture = getBodyStateAt(centralName, S.sim.t + tofSec);
-    const r2v = targetFuture.pos.clone().sub(centralFuture.pos); r2_mag = r2v.length();
-    const newTof = Math.PI * Math.sqrt(((r1 + r2_mag) / 2)**3 / mu);
-    if (Math.abs(newTof - tofSec) < 1) break; tofSec = newTof;
-  }
-  targetFuture = getBodyStateAt(targetName, S.sim.t + tofSec);
-  centralFuture = getBodyStateAt(centralName, S.sim.t + tofSec);
-  const r2v = targetFuture.pos.clone().sub(centralFuture.pos); r2_mag = r2v.length();
-  const r2_angle = Math.atan2(r2v.y, r2v.x), a_transfer = (r1 + r2_mag) / 2;
-  const shipAngle = r2_angle - Math.PI;
-  const r1_dir = new THREE.Vector3(Math.cos(shipAngle), Math.sin(shipAngle), 0);
-  const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-  const v_circ = Math.sqrt(mu / r1), v_peri = Math.sqrt(mu * (2/r1 - 1/a_transfer));
-  const dvMag = (v_peri - v_circ) * 1000;
-  const startPos = centralNow.pos.clone().addScaledVector(r1_dir, r1);
-  const burnV = centralNow.vel.clone().addScaledVector(vHat, v_peri);
-  burnV.z += r2v.z / tofSec;
-  if (applyBurn){
-    const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-    const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
-    if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return null; }
-    S.ship.pos.copy(startPos); S.ship.vel.copy(burnV);
-    S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-    S.trailPos.length = 0; lastTrailPos.copy(S.ship.pos);
-    setStatus(`TLI: dV=${dvMag.toFixed(0)} m/s TOF=${(tofSec/DAY).toFixed(2)}d`, 'ok');
-    S.transferPlan = null;
-  } else {
-    S.transferPlan = { dvMag, targetName, tofDays: tofSec/DAY, err: 0, converged: true, startPos: startPos.clone(), endVel: burnV.clone(), mode: 'hohmann3D' };
-  }
-  return { dvMag, err: 0, converged: true, tofDays: tofSec/DAY, mode: 'hohmann3D' };
-}
-function planLambertScan(targetName, tofDays, applyBurn){
-  const centralName = pickCentralBody(targetName), tofSec = tofDays * DAY, tStart = S.sim.t;
-  const centralNow = getBodyStateAt(centralName, tStart);
-  const centralFuture = getBodyStateAt(centralName, tStart + tofSec);
-  const targetFuture = getBodyStateAt(targetName, tStart + tofSec);
-  if (!centralNow || !centralFuture || !targetFuture){ setStatus('No states', 'err'); return null; }
-  const mu = BODY[centralName].mu, r2_target = targetFuture.pos.clone().sub(centralFuture.pos);
-  const r2_angle = Math.atan2(r2_target.y, r2_target.x);
-  if (centralName !== 'earth'){
-    const r1_rel = S.ship.pos.clone().sub(centralNow.pos);
-    const sol = lambertSolver(r1_rel, r2_target, tofSec, mu, true);
-    if (!sol){ setStatus('No Lambert', 'err'); return null; }
-    const v1i = sol.v1.clone().add(centralNow.vel), dvMag = v1i.clone().sub(S.ship.vel).length() * 1000;
-    if (applyBurn){
-      const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-      const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
-      if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return null; }
-      S.ship.vel.copy(v1i); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-      setStatus(`LAMBERT: dV=${dvMag.toFixed(0)} m/s`, 'ok'); S.transferPlan = null;
+/* ★ 초기 DNA: 저추력 편향 10%로 축소 */
+function makeRandomDNA(){
+  const d = new Float32Array(DNA_LEN);
+  const isLowThrottle = Math.random() < 0.1;
+  const hiddenStart = NN_IN * NN_HID;
+  for (let i=0;i<DNA_LEN;i++){
+    if (isLowThrottle && i >= hiddenStart){
+      d[i] = (Math.random()*2 - 1) * 0.5 - 0.4;
     } else {
-      S.transferPlan = { dvMag, targetName, tofDays, err: 0, converged: true, startPos: S.ship.pos.clone(), endVel: v1i.clone(), mode: 'lambert' };
+      d[i] = (Math.random()*2 - 1) * 0.4;
     }
-    return { dvMag, err: 0, converged: true, mode: 'lambert', tofDays };
   }
-  const startR = S.ship.pos.distanceTo(centralNow.pos), v_circ = Math.sqrt(mu / startR);
-  const offsets = [];
-  for (let d = 0.3; d <= 3; d += 0.3){ offsets.push(d); offsets.push(-d); }
-  for (let d = 4; d <= 10; d += 1){ offsets.push(d); offsets.push(-d); }
-  let best = null;
-  for (const d of offsets){
-    const angle = r2_angle - Math.PI + d * DEG;
-    const r1_dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0);
-    const r1_rel = r1_dir.clone().multiplyScalar(startR);
-    const sol = lambertSolver(r1_rel, r2_target, tofSec, mu, true);
-    if (!sol) continue;
-    const vHat = new THREE.Vector3(-r1_dir.y, r1_dir.x, 0);
-    const shipV = centralNow.vel.clone().addScaledVector(vHat, v_circ);
-    const v1i = sol.v1.clone().add(centralNow.vel);
-    const dv = v1i.clone().sub(shipV).length() * 1000;
-    if (!best || dv < best.dv) best = { dv, angle, r1_rel: r1_rel.clone(), v1i: v1i.clone() };
-  }
-  if (!best){ setStatus('No Lambert', 'err'); return null; }
-  const startPos = centralNow.pos.clone().add(best.r1_rel);
-  if (applyBurn){
-    const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-    const fuelNeed = m0 * (1 - Math.exp(-best.dv / ve));
-    if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return null; }
-    S.ship.pos.copy(startPos); S.ship.vel.copy(best.v1i);
-    S.ship.fuel -= fuelNeed; S.ship.dvUsed += best.dv;
-    S.trailPos.length = 0; lastTrailPos.copy(S.ship.pos);
-    setStatus(`LAMBERT: dV=${best.dv.toFixed(0)} m/s`, 'ok'); S.transferPlan = null;
-  } else {
-    S.transferPlan = { dvMag: best.dv, targetName, tofDays, err: 0, converged: true, startPos: startPos.clone(), endVel: best.v1i.clone(), mode: 'lambert' };
-  }
-  return { dvMag: best.dv, err: 0, converged: true, mode: 'lambert', tofDays };
-}
-function planTransferSmart(targetName, tofDays, applyBurn){
-  S.sim.paused = true;
-  const playBtn = $('play'); if (playBtn) playBtn.textContent = 'PLAY';
-  const centralName = pickCentralBody(targetName), centralNow = getBodyStateAt(centralName, S.sim.t);
-  const tgtNow = getBodyStateAt(targetName, S.sim.t), mu = BODY[centralName].mu;
-  const r1 = S.ship.pos.distanceTo(centralNow.pos), r2 = tgtNow.pos.distanceTo(centralNow.pos);
-  const hohmannTofDays = Math.PI * Math.sqrt(((r1+r2)/2)**3 / mu) / DAY;
-  const ratio = tofDays / hohmannTofDays;
-  if (ratio > 0.9 && ratio < 1.1) return planHohmannExact(targetName, applyBurn);
-  else return planLambertScan(targetName, tofDays, applyBurn);
-}
-function handlePlanTransfer(){
-  const target = ($('tpTarget')?.value) || 'moon', tof = parseFloat($('tpTof')?.value) || 5;
-  const r = planTransferSmart(target, tof, false);
-  if (!r){ setStatus('Plan failed', 'err'); return; }
-  updateTransferPlanUI();
-  setStatus(`Ready: dV=${r.dvMag.toFixed(0)} m/s ${r.mode}`, 'ok');
-}
-function executeTransferBurn(){
-  const plan = S.transferPlan;
-  const scheduleMCC = (tofDays, targetName) => {
-    S.mccSchedule = { atSimTime: S.sim.t + 0.5 * DAY, targetName, arrivalSimTime: S.sim.t + tofDays * DAY, executed: false };
-    S.missionState = { soiEntered: false, soiAt: 0, minMoonDist: Infinity, loiDone: false, autoLOI: true };
-  };
-  if (!plan){
-    const target = ($('tpTarget')?.value) || 'moon', tof = parseFloat($('tpTof')?.value) || 5;
-    const r = planTransferSmart(target, tof, true);
-    if (!r){ setStatus('Burn failed', 'err'); return; }
-    if (r.tofDays) scheduleMCC(r.tofDays, target);
-    updateTransferPlanUI(); return;
-  }
-  const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-plan.dvMag / ve));
-  if (fuelNeed > S.ship.fuel){ setStatus('No fuel', 'err'); return; }
-  S.ship.pos.copy(plan.startPos); S.ship.vel.copy(plan.endVel);
-  S.ship.fuel -= fuelNeed; S.ship.dvUsed += plan.dvMag;
-  S.trailPos.length = 0; lastTrailPos.copy(S.ship.pos);
-  setStatus(`BURN: dV=${plan.dvMag.toFixed(0)} m/s (${plan.mode})`, 'ok');
-  scheduleMCC(plan.tofDays, plan.targetName);
-  S.transferPlan = null; updateTransferPlanUI();
-}
-function updateTransferPlanUI(){
-  const plan = S.transferPlan;
-  if (!plan){ const el = $('tpResult'); if (el) el.style.display = 'none'; const ex = $('tpExecute'); if (ex) ex.style.display = 'none'; return; }
-  const el = $('tpResult'); if (el) el.style.display = 'block';
-  const ex = $('tpExecute'); if (ex) ex.style.display = 'block';
-  setText('tpDv', plan.dvMag.toFixed(0) + ' m/s');
-  setText('tpDir', plan.mode);
-  setText('tpArr', new Date((S.sim.t0 + S.sim.t + plan.tofDays*DAY)*1000).toISOString().slice(0,10) + ' (' + plan.tofDays.toFixed(2) + ' d)');
+  return d;
 }
 
-/* =====[ PART 15 ] MCC + SOI + LOI ===================== */
-let lastFrame = performance.now(), lastLogTime = 0, lastDiagTime = 0;
-function executeMCC(){
-  const mcc = S.mccSchedule; if (!mcc || mcc.executed) return; mcc.executed = true;
-  const centralName = pickCentralBody(mcc.targetName);
-  const remaining = mcc.arrivalSimTime - S.sim.t; if (remaining <= 0){ setStatus('MCC skip', 'warn'); return; }
-  const centralNow = getBodyStateAt(centralName, S.sim.t);
-  const centralFuture = getBodyStateAt(centralName, mcc.arrivalSimTime);
-  const targetFuture = getBodyStateAt(mcc.targetName, mcc.arrivalSimTime);
-  const mu = BODY[centralName].mu, currentPos = S.ship.pos.clone(), currentVel = S.ship.vel.clone();
-  const r2_vec = targetFuture.pos.clone().sub(centralFuture.pos), r2_angle = Math.atan2(r2_vec.y, r2_vec.x);
-  const perp = new THREE.Vector3(-Math.sin(r2_angle), Math.cos(r2_angle), 0);
-  const targetPerilune = BODY[mcc.targetName].R + 500;
-  const offsetsToTry = [500, 1000, 1500, 2000, 3000, 4000, -500, -1000, -1500, -2000, -3000, -4000];
-  let best = null;
-  for (const offset of offsetsToTry){
-    const aimPt = r2_vec.clone().addScaledVector(perp, offset);
-    const r1_rel = currentPos.clone().sub(centralNow.pos);
-    const sol = lambertSolver(r1_rel, aimPt, remaining, mu, true);
-    if (!sol) continue;
-    const v1i = sol.v1.clone().add(centralNow.vel);
-    const shadow = shadowPropagateTrackMin(currentPos.clone(), v1i.clone(), S.sim.t, remaining, mcc.targetName);
-    const miss = Math.abs(shadow.minDist - targetPerilune);
-    const dvMag = v1i.clone().sub(currentVel).length() * 1000;
-    if (!best || miss < best.miss) best = { dvVec: v1i.clone().sub(currentVel), dvMag, miss, minDist: shadow.minDist, offset };
+/* ★ 출력 활성화: sigmoid(0.7s - 2.5) → 초기 8% (호버 회피) */
+function forward(dna, x){
+  const h = new Float32Array(NN_HID);
+  let k = 0;
+  for (let j=0;j<NN_HID;j++){
+    let s = 0;
+    for (let i=0;i<NN_IN;i++) s += x[i] * dna[k++];
+    h[j] = Math.tanh(s);
   }
-  if (!best){ setStatus('MCC: no solution', 'warn'); return; }
-  const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-  const fuelNeed = m0 * (1 - Math.exp(-best.dvMag / ve));
-  if (fuelNeed > S.ship.fuel){ setStatus('MCC: no fuel', 'err'); return; }
-  S.ship.vel.add(best.dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += best.dvMag;
-  setStatus(`MCC: dV=${best.dvMag.toFixed(0)} m/s perilune=${best.minDist.toFixed(0)}km`, 'phys');
-}
-function checkLunarApproach(){
-  const moon = S.bodies.moon; if (!moon || S.ship.landed || S.ship.crashed) return;
-  const d = S.ship.pos.distanceTo(moon.pos), SOI = 66100;
-  if (!S.missionState.soiEntered && d < SOI){
-    S.missionState.soiEntered = true; S.missionState.soiAt = S.sim.t;
-    if (S.sim.warp > 3600){ S.sim.warp = 3600; const wSel = $('warp'); if (wSel) wSel.value = '3600'; setStatus('WARP → 3,600×', 'sys'); }
-    setStatus(`MOON SOI d=${d.toFixed(0)}km`, 'phys');
-  }
-  if (S.missionState.soiEntered && d < S.missionState.minMoonDist) S.missionState.minMoonDist = d;
-  if (S.missionState.autoLOI && S.missionState.soiEntered && !S.missionState.loiDone){
-    const rHat = S.ship.pos.clone().sub(moon.pos).normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
-    const vRad = vRel.dot(rHat), vTanVec = vRel.clone().sub(rHat.clone().multiplyScalar(vRad)), vTanMag = vTanVec.length();
-    const vCirc = Math.sqrt(moon.mu / d);
-    let predictedPerilune = d;
-    const vEsc = Math.sqrt(2 * moon.mu / d);
-    if (vRel.length() < vEsc){
-      const E = 0.5 * vRel.lengthSq() - moon.mu / d;
-      if (E < 0){
-        const hMag = d * vTanMag, a = -moon.mu / (2*E), e = Math.sqrt(Math.max(0, 1 - hMag*hMag/(moon.mu*a)));
-        predictedPerilune = a * (1 - e);
-      }
-    }
-    const shouldFire = vRad < 0 && (d < 5000 || (d < 20000 && predictedPerilune > moon.R * 5));
-    if (shouldFire && vTanMag > 0.05 && d > moon.R + 300){
-      const newVRel = vTanVec.clone().normalize().multiplyScalar(vCirc), dvVec = newVRel.clone().sub(vRel), dvMag = dvVec.length() * 1000;
-      if (dvMag < 5){ S.missionState.loiDone = true; S.missionState.autoLOI = false; return; }
-      const m0 = S.ship.dry + S.ship.fuel, ve = S.ship.isp * G0;
-      const fuelNeed = m0 * (1 - Math.exp(-dvMag / ve));
-      if (fuelNeed > S.ship.fuel){ setStatus('LOI: no fuel', 'err'); S.missionState.autoLOI = false; return; }
-      S.ship.vel.add(dvVec); S.ship.fuel -= fuelNeed; S.ship.dvUsed += dvMag;
-      setStatus(`LOI: d=${d.toFixed(0)}km alt=${(d-moon.R).toFixed(0)} dV=${dvMag.toFixed(0)} m/s`, 'ok');
-      setOpsStatus(`In lunar orbit at ${(d-moon.R).toFixed(0)} km`);
-      S.missionState.loiDone = true; S.missionState.autoLOI = false;
-    }
-  }
+  let s = 0;
+  for (let i=0;i<NN_HID;i++) s += h[i] * dna[k++];
+  return 1 / (1 + Math.exp(-(s * 0.7 - 2.5)));
 }
 
-/* =====[ PART 16 ] AI (커리큘럼 + gradient 보상) ===================== */
-const AI = {
-  NN_IN: 6, NN_HID: 12, NN_OUT: 1, DNA_LEN: 6*12 + 12*1,
-  population: [], generation: 0, bestDNA: null, bestScore: -Infinity,
-  training: false, live: false,
-  POP_SIZE: 40, GENERATIONS: 40, ELITISM: 4,
-  _debugged: false, _debugged2: false, _lastStats: null,
-};
-function aiRandomDNA(){ const d = new Float32Array(AI.DNA_LEN); for (let i = 0; i < AI.DNA_LEN; i++) d[i] = (Math.random()*2 - 1) * 0.5; return d; }
-function aiForward(dna, inputs){
-  const h = new Float32Array(AI.NN_HID); let k = 0;
-  for (let j = 0; j < AI.NN_HID; j++){ let s = 0; for (let i = 0; i < AI.NN_IN; i++) s += inputs[i] * dna[k++]; h[j] = Math.tanh(s); }
-  let s = 0; for (let i = 0; i < AI.NN_HID; i++) s += h[i] * dna[k++];
-  return 1 / (1 + Math.exp(-s));
-}
-/* ★ 커리큘럼: 500m → 20km. 초기 난이도 매우 낮음 */
-function aiTrainingStates(gen){
-  const R = 1737.4, dry = S.ship.dry;
-  const fuel0 = (S.ship.fuel0 > 0) ? S.ship.fuel0 : 110000;
-  const thrustN = (S.ship.thrustKN > 0) ? S.ship.thrustKN * 1000 : 1000000;
-  const isp = (S.ship.isp > 0) ? S.ship.isp : 421;
-  const progress = Math.min(1, gen / 25);
-  const scale = 0.025 + 0.975 * progress;  // 0.025 → 1.0
-  const baseAlt = 20 * scale;  // km: 0.5 → 20
-  return [
-    { r: R + baseAlt, vr: -(1 + 9 * progress), vt: 0, fuel: fuel0, dryMass: dry, thrustN, isp },
-    { r: R + baseAlt * 1.5, vr: -(1.2 + 10 * progress), vt: 0, fuel: fuel0, dryMass: dry, thrustN, isp },
-    { r: R + baseAlt * 2, vr: -(1.5 + 12 * progress), vt: 5 * progress, fuel: fuel0 * 0.9, dryMass: dry, thrustN, isp },
-    { r: R + baseAlt * 3, vr: -(2 + 13 * progress), vt: 10 * progress, fuel: fuel0 * 0.8, dryMass: dry, thrustN, isp },
-  ];
-}
-function aiShadowSim(dna, init){
-  const moonR = 1737.4, mu = 4902.8, g0 = 9.80665;
+function simDNA(dna, init){
   let r = init.r, vr = init.vr, vt = init.vt, fuel = init.fuel;
-  const dryMass = init.dryMass, thrustN = init.thrustN, isp = init.isp;
-  const fuel0 = (fuel > 0) ? fuel : 1;
-  let t = 0; const dt = 0.5, tMax = 5000;
-  let minAlt = r - moonR;
-  let safety = 20000;
-  let iterCount = 0;
-  if (!AI._debugged){
-    AI._debugged = true;
-    console.log(`[AI debug] sim start: alt=${(r-moonR).toFixed(2)}km vr=${vr.toFixed(1)} vt=${vt.toFixed(1)} fuel=${fuel.toFixed(0)} thrustN=${thrustN}`);
-  }
-  while (t < tMax && safety-- > 0){
-    iterCount++;
-    const alt = r - moonR;
+  const dry = SHIP.dry, thrustN = SHIP.thrustKN * 1000, isp = SHIP.isp;
+  const fuel0 = fuel;
+  let minAlt = r - MOON_R, t = 0;
+  const tMax = init.tMax;
+  const dt = tMax > 300 ? 1.0 : 0.3;
+
+  while (t < tMax && fuel > 0){
+    const alt = r - MOON_R;
     if (alt < minAlt) minAlt = alt;
     if (alt <= 0){
-      const vTotal = Math.sqrt(vr*vr + vt*vt) * 1000;
-      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim: ${vTotal<5?'LANDED':'CRASHED'} v=${vTotal.toFixed(0)}m/s iter=${iterCount}`); }
-      return { landed: vTotal < 5, crashed: vTotal >= 5, vTouch: vTotal, fuelUsed: fuel0 - fuel, time: t, minAlt: 0 };
+      const vT = Math.sqrt(vr*vr + vt*vt) * 1000;
+      return { kind: vT < LANDING_THRESHOLD ? 'L' : 'C', vT, fuelUsed: fuel0 - fuel, t, minAlt: 0 };
     }
-    if (fuel <= 0){
-      if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim: OUT_OF_FUEL alt=${alt.toFixed(1)} iter=${iterCount}`); }
-      return { landed: false, crashed: false, outOfFuel: true, fuelUsed: fuel0, time: t, minAlt };
-    }
-    const mass = dryMass + fuel;
-    if (mass <= 0 || !isFinite(mass)) return { landed: false, crashed: true, vTouch: 999, fuelUsed: fuel0, time: t, minAlt };
-    const gLocal = mu / (r*r), gSurf = mu / (moonR*moonR);
+    const mass = dry + fuel;
+    if (mass <= 0) return { kind: 'C', vT: 999, fuelUsed: fuel0, t, minAlt };
+    const gLocal = MOON_MU / (r*r), gSurf = MOON_MU / (MOON_R*MOON_R);
+
     const inputs = [
-      Math.min(1, alt / Math.max(1, 20)),           // 정규화: 0-20km
+      Math.min(1, alt / 15000),
       Math.max(-1, Math.min(1, vr / 100)),
-      Math.min(1, Math.abs(vt) / 100),
+      Math.min(1, Math.abs(vt) / 1700),
       fuel / fuel0,
-      (mass - dryMass) / fuel0,
+      (mass - dry) / fuel0,
       Math.min(1, gLocal / gSurf),
     ];
-    const throttle = aiForward(dna, inputs);
-    const fuelBurn = (thrustN * throttle / (isp * g0)) / 1000;
-    function deriv(r_, vr_, vt_, f_){
-      const m_ = dryMass + f_;
-      if (m_ <= 0) return { dr: vr_, dvr: -mu/(r_*r_), dvt: 0, df: 0 };
-      const gR_ = -mu / (r_*r_), cent = (vt_*vt_) / r_;
-      let thR = 0, thT = 0;
-      const vM_ = Math.sqrt(vr_*vr_ + vt_*vt_);
-      if (vM_ > 1e-9){ const thr = (thrustN * throttle / m_) / 1000; thR = -vr_/vM_ * thr; thT = -vt_/vM_ * thr; }
-      return { dr: vr_, dvr: gR_ + cent + thR, dvt: -(vr_*vt_)/r_ + thT, df: -fuelBurn };
+    const throttle = forward(dna, inputs);
+    const fuelBurn = (thrustN * throttle / (isp * G0)) / 1000;
+
+    const vM = Math.sqrt(vr*vr + vt*vt);
+    let thR = 0, thT = 0;
+    if (vM > 1e-9){
+      const thr = (thrustN * throttle / mass) / 1000;
+      thR = -vr/vM * thr;
+      thT = -vt/vM * thr;
     }
+    const deriv = (r_, vr_, vt_, f_) => {
+      const m_ = dry + f_;
+      if (m_ <= 0) return { dr: vr_, dvr: -MOON_MU/(r_*r_), dvt: 0, df: 0 };
+      const gR = -MOON_MU/(r_*r_), cent = (vt_*vt_)/r_;
+      return { dr: vr_, dvr: gR + cent + thR, dvt: -(vr_*vt_)/r_ + thT, df: -fuelBurn };
+    };
     const k1 = deriv(r, vr, vt, fuel);
     const k2 = deriv(r + k1.dr*dt/2, vr + k1.dvr*dt/2, vt + k1.dvt*dt/2, fuel + k1.df*dt/2);
     const k3 = deriv(r + k2.dr*dt/2, vr + k2.dvr*dt/2, vt + k2.dvt*dt/2, fuel + k2.df*dt/2);
@@ -1366,479 +197,300 @@ function aiShadowSim(dna, init){
     fuel = Math.max(0, fuel + (k1.df + 2*k2.df + 2*k3.df + k4.df) * dt / 6);
     t += dt;
   }
-  if (!AI._debugged2){ AI._debugged2 = true; console.log(`[AI debug] first sim: TIMEOUT alt=${minAlt.toFixed(1)}`); }
-  return { landed: false, crashed: false, timeout: true, fuelUsed: fuel0 - fuel, time: t, minAlt };
+  if (fuel <= 0) return { kind: 'F', vT: 0, fuelUsed: fuel0, t, minAlt };
+  return { kind: 'T', vT: 0, fuelUsed: fuel0 - fuel, t, minAlt };
 }
-/* ★ Gradient 보상: v=300까지 유효한 gradient */
-function aiEvaluate(dna, gen){
-  const states = aiTrainingStates(gen);
+
+function getScenarios(stageIdx){
+  const s = STAGES[stageIdx];
+  return [
+    { r: MOON_R + s.altMin, vr: s.vrMin, vt: 0, fuel: SHIP.fuel0, tMax: s.tMax },
+    { r: MOON_R + (s.altMin + s.altMax)/2, vr: (s.vrMin + s.vrMax)/2, vt: s.vtMax * 0.5, fuel: SHIP.fuel0 * 0.9, tMax: s.tMax },
+    { r: MOON_R + s.altMax, vr: s.vrMax, vt: s.vtMax, fuel: SHIP.fuel0 * 0.8, tMax: s.tMax },
+  ];
+}
+
+/* ★ C에 crashV gradient */
+function evaluate(dna, stageIdx){
+  const scenarios = getScenarios(stageIdx);
+  const stats = { L:0, C:0, F:0, T:0, crashVSum:0, crashCount:0 };
   let total = 0;
-  const stats = { landed: 0, crashed: 0, outOfFuel: 0, timeout: 0 };
-  for (const st of states){
-    const res = aiShadowSim(dna, st);
-    const initAlt = st.r - 1737.4;
+  for (const st of scenarios){
+    const res = simDNA(dna, st);
+    const initAlt = st.r - MOON_R;
     const progress = Math.max(0, Math.min(1, 1 - res.minAlt / Math.max(1, initAlt)));
+    const fuelSave = 1 - res.fuelUsed / st.fuel;
     let score;
-    if (res.landed){
-      score = 1000 + (1 - res.fuelUsed / st.fuel) * 300;
-      stats.landed++;
-    } else if (res.crashed){
-      // v=0 → +500+200=700, v=100 → +250+200=450, v=200 → 0+200=200, v=300 → -250+200=-50
-      score = Math.max(-500, 500 - res.vTouch * 2.5) + progress * 200;
-      stats.crashed++;
-    } else if (res.outOfFuel){
-      score = -300;
-      stats.outOfFuel++;
+    if (res.kind === 'L'){
+      score = 1000 + fuelSave * 500;
+      stats.L++;
+    } else if (res.kind === 'C'){
+      /* v=0→+500, v=10→-750, v=20→-1000 */
+      const vFactor = 1 - Math.min(res.vT / 20, 1);
+      score = -1000 + vFactor * 500;
+      stats.C++; stats.crashVSum += res.vT; stats.crashCount++;
+    } else if (res.kind === 'F'){
+      score = -1500 + progress * 500;
+      stats.F++;
     } else {
-      score = -400;
-      stats.timeout++;
+      const minAltKm = res.minAlt / 1000;
+      score = -2000 + progress * 1500 - minAltKm * 100;
+      stats.T++;
     }
     total += score;
   }
-  AI._lastStats = stats;
-  return total / states.length;
+  return { score: total / scenarios.length, stats };
 }
-function aiCrossover(a, b){
-  const c = new Float32Array(AI.DNA_LEN), cut = Math.floor(Math.random() * AI.DNA_LEN);
-  for (let i = 0; i < AI.DNA_LEN; i++) c[i] = i < cut ? a[i] : b[i];
-  return c;
-}
-function aiMutate(d, rate, sigma){
-  for (let i = 0; i < AI.DNA_LEN; i++){
-    if (Math.random() < rate){ d[i] += (Math.random()*2-1) * sigma; if (d[i] > 1) d[i] = 1; if (d[i] < -1) d[i] = -1; }
-  }
-}
-function aiTournament(pop, scores){
+
+function tournament(pop, scores, k){
   let bi = Math.floor(Math.random() * pop.length), bs = scores[bi];
-  for (let i = 1; i < 4; i++){ const idx = Math.floor(Math.random() * pop.length); if (scores[idx] > bs){ bs = scores[idx]; bi = idx; } }
+  for (let i=0;i<k;i++){
+    const idx = Math.floor(Math.random() * pop.length);
+    if (scores[idx] > bs){ bs = scores[idx]; bi = idx; }
+  }
   return bi;
 }
-function aiInitPopulation(){
-  AI.population = [];
-  if (AI.bestDNA){
-    AI.population.push(AI.bestDNA.slice());
-    for (let i = 1; i < AI.POP_SIZE; i++){ const d = AI.bestDNA.slice(); aiMutate(d, 0.3, 0.1); AI.population.push(d); }
-  } else {
-    for (let i = 0; i < AI.POP_SIZE; i++) AI.population.push(aiRandomDNA());
-  }
-  AI.generation = 0;
+function crossover(a, b){
+  const c = new Float32Array(DNA_LEN);
+  const cut = Math.floor(Math.random() * DNA_LEN);
+  for (let i=0;i<DNA_LEN;i++) c[i] = i < cut ? a[i] : b[i];
+  return c;
 }
-async function aiTrain(){
-  if (AI.training) return;
-  AI.training = true; aiInitPopulation();
-  AI._debugged = false; AI._debugged2 = false;
-  logMsg('data', `[AI] config: fuel0=${S.ship.fuel0} dry=${S.ship.dry} thrustKN=${S.ship.thrustKN} isp=${S.ship.isp}`);
-  const trainBtn = $('aiTrain'), stopBtn = $('aiStop'), landBtn = $('aiLand');
-  if (trainBtn) trainBtn.disabled = true;
-  if (stopBtn) stopBtn.style.display = 'block';
-  if (landBtn) landBtn.disabled = true;
-  setStatus('[AI] Training started', 'ga');
-  setText('aiText', 'Training...');
-  const tStart = performance.now();
-  for (let gen = 0; gen < AI.GENERATIONS; gen++){
-    if (!AI.training) break;
-    const scores = AI.population.map(d => aiEvaluate(d, gen));
-    let bi = 0; for (let i = 1; i < scores.length; i++) if (scores[i] > scores[bi]) bi = i;
-    if (scores[bi] > AI.bestScore){ AI.bestScore = scores[bi]; AI.bestDNA = AI.population[bi].slice(); }
-    const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
-    const stats = AI._lastStats || {};
-    logMsg('ga', `[AI] Gen ${gen+1}/${AI.GENERATIONS}: best=${scores[bi].toFixed(0)} avg=${avg.toFixed(0)} | L:${stats.landed||0} C:${stats.crashed||0} F:${stats.outOfFuel||0} T:${stats.timeout||0}`);
-    const bar = $('aiBar'); if (bar) bar.style.width = ((gen+1)/AI.GENERATIONS*100).toFixed(0) + '%';
-    setText('aiScore', AI.bestScore.toFixed(0));
-    setText('aiText', `Gen ${gen+1}/${AI.GENERATIONS}`);
+function mutate(d, rate, sigma){
+  for (let i=0;i<DNA_LEN;i++){
+    if (Math.random() < rate){
+      d[i] += (Math.random()*2 - 1) * sigma;
+      if (d[i] > 2) d[i] = 2;
+      if (d[i] < -2) d[i] = -2;
+    }
+  }
+}
+
+function el(id){ return document.getElementById(id); }
+function log(text, type='info'){
+  const d = document.createElement('div');
+  d.className = type;
+  const t = new Date();
+  d.textContent = `[${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}] ${text}`;
+  el('log').appendChild(d);
+  el('log').scrollTop = el('log').scrollHeight;
+}
+
+function updateStageList(){
+  let html = '';
+  for (let i=0;i<STAGES.length;i++){
+    const s = STAGES[i];
+    const marker = i < ST.currentStage ? '✓' : (i === ST.currentStage ? '▶' : '○');
+    const color = i < ST.currentStage ? '#0f0' : (i === ST.currentStage ? '#0ff' : '#666');
+    html += `<div style="color:${color};"><b>${marker} ${s.name}</b>: ${s.altMin/1000}-${s.altMax/1000}km, vt≤${s.vtMax}, tMax=${s.tMax}s</div>`;
+  }
+  el('stage-list').innerHTML = html;
+}
+
+async function runGeneration(){
+  const gen = ST.gen;
+  const stageIdx = ST.currentStage;
+  const stage = STAGES[stageIdx];
+
+  const aggStats = { L:0, C:0, F:0, T:0 };
+  const scores = new Array(ADAPT.popSize);
+
+  for (let i=0;i<ADAPT.popSize;i++){
+    if (!ST.running) return false;
+    const { score, stats } = evaluate(ST.population[i], stageIdx);
+    scores[i] = score;
+    aggStats.L += stats.L; aggStats.C += stats.C;
+    aggStats.F += stats.F; aggStats.T += stats.T;
+
+    if (i % 50 === 0){
+      el('progress-bar').style.width = ((i/ADAPT.popSize)*100).toFixed(1) + '%';
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  ST.scores = scores;
+  let bi = 0;
+  for (let i=1;i<scores.length;i++) if (scores[i] > scores[bi]) bi = i;
+  const genBest = scores[bi];
+  if (genBest > ST.bestScore){ ST.bestScore = genBest; ST.bestDNA = ST.population[bi].slice(); }
+  if (genBest > ST.stageBest) ST.stageBest = genBest;
+
+  const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${gen+1}</td><td>${stage.name}</td>
+    <td>${genBest.toFixed(0)}</td><td>${avg.toFixed(0)}</td>
+    <td>${aggStats.L}</td><td>${aggStats.C}</td><td>${aggStats.F}</td><td>${aggStats.T}</td>`;
+  el('stats-body').appendChild(tr);
+  el('stats-body').parentElement.parentElement.scrollTop = 9999;
+
+  el('stat-gen').textContent = gen+1;
+  el('stat-stage').textContent = stage.name;
+  el('stat-best').textContent = ST.bestScore.toFixed(0);
+  el('stat-stage-best').textContent = ST.stageBest.toFixed(0);
+  el('stat-avg').textContent = avg.toFixed(0);
+  updateStageList();
+
+  ST.history.push({ gen, stage: stageIdx, best: genBest, avg, stats: aggStats });
+  ST.gensInStage++;
+
+  const targetReached = ST.stageBest >= stage.targetBest;
+  const maxReached = ST.gensInStage >= stage.maxGens;
+  let stageAdvanced = false;
+  let terminated = false;
+
+  if (targetReached && ST.gensInStage >= 2 && stageIdx < STAGES.length - 1){
+    stageAdvanced = true;
+    log(`★ ${stage.name} → ${STAGES[stageIdx+1].name} (target=${ST.stageBest.toFixed(0)})`, 'ok');
+  } else if (maxReached){
+    if (stageIdx < STAGES.length - 1){
+      stageAdvanced = true;
+      log(`→ ${stage.name} → ${STAGES[stageIdx+1].name} (maxGens, best=${ST.stageBest.toFixed(0)})`, 'warn');
+    } else {
+      terminated = true;
+      log(`■ 최종 stage ${stage.name} 완료 (best=${ST.stageBest.toFixed(0)})`, 'ok');
+    }
+  }
+
+  if (stageAdvanced){
+    ST.currentStage++;
+    ST.gensInStage = 0;
+    ST.stageBest = -Infinity;
+  }
+
+  const sorted = scores.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
+  const next = [];
+  for (let e=0;e<ADAPT.eliteCount && e<sorted.length;e++) next.push(ST.population[sorted[e].i].slice());
+
+  const injectCount = Math.floor(ADAPT.popSize * ADAPT.injectPct);
+  const targetFill = ADAPT.popSize - injectCount;
+  const sigma = Math.max(0.08, ADAPT.baseSigma * Math.exp(-ST.gen/40));
+
+  while (next.length < targetFill){
+    const a = tournament(ST.population, scores, ADAPT.tournamentK);
+    const b = tournament(ST.population, scores, ADAPT.tournamentK);
+    const c = crossover(ST.population[a], ST.population[b]);
+    mutate(c, ADAPT.mutationRate, sigma);
+    next.push(c);
+  }
+  while (next.length < ADAPT.popSize) next.push(makeRandomDNA());
+
+  ST.population = next;
+  ST.gen++;
+
+  if (terminated) return false;
+  return true;
+}
+
+async function start(){
+  if (ST.running) return;
+  ST.running = true;
+  el('btn-start').disabled = true;
+  el('btn-stop').disabled = false;
+  el('status').textContent = '학습 중...';
+  log(`학습 시작 (pop=${ADAPT.popSize}, ${STAGES.length} stages, L<${LANDING_THRESHOLD}m/s)`, 'info');
+
+  let safety = 500;
+  while (ST.running && safety-- > 0){
+    const cont = await runGeneration();
+    if (!cont) break;
     await new Promise(r => setTimeout(r, 0));
-    if (gen === AI.GENERATIONS - 1) break;
-    const nextPop = [];
-    const sorted = scores.map((s, i) => ({ s, i })).sort((a, b) => b.s - a.s);
-    for (let e = 0; e < AI.ELITISM && e < sorted.length; e++) nextPop.push(AI.population[sorted[e].i].slice());
-    const sigma = Math.max(0.05, 0.3 * Math.exp(-gen/20));
-    while (nextPop.length < AI.POP_SIZE){
-      const a = aiTournament(AI.population, scores), b = aiTournament(AI.population, scores);
-      const c = aiCrossover(AI.population[a], AI.population[b]); aiMutate(c, 0.15, sigma); nextPop.push(c);
-    }
-    AI.population = nextPop; AI.generation = gen + 1;
   }
-  AI.training = false;
-  if (trainBtn) trainBtn.disabled = false;
-  if (stopBtn) stopBtn.style.display = 'none';
-  if (AI.bestDNA){ if (landBtn) landBtn.disabled = false; const sb = $('aiSave'); if (sb) sb.disabled = false; }
-  const elapsed = ((performance.now() - tStart) / 1000).toFixed(1);
-  setStatus(`[AI] Done ${elapsed}s. best=${AI.bestScore.toFixed(0)}`, 'ok');
-  setText('aiText', `Trained (${elapsed}s)`);
-  setText('aiScore', AI.bestScore.toFixed(0));
-}
-function aiStopTraining(){
-  AI.training = false;
-  setStatus('[AI] Stopped', 'warn');
-  const trainBtn = $('aiTrain'); if (trainBtn) trainBtn.disabled = false;
-  const stopBtn = $('aiStop'); if (stopBtn) stopBtn.style.display = 'none';
-  if (AI.bestDNA){ const lb = $('aiLand'); if (lb) lb.disabled = false; }
-}
-function aiLiveControl(){
-  if (!AI.live || !AI.bestDNA) return;
-  const moon = S.bodies.moon; if (!moon) return;
-  const r = S.ship.pos.clone().sub(moon.pos), rMag = r.length(), alt = rMag - moon.R;
-  if (alt <= 0) return;
-  if (alt > 20) { S.ship.throttle = 0; return; }
-  const rHat = r.clone().normalize(), vRel = S.ship.vel.clone().sub(moon.vel);
-  const vRad = vRel.dot(rHat), vTan = Math.sqrt(Math.max(0, vRel.lengthSq() - vRad*vRad));
-  const mass = S.ship.dry + S.ship.fuel;
-  const gLocal = moon.mu / (rMag*rMag), gSurf = moon.mu / (moon.R*moon.R);
-  const fuel0 = (S.ship.fuel0 > 0) ? S.ship.fuel0 : 1;
-  const inputs = [
-    Math.min(1, alt / 20),
-    Math.max(-1, Math.min(1, vRad / 100)),
-    Math.min(1, vTan / 100),
-    S.ship.fuel / fuel0,
-    (mass - S.ship.dry) / fuel0,
-    Math.min(1, gLocal / gSurf),
-  ];
-  const throttle = aiForward(AI.bestDNA, inputs);
-  S.ship.throttle = throttle * 100; S.ship.burnDir = 'retrograde'; S.ship.refFrame = 'moon';
-  if (!AI._lastLog || performance.now() - AI._lastLog > 500){
-    AI._lastLog = performance.now();
-    console.log(`[AI] alt=${alt.toFixed(2)}km vRad=${(vRad*1000).toFixed(0)} vTan=${(vTan*1000).toFixed(0)} thr=${S.ship.throttle.toFixed(0)}%`);
-  }
-}
-function aiStartLive(){
-  if (!AI.bestDNA){ setStatus('[AI] Train first', 'warn'); return; }
-  const moon = S.bodies.moon; if (!moon) return;
-  const alt = S.ship.pos.distanceTo(moon.pos) - moon.R;
-  if (alt > 100){ setStatus(`[AI] Too high (${alt.toFixed(0)}km, need <100km)`, 'warn'); return; }
-  if (!S.landingActive) startLanding();
-  AI.live = true; S.ship.refFrame = 'moon';
-  setStatus('[AI] Autopilot engaged', 'ok'); setOpsStatus('AI Autopilot active');
-  const offBtn = $('aiOff'); if (offBtn) offBtn.style.display = 'block';
-  const landBtn = $('aiLand'); if (landBtn) landBtn.style.display = 'none';
-}
-function aiStopLive(){
-  AI.live = false; S.ship.throttle = 0;
-  setStatus('[AI] Autopilot off', 'warn'); setOpsStatus('AI off');
-  const offBtn = $('aiOff'); if (offBtn) offBtn.style.display = 'none';
-  const landBtn = $('aiLand'); if (landBtn) landBtn.style.display = 'block';
+
+  ST.running = false;
+  el('btn-start').disabled = false;
+  el('btn-stop').disabled = true;
+  el('status').textContent = '완료';
+  el('progress-bar').style.width = '100%';
+
+  generateReport();
+  log(`완료. Best=${ST.bestScore.toFixed(0)}`, 'ok');
 }
 
-/* =====[ PART 17 ] DATA MANAGER ===================== */
-const DM = {
-  KEY_PREFIX: 'celestium_dm_', MAX_PER_CATEGORY: 3,
-  save(categoryKey, data){
-    const fullKey = this.KEY_PREFIX + categoryKey + '_' + Date.now();
-    try { localStorage.setItem(fullKey, JSON.stringify({ ...data, key: categoryKey, savedAt: Date.now() })); } catch(e){ setStatus('[DM] Save failed', 'err'); return; }
-    const inCategory = this.list().filter(e => e.key === categoryKey).sort((a,b) => (b.score||0) - (a.score||0));
-    if (inCategory.length > this.MAX_PER_CATEGORY) inCategory.slice(this.MAX_PER_CATEGORY).forEach(e => this.archive(e));
-    logMsg('data', `Saved ${categoryKey} (score ${data.score || '-'})`);
-    this.refreshUI();
-  },
-  list(){
-    const out = [];
-    for (let i = 0; i < localStorage.length; i++){
-      const k = localStorage.key(i);
-      if (k && k.startsWith(this.KEY_PREFIX) && !k.includes('_archive_')){ try { out.push(JSON.parse(localStorage.getItem(k))); } catch(e){} }
+function generateReport(){
+  const now = new Date();
+  const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  
+  let r = `=== CELESTIUM GA LAB v6 리포트 ===\n`;
+  r += `시각: ${timeStr}\n`;
+  r += `Best: ${ST.bestScore.toFixed(2)} | Pop: ${ADAPT.popSize} | Total Gens: ${ST.gen}\n`;
+  r += `Landing threshold: ${LANDING_THRESHOLD} m/s\n`;
+  r += `Final Stage: ${STAGES[Math.min(ST.currentStage, STAGES.length-1)].name}\n\n`;
+  
+  r += `=== Stage별 최고 best ===\n`;
+  let lastStage = -1, stageMax = -Infinity, stageGens = 0;
+  for (const h of ST.history){
+    if (h.stage !== lastStage){
+      if (lastStage >= 0) r += `  ${STAGES[lastStage].name}: max=${stageMax.toFixed(0)} (${stageGens} gens)\n`;
+      lastStage = h.stage; stageMax = -Infinity; stageGens = 0;
     }
-    return out.sort((a,b) => b.savedAt - a.savedAt);
-  },
-  listArchive(){
-    const out = [];
-    for (let i = 0; i < localStorage.length; i++){
-      const k = localStorage.key(i);
-      if (k && k.includes('_archive_')){ try { const d = JSON.parse(localStorage.getItem(k)); out.push(...(d.entries||[])); } catch(e){} }
-    }
-    return out;
-  },
-  delete(key, savedAt){ localStorage.removeItem(this.KEY_PREFIX + key + '_' + savedAt); this.refreshUI(); },
-  archive(entry){
-    const monthKey = new Date(entry.savedAt).toISOString().slice(0, 7);
-    const archiveKey = this.KEY_PREFIX + 'archive_' + monthKey;
-    let archive = localStorage.getItem(archiveKey);
-    archive = archive ? JSON.parse(archive) : { entries: [] };
-    archive.entries.push(entry);
-    localStorage.setItem(archiveKey, JSON.stringify(archive));
-    localStorage.removeItem(this.KEY_PREFIX + entry.key + '_' + entry.savedAt);
-  },
-  autoCleanup(){
-    const all = this.list(), byCat = {};
-    for (const e of all){ if (!byCat[e.key]) byCat[e.key] = []; byCat[e.key].push(e); }
-    const maxPer = parseInt(($('dmMax')?.value) || 3);
-    let archived = 0;
-    for (const k in byCat){ const s = byCat[k].sort((a,b) => (b.score||0)-(a.score||0)); if (s.length > maxPer){ s.slice(maxPer).forEach(e => { this.archive(e); archived++; }); } }
-    logMsg('data', `Cleanup: ${archived} archived`); this.refreshUI();
-  },
-  backup(){
-    const all = this.list(), archive = this.listArchive();
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), items: all, archive }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'celestium_data_' + Date.now() + '.json'; a.click();
-    logMsg('data', `Backup: ${all.length} items`);
-  },
-  clearAll(){
-    const keys = []; for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.startsWith(this.KEY_PREFIX)) keys.push(k); }
-    keys.forEach(k => localStorage.removeItem(k)); logMsg('warn', `Cleared ${keys.length} items`); this.refreshUI();
-  },
-  refreshUI(){
-    const all = this.list(), archive = this.listArchive();
-    setText('dmCount', all.length); setText('dmArchiveCount', archive.length);
-    const listEl = $('dmList'); if (!listEl) return;
-    listEl.innerHTML = '';
-    if (all.length === 0){ listEl.innerHTML = '<div style="font-size:10px;color:#88ccff;padding:6px;">저장된 데이터 없음</div>'; return; }
-    for (const entry of all){
-      const div = document.createElement('div'); div.className = 'dm-item';
-      const d = new Date(entry.savedAt);
-      div.innerHTML = `<div class="dm-name">${entry.key}</div><div class="dm-meta">score: ${entry.score || '-'} | ${d.toISOString().slice(0,16).replace('T',' ')}</div><div class="dm-actions"><button data-load="${entry.key}|${entry.savedAt}">불러오기</button><button data-delete="${entry.key}|${entry.savedAt}">삭제</button></div>`;
-      listEl.appendChild(div);
-    }
-    listEl.querySelectorAll('[data-load]').forEach(btn => btn.addEventListener('click', () => {
-      const [k, t] = btn.getAttribute('data-load').split('|');
-      const raw = localStorage.getItem(DM.KEY_PREFIX + k + '_' + t);
-      if (!raw) return;
-      const entry = JSON.parse(raw);
-      if (entry.dna){ AI.bestDNA = new Float32Array(entry.dna); AI.bestScore = entry.score || 0;
-        setText('aiText', `Loaded (score ${entry.score || '-'})`); setText('aiScore', String(entry.score || '-'));
-        $('aiLand').disabled = false; logMsg('data', `Loaded ${entry.key}`); }
-    }));
-    listEl.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => {
-      if (!confirm('삭제하시겠습니까?')) return;
-      const [k, t] = btn.getAttribute('data-delete').split('|');
-      DM.delete(k, parseInt(t));
-    }));
-  },
-  saveCurrentAI(){
-    if (!AI.bestDNA){ setStatus('[DM] No DNA', 'warn'); return; }
-    const vehicleKey = ($('vehiclePreset')?.value) || 'apollo';
-    DM.save(`ga_moon_${vehicleKey}`, { type: 'ga_landing', target: 'moon', vehicle: vehicleKey, score: AI.bestScore, dna: Array.from(AI.bestDNA), arch: [AI.NN_IN, AI.NN_HID, AI.NN_OUT] });
-  },
-};
-
-/* =====[ PART 18 ] 발사 창 최적화 ===================== */
-function computeHohmannDv(targetName, testT){
-  const centralName = pickCentralBody(targetName), centralNow = getBodyStateAt(centralName, testT);
-  if (!centralNow) return null;
-  const mu = BODY[centralName].mu, r1 = S.ship.pos.distanceTo(S.bodies[centralName].pos);
-  if (r1 < 1 || !isFinite(r1)) return null;
-  let tofSec = 0, r2_mag = 0;
-  for (let iter = 0; iter < 6; iter++){
-    const targetFuture = getBodyStateAt(targetName, testT + tofSec);
-    const centralFuture = getBodyStateAt(centralName, testT + tofSec);
-    if (!targetFuture || !centralFuture) return null;
-    const r2v = targetFuture.pos.clone().sub(centralFuture.pos); r2_mag = r2v.length();
-    if (r2_mag < 100 || !isFinite(r2_mag)) return null;
-    const a = (r1 + r2_mag) / 2;
-    const newTof = Math.PI * Math.sqrt(a*a*a / mu);
-    if (!isFinite(newTof) || newTof > 365*DAY) return null;
-    if (Math.abs(newTof - tofSec) < 1) break; tofSec = newTof;
+    if (h.best > stageMax) stageMax = h.best;
+    stageGens++;
   }
-  const a_transfer = (r1 + r2_mag) / 2, v_circ = Math.sqrt(mu / r1), v_peri = Math.sqrt(mu * (2/r1 - 1/a_transfer));
-  const dv = (v_peri - v_circ) * 1000;
-  if (!isFinite(dv) || dv < 0) return null;
-  return { dvMag: dv, tofDays: tofSec/DAY, r2_mag };
-}
-function optimizeLaunchWindow(targetName, scanDays){
-  const savedT = S.sim.t;
-  S.sim.paused = true;
-  const playBtn = $('play'); if (playBtn) playBtn.textContent = 'PLAY';
-  setStatus(`[LW] Scanning ${scanDays}d...`, 'sys');
-  const tStart = performance.now();
-  let best = null;
-  for (let offset = 0; offset <= scanDays; offset += 0.5){
-    const testT = savedT + offset * DAY;
-    const r = computeHohmannDv(targetName, testT);
-    if (r && (!best || r.dvMag < best.dvMag)) best = { ...r, launchOffsetDays: offset, testT };
-  }
-  const elapsed = ((performance.now() - tStart) / 1000).toFixed(2);
-  if (!best){ setStatus(`[LW] No window in ${scanDays}d`, 'warn'); return null; }
-  const current = computeHohmannDv(targetName, savedT);
-  const improvement = current ? (current.dvMag - best.dvMag) : 0;
-  logMsg('ok', `[LW] Best: T+${best.launchOffsetDays.toFixed(1)}d dV=${best.dvMag.toFixed(0)} (vs now ${current?.dvMag.toFixed(0) || '?'}, -${improvement.toFixed(0)}), ${elapsed}s`);
-  S.sim.t = savedT + best.launchOffsetDays * DAY;
-  computeBodies(S.sim.t); resetShipToParkingOrbit();
-  S.sim.t = savedT + best.launchOffsetDays * DAY; computeBodies(S.sim.t);
-  return best;
+  if (lastStage >= 0) r += `  ${STAGES[lastStage].name}: max=${stageMax.toFixed(0)} (${stageGens} gens)\n`;
+  r += `\n`;
+  
+  r += `=== 세대별 상세 ===\n`;
+  ST.history.forEach(h => {
+    const st = h.stats;
+    r += `Gen ${h.gen+1} [${STAGES[h.stage].name}]: best=${h.best.toFixed(0)} avg=${h.avg.toFixed(0)} | L:${st.L} C:${st.C} F:${st.F} T:${st.T}\n`;
+  });
+  
+  r += `\n=== DNA (JSON) ===\n`;
+  r += JSON.stringify({
+    dna: Array.from(ST.bestDNA || []),
+    score: ST.bestScore,
+    arch: [NN_IN, NN_HID, NN_OUT],
+    norm: { alt: 15000, vr: 100, vt: 1700, fuel: SHIP.fuel0 },
+    activation: 'sigmoid(0.7s - 2.5)',
+    landingThreshold: LANDING_THRESHOLD,
+    finalStage: ST.currentStage,
+    stageName: STAGES[Math.min(ST.currentStage, STAGES.length-1)].name,
+  });
+  r += `\n=== END ===`;
+  
+  el('report-out').value = r;
 }
 
-/* =====[ PART 19 ] 메인 루프 ===================== */
-function animate(){
-  requestAnimationFrame(animate);
-  const now = performance.now();
-  const realDt = Math.min(0.1, (now - lastFrame)/1000);
-  lastFrame = now;
-  if (!S.sim.paused && !S.ship.landed && !S.ship.crashed){
-    let remaining = realDt * S.sim.warp;
-    let safety = 800000;
-    while (remaining > 0 && safety-- > 0){
-      computeBodies(S.sim.t);
-      const dtNow = pickAdaptiveDt(Math.min(remaining, S.sim.dt));
-      if (AI.live) aiLiveControl();
-      else if (S.landingActive) applyLandingControl();
-      if (S.sim.method === 'euler') stepEuler(dtNow);
-      else stepRK4(dtNow);
-      checkCollision();
-      S.sim.t += dtNow;
-      remaining -= dtNow;
-      if (S.mccSchedule && !S.mccSchedule.executed && S.sim.t >= S.mccSchedule.atSimTime) executeMCC();
-      if (S.doiSchedule && !S.doiSchedule.dvDone && S.sim.t >= S.doiSchedule.atSimTime) executeDOICirc();
-      if (S.missionState.autoLOI) checkLunarApproach();
-      if (S.ship.landed || S.ship.crashed){ AI.live = false; break; }
-    }
-    if (now - lastLogTime > 1000){ lastLogTime = now; logRow(); }
-    if (now - lastDiagTime > 5000){
-      lastDiagTime = now;
-      const e = S.bodies.earth, m = S.bodies.moon;
-      if (e){
-        const r = S.ship.pos.clone().sub(e.pos), v = S.ship.vel.clone().sub(e.vel);
-        const dM = m ? S.ship.pos.distanceTo(m.pos) : 0;
-        console.log(`[diag] altE=${(r.length()-e.R).toFixed(0)}km v=${v.length().toFixed(3)} dM=${dM.toFixed(0)}km`);
-      }
-    }
-  } else computeBodies(S.sim.t);
-  syncMeshes(); updateCamera(); updateTelemetry();
-  if (S.rdr && S.scene && S.cam) S.rdr.render(S.scene, S.cam);
+function stop(){ ST.running = false; el('status').textContent = '중단됨'; log('중단', 'warn'); }
+
+function reset(){
+  ST.population = []; ST.scores = []; ST.gen = 0;
+  ST.bestDNA = null; ST.bestScore = -Infinity;
+  ST.running = false; ST.history = [];
+  ST.currentStage = 0; ST.gensInStage = 0; ST.stageBest = -Infinity;
+  ADAPT.baseSigma = 0.35;
+  for (let i=0;i<ADAPT.popSize;i++) ST.population.push(makeRandomDNA());
+  el('log').innerHTML = ''; el('stats-body').innerHTML = ''; el('report-out').value = '';
+  el('progress-bar').style.width = '0%';
+  el('stat-gen').textContent = '0';
+  el('stat-stage').textContent = STAGES[0].name;
+  el('stat-best').textContent = '-';
+  el('stat-stage-best').textContent = '-';
+  el('stat-avg').textContent = '-';
+  el('status').textContent = '대기';
+  el('btn-start').disabled = false; el('btn-stop').disabled = true;
+  updateStageList();
+  log('초기화 v6: L<10m/s, 8% 초기 스로틀', 'info');
 }
 
-/* =====[ PART 20 ] UI ===================== */
-function applyLanguage(){
-  const dict = I18N[S.lang] || I18N.ko;
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (dict[key]) el.textContent = dict[key];
-  });
-  $('langEn').className = (S.lang === 'en') ? 'active' : '';
-  $('langKo').className = (S.lang === 'ko') ? 'active' : '';
-  const playBtn = $('play'); if (playBtn) playBtn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
-}
-function bindUI(){
-  document.querySelectorAll('.sc-header[data-collapse]').forEach(h => h.addEventListener('click', () => h.classList.toggle('collapsed')));
-  document.getElementById('log-header-bar')?.addEventListener('click', toggleChatLog);
-  $('langEn')?.addEventListener('click', () => { S.lang = 'en'; applyLanguage(); });
-  $('langKo')?.addEventListener('click', () => { S.lang = 'ko'; applyLanguage(); });
-  $('play')?.addEventListener('click', () => {
-    S.sim.paused = !S.sim.paused;
-    const btn = $('play'); if (btn) btn.textContent = S.sim.paused ? 'PLAY' : 'PAUSE';
-    setStatus(S.sim.paused ? 'PAUSED' : 'PLAYING', 'sys');
-  });
-  $('reset')?.addEventListener('click', () => {
-    try {
-      S.sim.t = 0; S.sim.paused = true; S.sim.warp = 86400; S.sim.dt = 5; S.sim.method = 'rk4';
-      $('play').textContent = 'PLAY'; $('warp').value = '86400';
-      S.camMode = 'free'; S._lastCamMode = 'free'; $('camera').value = 'free';
-      S.vis.trail = true; $('showTrail').checked = true;
-      const apollo = VEHICLES['apollo'];
-      S.ship.dry = apollo.dry; S.ship.fuel = apollo.fuel; S.ship.fuel0 = apollo.fuel;
-      S.ship.isp = apollo.isp; S.ship.thrustKN = apollo.thrust;
-      S.ship.burnDir = 'prograde'; S.ship.refFrame = 'earth'; S.ship.throttle = 0;
-      $('sl-dry').value = apollo.dry; $('sl-fuel').value = apollo.fuel; $('sl-isp').value = apollo.isp; $('sl-thrust').value = apollo.thrust;
-      $('vehicle-preset').value = 'apollo'; $('in-dt').value = '5'; $('in-integrator').value = 'rk4'; $('burn-dv').value = '100';
-      setText('labDry', apollo.dry + ' kg'); setText('labFuel', apollo.fuel + ' kg');
-      setText('labIsp', apollo.isp + ' s'); setText('labThrust', apollo.thrust + ' kN');
-      ['tab-prograde','tab-retro','tab-normal','tab-radial'].forEach(id => document.getElementById(id).classList.remove('active'));
-      $('tab-prograde').classList.add('active');
-      const today = new Date();
-      const yyyy = today.getFullYear(), mm = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
-      $('in-date').value = `${yyyy}-${mm}-${dd}`;
-      const dt0 = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
-      if (!isNaN(dt0)) S.sim.t0 = dt0.getTime()/1000;
-      S.csvLog.length = 0;
-      $('ops-status').style.display = 'none'; $('tp-result').style.display = 'none'; $('tp-execute').style.display = 'none';
-      AI.live = false;
-      resetShipToParkingOrbit(); updateTelemetry();
-      setStatus('FULL RESET', 'sys');
-    } catch(err){ console.error('Reset failed:', err); }
-  });
-  $('applyPreset')?.addEventListener('click', applyPreset);
-  $('burnExec')?.addEventListener('click', executeBurn);
-  const dirMap = { mPro:'prograde', mRetro:'retrograde', mNormal:'normal', mRadial:'radial' };
-  for (const id in dirMap){
-    $(id)?.addEventListener('click', () => {
-      S.ship.burnDir = dirMap[id];
-      for (const other in dirMap) $(other)?.classList.remove('active');
-      $(id).classList.add('active');
-    });
-  }
-  $('tpPlan')?.addEventListener('click', handlePlanTransfer);
-  $('tpExecute')?.addEventListener('click', executeTransferBurn);
-  $('lwOpt')?.addEventListener('click', () => { const t = ($('tpTarget')?.value) || 'moon'; optimizeLaunchWindow(t, 30); });
-  $('btnDOI')?.addEventListener('click', startDOI);
-  $('btnLand')?.addEventListener('click', startLanding);
-  $('vehiclePreset')?.addEventListener('change', e => {
-    const v = VEHICLES[e.target.value]; if (!v) return;
-    S.ship.dry = v.dry; S.ship.fuel = v.fuel; S.ship.fuel0 = v.fuel;
-    S.ship.isp = v.isp; S.ship.thrustKN = v.thrust;
-    $('sl-dry').value = v.dry; $('sl-fuel').value = v.fuel; $('sl-isp').value = v.isp; $('sl-thrust').value = v.thrust;
-    setText('labDry', v.dry + ' kg'); setText('labFuel', v.fuel + ' kg');
-    setText('labIsp', v.isp + ' s'); setText('labThrust', v.thrust + ' kN');
-    updateCapability(); logMsg('sys', `Vehicle: ${e.target.value}`);
-  });
-  const sliders = { slDry:['dry','labDry',' kg'], slFuel:['fuel0','labFuel',' kg'], slIsp:['isp','labIsp',' s'], slThrust:['thrustKN','labThrust',' kN'] };
-  for (const id in sliders){
-    $(id)?.addEventListener('input', e => {
-      const v = parseFloat(e.target.value); if (!isFinite(v)) return;
-      const [key, lab, suf] = sliders[id];
-      if (key === 'fuel0'){ S.ship.fuel0 = v; S.ship.fuel = Math.min(S.ship.fuel, v); }
-      else S.ship[key] = v;
-      setText(lab, v + suf); updateCapability();
-    });
-  }
-  $('warp')?.addEventListener('change', e => { S.sim.warp = parseFloat(e.target.value) || 1; });
-  $('camera')?.addEventListener('change', e => {
-    const v = e.target.value.toLowerCase();
-    if (v.includes('ship')) S.camMode = 'ship'; else if (v.includes('earth')) S.camMode = 'earth';
-    else if (v.includes('moon')) S.camMode = 'moon'; else if (v.includes('sun')) S.camMode = 'sun';
-    else S.camMode = 'free';
-  });
-  $('showTrail')?.addEventListener('change', e => { S.vis.trail = e.target.checked; });
-  $('maxPoints')?.addEventListener('change', e => {
-    S.trailMax = parseInt(e.target.value, 10) || 5000;
-    const ng = new THREE.BufferGeometry(); ng.setAttribute('position', new THREE.BufferAttribute(new Float32Array(S.trailMax*3), 3)); ng.setDrawRange(0, 0);
-    S.trail.geometry.dispose(); S.trail.geometry = ng; S.trailPos.length = 0;
-  });
-  $('clearTrail')?.addEventListener('click', () => { S.trailPos.length = 0; S.trail.geometry.setDrawRange(0, 0); setStatus('Trail cleared', 'sys'); });
-  $('dt')?.addEventListener('change', e => { S.sim.dt = parseFloat(e.target.value) || 5; });
-  $('integrator')?.addEventListener('change', e => { S.sim.method = e.target.value; });
-  $('launchDate')?.addEventListener('change', e => { const d = new Date(e.target.value + 'T12:00:00Z'); if (!isNaN(d)){ S.sim.t0 = d.getTime()/1000; S.sim.t = 0; computeBodies(0); } });
-  $('exportCsv')?.addEventListener('click', exportCSV);
-  $('aiTrain')?.addEventListener('click', () => {
-    const size = ($('aiSize')?.value) || 'standard';
-    if (size === 'quick'){ AI.POP_SIZE = 30; AI.GENERATIONS = 25; }
-    else if (size === 'thorough'){ AI.POP_SIZE = 60; AI.GENERATIONS = 60; }
-    else { AI.POP_SIZE = 40; AI.GENERATIONS = 40; }
-    aiTrain();
-  });
-  $('aiStop')?.addEventListener('click', aiStopTraining);
-  $('aiLand')?.addEventListener('click', aiStartLive);
-  $('aiOff')?.addEventListener('click', aiStopLive);
-  $('aiSave')?.addEventListener('click', () => DM.saveCurrentAI());
-  $('dmCleanup')?.addEventListener('click', () => DM.autoCleanup());
-  $('dmBackup')?.addEventListener('click', () => DM.backup());
-  $('dmClear')?.addEventListener('click', () => { if (confirm('전체 삭제?')) DM.clearAll(); });
-  const helpBtn = $('helpBtn'), helpClose = $('helpClose'), overlay = $('helpOverlay');
-  helpBtn?.addEventListener('click', () => overlay.classList.add('show'));
-  helpClose?.addEventListener('click', () => overlay.classList.remove('show'));
-  overlay?.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
-  addEventListener('keydown', e => {
-    if (e.code === 'Space' && e.target === document.body){ e.preventDefault(); $('play')?.click(); }
-    if ((e.key === 'r' || e.key === 'R') && e.target === document.body) $('reset')?.click();
-  });
-  DM.refreshUI(); applyLanguage();
+function copyReport(){
+  const ta = el('report-out');
+  if (!ta.value){ log('리포트 없음', 'warn'); return; }
+  ta.select();
+  try {
+    navigator.clipboard.writeText(ta.value).then(
+      () => log('복사됨', 'ok'),
+      () => { document.execCommand('copy'); log('복사됨', 'ok'); }
+    );
+  } catch(e){ document.execCommand('copy'); log('복사됨', 'ok'); }
 }
 
-/* =====[ PART 21 ] Boot ===================== */
-function boot(){
-  const today = new Date();
-  const yyyy = today.getFullYear(), mm = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
-  $('launchDate').value = `${yyyy}-${mm}-${dd}`;
-  const d = new Date(`${yyyy}-${mm}-${dd}T12:00:00Z`);
-  if (!isNaN(d)) S.sim.t0 = d.getTime()/1000;
-  initScene(); bindUI();
-  if ('ontouchstart' in window || window.innerWidth < 1200){
-    document.getElementById('chat-log')?.classList.add('collapsed');
-    document.getElementById('chat-toggle').textContent = '▲';
-    const ss = document.getElementById('ai-size'); if (ss) ss.value = 'quick';
-  }
-  logMsg('sys', 'CELESTIUM 4.0 v4.7 booted');
-  logMsg('sys', '착륙: margin-based suicide burn (1.5× 안전). WARP→60×.');
-  logMsg('sys', 'AI: 커리큘럼 500m→20km. gradient 보상.');
-  setTimeout(() => debugInitialState(), 100);
-  animate();
-}
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-else boot();
+el('btn-start').addEventListener('click', start);
+el('btn-stop').addEventListener('click', stop);
+el('btn-reset').addEventListener('click', reset);
+el('btn-copy').addEventListener('click', copyReport);
+reset();
 </script>
 </body>
 </html>
