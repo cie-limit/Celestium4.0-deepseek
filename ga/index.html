@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CELESTIUM GA Lab v10</title>
+<title>CELESTIUM GA Lab v11 — Adaptive</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:monospace; }
 body { background:#050505; color:#ccc; padding:12px; font-size:12px; }
@@ -17,19 +17,22 @@ button:hover { background:#0ff; color:#000; }
 button.danger { border-color:#f55; color:#f55; }
 button.danger:hover { background:#f55; color:#000; }
 button:disabled { opacity:0.4; cursor:not-allowed; }
+button.primary { border-color:#ff0; color:#ff0; background:rgba(50,50,0,0.5); }
+button.primary:hover { background:#ff0; color:#000; }
 table { width:100%; border-collapse:collapse; font-size:10px; }
 th, td { padding:2px 5px; text-align:left; border-bottom:1px solid #222; }
 th { color:#0ff; }
 #log { height:160px; overflow-y:auto; background:#000; border:1px solid #333; padding:5px; font-size:10px; line-height:1.4; }
 #log .info { color:#0ff; } #log .warn { color:#fa0; } #log .err { color:#f55; } #log .ok { color:#0f0; }
-#report-out { width:100%; height:320px; background:#000; color:#0f0; border:1px solid #333; padding:5px; font-family:monospace; font-size:10px; resize:vertical; }
+#report-out { width:100%; height:340px; background:#000; color:#0f0; border:1px solid #333; padding:5px; font-family:monospace; font-size:10px; resize:vertical; }
 .progress { background:#222; height:8px; border-radius:4px; overflow:hidden; margin-top:6px; }
 .progress > div { height:100%; background:#0ff; transition:width 0.1s; }
+#validate-result { font-size:10px; color:#0ff; margin-top:6px; max-height:200px; overflow-y:auto; }
 </style>
 </head>
 <body>
 
-<h1>CELESTIUM · GA LAB v10</h1>
+<h1>CELESTIUM · GA LAB v11 Adaptive</h1>
 
 <div class="grid">
   <div>
@@ -38,8 +41,8 @@ th { color:#0ff; }
       <div class="progress"><div id="progress-bar" style="width:0%"></div></div>
       <div class="row" style="margin-top:6px;"><span>Gen</span><span id="stat-gen">0</span></div>
       <div class="row"><span>Stage</span><span id="stat-stage">S1-5m</span></div>
-      <div class="row"><span>Best (stage)</span><span id="stat-stage-best">-</span></div>
-      <div class="row"><span>Best (last S9)</span><span id="stat-final-best">-</span></div>
+      <div class="row"><span>Stage best</span><span id="stat-stage-best">-</span></div>
+      <div class="row"><span>Final best</span><span id="stat-final-best">-</span></div>
       <div class="row"><span>Avg</span><span id="stat-avg">-</span></div>
     </div>
 
@@ -47,17 +50,19 @@ th { color:#0ff; }
       <button id="btn-start">시작</button>
       <button id="btn-stop" class="danger" disabled>중단</button>
       <button id="btn-reset">초기화</button>
+      <button id="btn-validate" class="primary" disabled>DNA 적응성 검증</button>
       <button id="btn-copy">결과 복사</button>
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0">Stage 진행 상태</h2>
+      <h2 style="margin-top:0">Stage 진행</h2>
       <div id="stage-list" style="font-size:9px; line-height:1.5;"></div>
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0">결과 리포트 (복사용)</h2>
-      <textarea id="report-out" readonly placeholder="완료 후 '결과 복사' 버튼"></textarea>
+      <h2 style="margin-top:0">결과 리포트</h2>
+      <textarea id="report-out" readonly placeholder="완료 후 '결과 복사'"></textarea>
+      <div id="validate-result"></div>
     </div>
   </div>
 
@@ -70,7 +75,7 @@ th { color:#0ff; }
       <h2 style="margin-top:0">세대별 통계</h2>
       <div style="max-height:400px; overflow-y:auto;">
         <table>
-          <thead><tr><th>Gen</th><th>Stage</th><th>Best</th><th>Avg</th><th>L</th><th>C</th><th>F</th><th>T</th></tr></thead>
+          <thead><tr><th>Gen</th><th>Stage</th><th>Best</th><th>Avg</th><th>σ</th><th>L</th><th>C</th><th>F</th><th>T</th></tr></thead>
           <tbody id="stats-body"></tbody>
         </table>
       </div>
@@ -81,51 +86,54 @@ th { color:#0ff; }
 <script>
 'use strict';
 
+/* ===== 상수 (SI) ===== */
 const MOON_R_M = 1737400;
 const MOON_MU_M = 4.9028e12;
 const G0 = 9.80665;
 const SHIP = { dry: 13500, fuel0: 110000, isp: 421, thrustN: 1000000 };
-
-const NN_IN = 6, NN_HID = 12, NN_OUT = 1, DNA_LEN = NN_IN*NN_HID + NN_HID*NN_OUT;
 const LANDING_THRESHOLD = 10;
 
-/* ★ S8, S9 gens 확대 */
+/* ★★ v11: 8 입력, 12 은닉, 1 출력 → DNA_LEN = 108 */
+const NN_IN = 8, NN_HID = 12, NN_OUT = 1, DNA_LEN = NN_IN*NN_HID + NN_HID*NN_OUT;
+
+/* ★ 10단계: S1~S9 좁은 범위 → S10 넓은 범위 (adaptive) */
 const STAGES = [
-  { name:'S1-5m',      altMin:5,    altMax:5,    vtMax:0,   vrMin:-1,   vrMax:-1,   tMax:15,  maxGens:2,  targetBest:500 },
-  { name:'S2-20m',     altMin:20,   altMax:20,   vtMax:0,   vrMin:-2,   vrMax:-2,   tMax:25,  maxGens:2,  targetBest:500 },
-  { name:'S3-100m',    altMin:100,  altMax:100,  vtMax:0,   vrMin:-5,   vrMax:-5,   tMax:40,  maxGens:3,  targetBest:500 },
-  { name:'S4-300m',    altMin:300,  altMax:300,  vtMax:0,   vrMin:-8,   vrMax:-8,   tMax:50,  maxGens:5,  targetBest:500 },
-  { name:'S5-500m',    altMin:500,  altMax:500,  vtMax:0,   vrMin:-10,  vrMax:-10,  tMax:70,  maxGens:6,  targetBest:500 },
-  { name:'S6-1km',     altMin:1000, altMax:1000, vtMax:0,   vrMin:-15,  vrMax:-15,  tMax:90,  maxGens:8,  targetBest:400 },
-  { name:'S7-2km',     altMin:2000, altMax:2000, vtMax:0,   vrMin:-20,  vrMax:-20,  tMax:120, maxGens:10, targetBest:400 },
-  { name:'S8-5km-V0',  altMin:5000, altMax:5000, vtMax:0,   vrMin:-50,  vrMax:-50,  tMax:200, maxGens:14, targetBest:400 },
-  { name:'S9-5km-V50', altMin:5000, altMax:5000, vtMax:50,  vrMin:-100, vrMax:-100, tMax:240, maxGens:24, targetBest:400 },
+  { name:'S1-5m',      altMin:5,    altMax:5,    vrMin:-1,   vrMax:-1,   vtMin:0, vtMax:0,   tMax:15,  maxGens:2,  targetBest:400, wide:false },
+  { name:'S2-20m',     altMin:20,   altMax:20,   vrMin:-2,   vrMax:-2,   vtMin:0, vtMax:0,   tMax:25,  maxGens:2,  targetBest:400, wide:false },
+  { name:'S3-100m',    altMin:100,  altMax:100,  vrMin:-5,   vrMax:-5,   vtMin:0, vtMax:0,   tMax:40,  maxGens:3,  targetBest:400, wide:false },
+  { name:'S4-300m',    altMin:300,  altMax:300,  vrMin:-8,   vrMax:-8,   vtMin:0, vtMax:0,   tMax:50,  maxGens:5,  targetBest:400, wide:false },
+  { name:'S5-500m',    altMin:500,  altMax:500,  vrMin:-10,  vrMax:-10,  vtMin:0, vtMax:0,   tMax:70,  maxGens:6,  targetBest:400, wide:false },
+  { name:'S6-1km',     altMin:1000, altMax:1000, vrMin:-15,  vrMax:-15,  vtMin:0, vtMax:0,   tMax:90,  maxGens:8,  targetBest:350, wide:false },
+  { name:'S7-2km',     altMin:2000, altMax:2000, vrMin:-20,  vrMax:-20,  vtMin:0, vtMax:0,   tMax:120, maxGens:10, targetBest:350, wide:false },
+  { name:'S8-5km-V0',  altMin:5000, altMax:5000, vrMin:-50,  vrMax:-50,  vtMin:0, vtMax:0,   tMax:200, maxGens:12, targetBest:350, wide:false },
+  { name:'S9-5km-V50', altMin:5000, altMax:5000, vrMin:-100, vrMax:-100, vtMin:50, vtMax:50, tMax:240, maxGens:16, targetBest:500, wide:false },
+  { name:'S10-Adaptive', altMin:3000, altMax:7000, vrMin:-80, vrMax:-150, vtMin:0, vtMax:100, tMax:280, maxGens:40, targetBest:800, wide:true },
 ];
 
 const ADAPT = {
-  popSize: 2000,
-  eliteCount: 12,
+  popSize: 3000,
+  eliteCount: 15,
   mutationRate: 0.15,
-  baseSigma: 0.35,
+  baseSigma: 0.4,
   tournamentK: 5,
   injectPct: 0.05,
   seedMutateRate: 0.4,
   seedMutateSigma: 0.25,
-  seedBlendRatio: 0.7,
+  seedBlendRatio: 0.75,
+  robustPenalty: 0.4,   // ★ std 페널티 (강건 적합도)
+  wideScenarioCount: 5, // ★ wide stage 시나리오 수
 };
 
 const ST = {
   population: [], scores: [], gen: 0,
-  bestScore: -Infinity,
-  bestDNA: null,
-  stageBest: -Infinity,
-  stageBestDNA: null,
+  bestScore: -Infinity, bestDNA: null,
+  stageBest: -Infinity, stageBestDNA: null,
+  finalStageBest: -Infinity, finalStageDNA: null,
   running: false, history: [],
   currentStage: 0, gensInStage: 0,
-  finalStageBest: -Infinity,
-  finalStageDNA: null,
 };
 
+/* ===== DNA 초기화 ===== */
 function makeRandomDNA(){
   const d = new Float32Array(DNA_LEN);
   const isLowThrottle = Math.random() < 0.1;
@@ -140,6 +148,7 @@ function makeRandomDNA(){
   return d;
 }
 
+/* ===== 신경망 (8→12→1, sigmoid(0.7s-2.5)) ===== */
 function forward(dna, x){
   const h = new Float32Array(NN_HID);
   let k = 0;
@@ -153,6 +162,7 @@ function forward(dna, x){
   return 1 / (1 + Math.exp(-(s * 0.7 - 2.5)));
 }
 
+/* ===== 시뮬레이션 (SI, 물리 기반 입력) ===== */
 function simDNA(dna, init, stageIdx){
   const stage = STAGES[stageIdx];
   const altNorm = stage.altMax * 2 + 100;
@@ -176,13 +186,21 @@ function simDNA(dna, init, stageIdx){
     const gLocal = MOON_MU_M / (r*r);
     const gSurf = MOON_MU_M / (MOON_R_M*MOON_R_M);
 
+    /* ★★ 물리 기반 입력 (핵심) */
+    const a_avail = thrustN / mass - gLocal;                       // 최대 감속 (m/s²)
+    const a_req = (vr * vr) / (2 * Math.max(1, alt));              // 필요 감속 (m/s²)
+    const brake_margin = (a_avail > 0.01) ? Math.min(3, a_req / a_avail) : 3;
+    const t_ground = alt / (Math.abs(vr) + 1);                     // 지면 도달 시간 (s)
+
     const inputs = [
-      Math.min(1, alt / altNorm),
-      Math.max(-1, Math.min(1, vr / 100)),
-      Math.min(1, Math.abs(vt) / 1700),
-      fuel / fuel0,
-      (mass - dry) / fuel0,
-      Math.min(1, gLocal / gSurf),
+      Math.min(1, alt / altNorm),                                  // 1. 고도
+      Math.max(-1, Math.min(1, vr / 150)),                         // 2. 수직속도
+      Math.min(1, Math.abs(vt) / 100),                             // 3. 수평속도
+      fuel / fuel0,                                                // 4. 연료
+      (mass - dry) / fuel0,                                        // 5. 연소량
+      Math.min(1, gLocal / gSurf),                                 // 6. 중력
+      brake_margin,                                                // 7. ★브레이크 여유
+      Math.min(3, t_ground / 30),                                  // 8. ★남은 시간(30s 단위)
     ];
     const throttle = forward(dna, inputs);
     const fuelBurn = thrustN * throttle / ve;
@@ -214,20 +232,36 @@ function simDNA(dna, init, stageIdx){
   return { kind: 'T', vT: 0, fuelUsed: fuel0 - fuel, t, minAlt };
 }
 
+/* ===== 시나리오 생성 (wide stage는 랜덤) ===== */
 function getScenarios(stageIdx){
   const s = STAGES[stageIdx];
-  return [
-    { r: MOON_R_M + s.altMin, vr: s.vrMin, vt: 0, fuel: SHIP.fuel0, tMax: s.tMax },
-    { r: MOON_R_M + (s.altMin + s.altMax)/2, vr: (s.vrMin + s.vrMax)/2, vt: s.vtMax * 0.5, fuel: SHIP.fuel0 * 0.9, tMax: s.tMax },
-    { r: MOON_R_M + s.altMax, vr: s.vrMax, vt: s.vtMax, fuel: SHIP.fuel0 * 0.8, tMax: s.tMax },
-  ];
+  const n = s.wide ? ADAPT.wideScenarioCount : 3;
+  const scenarios = [];
+  for (let i=0;i<n;i++){
+    let alt, vr, vt, fuel;
+    if (s.wide){
+      alt = s.altMin + Math.random() * (s.altMax - s.altMin);
+      vr = s.vrMin + Math.random() * (s.vrMax - s.vrMin);
+      vt = s.vtMin + Math.random() * (s.vtMax - s.vtMin);
+      fuel = SHIP.fuel0 * (0.6 + Math.random() * 0.4);
+    } else {
+      const t = i / Math.max(1, n - 1);
+      alt = s.altMin + t * (s.altMax - s.altMin);
+      vr = s.vrMin + t * (s.vrMax - s.vrMin);
+      vt = s.vtMin + t * (s.vtMax - s.vtMin);
+      fuel = SHIP.fuel0 * (i === 0 ? 1.0 : i === 1 ? 0.9 : 0.8);
+    }
+    scenarios.push({ r: MOON_R_M + alt, vr, vt, fuel, tMax: s.tMax });
+  }
+  return scenarios;
 }
 
-/* ★ 보상 재설계: L >> C > F > T */
+/* ★★ 강건 적합도: mean − 0.4·std */
 function evaluate(dna, stageIdx){
   const scenarios = getScenarios(stageIdx);
+  const scores = [];
   const stats = { L:0, C:0, F:0, T:0, crashVSum:0, crashCount:0 };
-  let total = 0;
+
   for (const st of scenarios){
     const res = simDNA(dna, st, stageIdx);
     const initAlt = st.r - MOON_R_M;
@@ -239,24 +273,28 @@ function evaluate(dna, stageIdx){
       score = 1500 + fuelSave * 200;
       stats.L++;
     } else if (res.kind === 'C'){
-      const vSafe = Math.max(1, res.vT);
-      const vPenalty = Math.log10(vSafe) * 200;
-      score = -300 - vPenalty + fuelSave * 50;
+      score = -300 - Math.log10(Math.max(1, res.vT)) * 200 + fuelSave * 50;
       stats.C++; stats.crashVSum += res.vT; stats.crashCount++;
     } else if (res.kind === 'F'){
       score = -1200 + progress * 200;
       stats.F++;
     } else {
-      /* T: 호버. C보다 확실히 나쁘게 (최대 -1300) */
       const minAltKm = res.minAlt / 1000;
       score = -1800 + progress * 400 - minAltKm * 50;
       stats.T++;
     }
-    total += score;
+    scores.push(score);
   }
-  return { score: total / scenarios.length, stats };
+
+  const mean = scores.reduce((a,b)=>a+b,0) / scores.length;
+  const variance = scores.reduce((s,x)=>s+(x-mean)**2,0) / scores.length;
+  const std = Math.sqrt(variance);
+  const robust = mean - ADAPT.robustPenalty * std;
+
+  return { score: robust, mean, std, stats };
 }
 
+/* ===== GA 연산 ===== */
 function tournament(pop, scores, k){
   let bi = Math.floor(Math.random() * pop.length), bs = scores[bi];
   for (let i=0;i<k;i++){
@@ -281,6 +319,7 @@ function mutate(d, rate, sigma){
   }
 }
 
+/* ===== UI ===== */
 function el(id){ return document.getElementById(id); }
 function log(text, type='info'){
   const d = document.createElement('div');
@@ -297,7 +336,8 @@ function updateStageList(){
     const s = STAGES[i];
     const marker = i < ST.currentStage ? '✓' : (i === ST.currentStage ? '▶' : '○');
     const color = i < ST.currentStage ? '#0f0' : (i === ST.currentStage ? '#0ff' : '#666');
-    html += `<div style="color:${color};"><b>${marker} ${s.name}</b>: alt=${s.altMin}m tMax=${s.tMax}s</div>`;
+    const rangeLabel = s.wide ? `alt ${s.altMin/1000}-${s.altMax/1000}km 랜덤` : `alt=${s.altMin}m`;
+    html += `<div style="color:${color};"><b>${marker} ${s.name}</b>: ${rangeLabel}${s.wide?' ★':''}</div>`;
   }
   el('stage-list').innerHTML = html;
 }
@@ -309,13 +349,15 @@ async function runGeneration(){
 
   const aggStats = { L:0, C:0, F:0, T:0 };
   const scores = new Array(ADAPT.popSize);
+  const stds = new Array(ADAPT.popSize);
 
   for (let i=0;i<ADAPT.popSize;i++){
     if (!ST.running) return false;
-    const { score, stats } = evaluate(ST.population[i], stageIdx);
-    scores[i] = score;
-    aggStats.L += stats.L; aggStats.C += stats.C;
-    aggStats.F += stats.F; aggStats.T += stats.T;
+    const ev = evaluate(ST.population[i], stageIdx);
+    scores[i] = ev.score;
+    stds[i] = ev.std;
+    aggStats.L += ev.stats.L; aggStats.C += ev.stats.C;
+    aggStats.F += ev.stats.F; aggStats.T += ev.stats.T;
 
     if (i % 50 === 0){
       el('progress-bar').style.width = ((i/ADAPT.popSize)*100).toFixed(1) + '%';
@@ -327,26 +369,23 @@ async function runGeneration(){
   let bi = 0;
   for (let i=1;i<scores.length;i++) if (scores[i] > scores[bi]) bi = i;
   const genBest = scores[bi];
-  
-  /* Global best (참고용) */
+
   if (genBest > ST.bestScore){ ST.bestScore = genBest; ST.bestDNA = ST.population[bi].slice(); }
-  
-  /* ★ Stage best (각 Stage의 최고) */
   if (genBest > ST.stageBest){ ST.stageBest = genBest; ST.stageBestDNA = ST.population[bi].slice(); }
-  
-  /* ★ 최종 Stage(S9) DNA 별도 보관 */
-  const isFinalStage = (stageIdx === STAGES.length - 1);
-  if (isFinalStage && genBest > ST.finalStageBest){
+
+  const isFinal = (stageIdx === STAGES.length - 1);
+  if (isFinal && genBest > ST.finalStageBest){
     ST.finalStageBest = genBest;
     ST.finalStageDNA = ST.population[bi].slice();
   }
 
   const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+  const avgStd = stds.reduce((a,b)=>a+b,0) / stds.length;
 
   const tr = document.createElement('tr');
   const lColor = aggStats.L > 0 ? '#0f0' : '#444';
   tr.innerHTML = `<td>${gen+1}</td><td>${stage.name}</td>
-    <td>${genBest.toFixed(0)}</td><td>${avg.toFixed(0)}</td>
+    <td>${genBest.toFixed(0)}</td><td>${avg.toFixed(0)}</td><td>${avgStd.toFixed(0)}</td>
     <td style="color:${lColor}; font-weight:bold;">${aggStats.L}</td>
     <td style="color:#f55;">${aggStats.C}</td>
     <td style="color:#fa0;">${aggStats.F}</td>
@@ -361,13 +400,12 @@ async function runGeneration(){
   el('stat-avg').textContent = avg.toFixed(0);
   updateStageList();
 
-  ST.history.push({ gen, stage: stageIdx, best: genBest, avg, stats: aggStats });
+  ST.history.push({ gen, stage: stageIdx, best: genBest, avg, std: avgStd, stats: aggStats });
   ST.gensInStage++;
 
   const targetReached = ST.stageBest >= stage.targetBest;
   const maxReached = ST.gensInStage >= stage.maxGens;
-  let stageAdvanced = false;
-  let terminated = false;
+  let stageAdvanced = false, terminated = false;
 
   if (targetReached && ST.gensInStage >= 2 && stageIdx < STAGES.length - 1){
     stageAdvanced = true;
@@ -378,11 +416,10 @@ async function runGeneration(){
       log(`→ ${stage.name} → ${STAGES[stageIdx+1].name} (maxGens, best=${ST.stageBest.toFixed(0)})`, 'warn');
     } else {
       terminated = true;
-      log(`■ 최종 stage ${stage.name} 완료 (best=${ST.stageBest.toFixed(0)}, L_total=${ST.history.filter(h=>h.stage===stageIdx).reduce((s,h)=>s+h.stats.L,0)})`, 'ok');
+      log(`■ 최종 stage 완료 (best=${ST.stageBest.toFixed(0)})`, 'ok');
     }
   }
 
-  /* ★ Stage 전환: seed = 이번 Stage의 best DNA (global best 아님) */
   if (stageAdvanced){
     const seedDNA = ST.stageBestDNA ? ST.stageBestDNA.slice() : null;
     ST.currentStage++;
@@ -402,8 +439,6 @@ async function runGeneration(){
     }
     while (newPop.length < ADAPT.popSize) newPop.push(makeRandomDNA());
     ST.population = newPop;
-    const randCount = ADAPT.popSize - 1 - Math.floor(ADAPT.popSize*ADAPT.seedBlendRatio);
-    log(`  ↪ 재생성: seed1 + blend${Math.floor(ADAPT.popSize*ADAPT.seedBlendRatio)} + random${randCount}`, 'info');
   } else {
     const sorted = scores.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
     const next = [];
@@ -411,7 +446,7 @@ async function runGeneration(){
 
     const injectCount = Math.floor(ADAPT.popSize * ADAPT.injectPct);
     const targetFill = ADAPT.popSize - injectCount;
-    const sigma = Math.max(0.08, ADAPT.baseSigma * Math.exp(-ST.gen/50));
+    const sigma = Math.max(0.08, ADAPT.baseSigma * Math.exp(-ST.gen/60));
 
     while (next.length < targetFill){
       const a = tournament(ST.population, scores, ADAPT.tournamentK);
@@ -434,8 +469,9 @@ async function start(){
   ST.running = true;
   el('btn-start').disabled = true;
   el('btn-stop').disabled = false;
+  el('btn-validate').disabled = true;
   el('status').textContent = '학습 중...';
-  log(`v10 학습 시작 (pop=${ADAPT.popSize}, ${STAGES.length} stages)`, 'info');
+  log(`v11 학습 시작 (pop=${ADAPT.popSize}, 8→12→1, ${STAGES.length} stages)`, 'info');
 
   let safety = 500;
   while (ST.running && safety-- > 0){
@@ -450,49 +486,96 @@ async function start(){
   el('status').textContent = '완료';
   el('progress-bar').style.width = '100%';
 
+  if (ST.finalStageDNA) el('btn-validate').disabled = false;
+
   generateReport();
-  log(`완료. Final DNA score=${ST.finalStageBest.toFixed(0)}. '결과 복사' 클릭`, 'ok');
+  log(`완료. final best=${ST.finalStageBest.toFixed(0)}`, 'ok');
+}
+
+/* ★★ DNA 적응성 검증: 30 랜덤 시나리오 */
+function validateFinalDNA(){
+  if (!ST.finalStageDNA){ log('최종 DNA 없음', 'warn'); return; }
+  const dna = ST.finalStageDNA;
+  let L=0, C=0, F=0, T=0;
+  const rows = [];
+  for (let i=0;i<30;i++){
+    const alt = 3000 + Math.random()*4000;
+    const vr = -50 - Math.random()*100;
+    const vt = Math.random()*100;
+    const fuel = SHIP.fuel0 * (0.5 + Math.random()*0.5);
+    const st = { r: MOON_R_M + alt, vr, vt, fuel, tMax: 280 };
+    const res = simDNA(dna, st, STAGES.length - 1);
+    if (res.kind === 'L') L++;
+    else if (res.kind === 'C') C++;
+    else if (res.kind === 'F') F++;
+    else T++;
+    rows.push({ alt: alt.toFixed(0), vr: vr.toFixed(0), vt: vt.toFixed(0), fuel: (fuel/SHIP.fuel0*100).toFixed(0), kind: res.kind, vT: res.vT?.toFixed(0) });
+  }
+  const successRate = (L / 30 * 100).toFixed(0);
+  let html = `<div style="color:${L>=24?'#0f0':L>=18?'#fa0':'#f55'}; font-weight:bold; font-size:12px;">
+    적응성: L=${L}/30 (${successRate}%) | C:${C} F:${F} T:${T}</div>`;
+  html += `<table style="margin-top:4px;"><tr><th>alt</th><th>vr</th><th>vt</th><th>fuel%</th><th>결과</th></tr>`;
+  rows.forEach(r => {
+    const color = r.kind === 'L' ? '#0f0' : r.kind === 'C' ? '#f55' : r.kind === 'F' ? '#fa0' : '#88f';
+    html += `<tr style="color:${color}"><td>${r.alt}m</td><td>${r.vr}</td><td>${r.vt}</td><td>${r.fuel}%</td><td>${r.kind}${r.kind==='C'?' v='+r.vT:''}</td></tr>`;
+  });
+  html += `</table>`;
+  el('validate-result').innerHTML = html;
+  log(`검증: L=${L}/30 (${successRate}%)`, L>=24?'ok':'warn');
 }
 
 function generateReport(){
   const now = new Date();
   const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  
   const lastStage = STAGES[STAGES.length-1];
   const altNorm = lastStage.altMax * 2 + 100;
-  
-  let r = `=== CELESTIUM GA LAB v10 리포트 ===\n`;
-  r += `시각: ${timeStr}\n`;
-  r += `Pop: ${ADAPT.popSize} | Total Gens: ${ST.gen}\n`;
+
+  let r = `=== CELESTIUM GA LAB v11 Adaptive 리포트 ===\n`;
+  r += `시각: ${timeStr}\nPop: ${ADAPT.popSize} | Total Gens: ${ST.gen}\n`;
   r += `Landing: v < ${LANDING_THRESHOLD} m/s | Units: SI\n\n`;
-  
-  r += `=== ★ 최종 DNA (S9-5km-V50용) ===\n`;
-  r += `Best score at final stage: ${ST.finalStageBest.toFixed(2)}\n`;
-  r += `정규화: alt/${altNorm}, vr/100, vt/1700\n`;
-  r += `활성화: sigmoid(0.7s - 2.5)\n`;
-  r += `DNA: ${JSON.stringify({ dna: Array.from(ST.finalStageDNA || ST.stageBestDNA || []), score: ST.finalStageBest, arch: [NN_IN, NN_HID, NN_OUT], normAlt: altNorm })}\n\n`;
-  
-  r += `=== Stage별 최고 best / L 합계 ===\n`;
-  let lastStageIdx = -1, stageMax = -Infinity, stageGens = 0, stageL = 0;
+
+  r += `=== ★ 최종 DNA (Adaptive) ===\n`;
+  r += `Final score: ${ST.finalStageBest.toFixed(2)}\n`;
+  r += `Arch: [8, 12, 1] | DNA_LEN: 108\n`;
+  r += `Activation: sigmoid(0.7s - 2.5)\n`;
+  r += `Norm: alt/${altNorm}, vr/150, vt/100 + physics-informed\n\n`;
+
+  r += `=== 입력 계약 (8개, 순서 중요) ===\n`;
+  r += `1. alt/${altNorm}  (m)\n`;
+  r += `2. vr/150  (m/s)\n`;
+  r += `3. |vt|/100  (m/s)\n`;
+  r += `4. fuel/fuel0\n`;
+  r += `5. (mass-dry)/fuel0\n`;
+  r += `6. gLocal/gSurf\n`;
+  r += `7. brake_margin = (vr²/2·alt) / (thrust/mass - gLocal)  [0~3 clamp]\n`;
+  r += `8. t_ground/30 = (alt/(|vr|+1))/30  [0~3 clamp]\n\n`;
+
+  r += `=== DNA (JSON) ===\n`;
+  r += JSON.stringify({
+    dna: Array.from(ST.finalStageDNA || ST.stageBestDNA || []),
+    score: ST.finalStageBest,
+    arch: [NN_IN, NN_HID, NN_OUT],
+    activation: 'sigmoid(0.7s - 2.5)',
+    norm: { altRef: altNorm, vrRef: 150, vtRef: 100, physicsInputs: true },
+    units: 'SI',
+    adaptive: true,
+    trainedRanges: { alt: '3000-7000m', vr: '-80~-150m/s', vt: '0-100m/s', fuel: '60-100%' },
+  });
+  r += `\n\n`;
+
+  r += `=== Stage별 최고 best ===\n`;
+  let lastIdx = -1, stageMax = -Infinity, stageGens = 0, stageL = 0;
   for (const h of ST.history){
-    if (h.stage !== lastStageIdx){
-      if (lastStageIdx >= 0) r += `  ${STAGES[lastStageIdx].name}: max=${stageMax.toFixed(0)} L_sum=${stageL} (${stageGens} gens)\n`;
-      lastStageIdx = h.stage; stageMax = -Infinity; stageGens = 0; stageL = 0;
+    if (h.stage !== lastIdx){
+      if (lastIdx >= 0) r += `  ${STAGES[lastIdx].name}: max=${stageMax.toFixed(0)} L=${stageL} (${stageGens}g)\n`;
+      lastIdx = h.stage; stageMax = -Infinity; stageGens = 0; stageL = 0;
     }
     if (h.best > stageMax) stageMax = h.best;
     stageL += h.stats.L;
     stageGens++;
   }
-  if (lastStageIdx >= 0) r += `  ${STAGES[lastStageIdx].name}: max=${stageMax.toFixed(0)} L_sum=${stageL} (${stageGens} gens)\n`;
-  r += `\n`;
-  
-  r += `=== 세대별 상세 ===\n`;
-  ST.history.forEach(h => {
-    const st = h.stats;
-    r += `Gen ${h.gen+1} [${STAGES[h.stage].name}]: best=${h.best.toFixed(0)} avg=${h.avg.toFixed(0)} | L:${st.L} C:${st.C} F:${st.F} T:${st.T}\n`;
-  });
-  
-  r += `\n=== END ===`;
+  if (lastIdx >= 0) r += `  ${STAGES[lastIdx].name}: max=${stageMax.toFixed(0)} L=${stageL} (${stageGens}g)\n`;
+
   el('report-out').value = r;
 }
 
@@ -505,9 +588,9 @@ function reset(){
   ST.finalStageBest = -Infinity; ST.finalStageDNA = null;
   ST.running = false; ST.history = [];
   ST.currentStage = 0; ST.gensInStage = 0;
-  ADAPT.baseSigma = 0.35;
   for (let i=0;i<ADAPT.popSize;i++) ST.population.push(makeRandomDNA());
   el('log').innerHTML = ''; el('stats-body').innerHTML = ''; el('report-out').value = '';
+  el('validate-result').innerHTML = '';
   el('progress-bar').style.width = '0%';
   el('stat-gen').textContent = '0';
   el('stat-stage').textContent = STAGES[0].name;
@@ -515,9 +598,11 @@ function reset(){
   el('stat-final-best').textContent = '-';
   el('stat-avg').textContent = '-';
   el('status').textContent = '대기';
-  el('btn-start').disabled = false; el('btn-stop').disabled = true;
+  el('btn-start').disabled = false;
+  el('btn-stop').disabled = true;
+  el('btn-validate').disabled = true;
   updateStageList();
-  log('초기화 v10: DNA export 수정 + 보상 재설계 (T 최악)', 'info');
+  log('초기화 v11: 8→12→1, 물리 입력, 도메인 랜덤화, robust fitness', 'info');
 }
 
 function copyReport(){
@@ -536,6 +621,7 @@ el('btn-start').addEventListener('click', start);
 el('btn-stop').addEventListener('click', stop);
 el('btn-reset').addEventListener('click', reset);
 el('btn-copy').addEventListener('click', copyReport);
+el('btn-validate').addEventListener('click', validateFinalDNA);
 reset();
 </script>
 </body>
